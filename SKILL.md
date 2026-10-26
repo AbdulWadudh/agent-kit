@@ -11,8 +11,10 @@ this file, they win.
 
 ## 1. Start of session
 
-Read `AGENTS.md`, then `.agents/project.md`. Run `task show` — resume what is in flight before
-opening anything new. Load only the rule files that match the files you will touch.
+Read `AGENTS.md`, then `.agents/project.md`. Run `agent-kit start`: it prints the branch, the
+declared commands and their tiers, what is in flight, the gate, the last evidence, and one next
+action. `task show` opens the active task in full. Resume what is in flight before opening
+anything new. Load only the rule files that match the files you will touch.
 
 Every directory the kit owns has an `INDEX.md`. Open the index of the next directory you need,
 then the one file it names; do not list a folder into context.
@@ -67,8 +69,9 @@ a rewrite.
 
 ## 3. Open
 
-`task new <slug> --lane quick|planned`. It records the baseline run itself. Before the first
-edit, fill the task's intent, scope and `touches` — the exact paths you will write.
+`task new <slug> --lane quick|planned`. It records the baseline run itself — a full one, so the
+milestone rows are on record before you touch anything. Before the first edit, fill the task's
+intent, scope and `touches` — the exact paths you will write.
 
 ## 4. G1 — plan approval (PLANNED only)
 
@@ -82,11 +85,14 @@ a file you did not declare? Say why, amend `touches` first. Never widen silently
 
 ## 6. Prove it
 
-`verify` mid-flight; `task close` runs it again. Real exit codes go in the evidence table.
-Compare against the baseline: a red that was already red is not progress, and a green you did
-not cause is not a fix. Three identical red runs over the same files make `verify` refuse —
-and `task close` with it — until the Plan says what the next attempt changes; `task show`
-prints `Loop: n/3`.
+`verify` mid-flight: it runs the `always` rows and holds the `milestone` ones for the baseline,
+`verify --full` and `task close`. So the inner loop stays short and the slow build is still on
+record before the task can close. Real exit codes go in the evidence table, each row with its
+scope. If `task show` says `Evidence: STALE`, the task's files moved after the green run —
+verify again before quoting it. Compare against the baseline: a red that was already red is not
+progress, and a green you did not cause is not a fix. Three identical red runs over the same
+files make `verify` refuse — and `task close` with it — until the Plan says what the next
+attempt changes; `task show` prints `Loop: n/3`.
 
 ## 7. G2 — result approval (PLANNED only)
 
@@ -94,10 +100,12 @@ Report what changed and the evidence, in the user's words. Wait for a yes, then 
 
 ## 8. Close
 
-`task close` runs the suite, refuses a red result, checks the diff against `touches`,
-inventories the files, archives the plan and writes the change file
-(`.agents/logs/MM-YYYY/`). `--amend "<why>"` accepts a declared breach and writes the
-reason into the plan — only with the user's reason, never as a way past a red suite.
+`task close` runs the full suite, refuses a red result, checks the diff against `touches`,
+inventories the files, archives the plan and writes the change file (`.agents/logs/MM-YYYY/`).
+It prints the commit message already in the hook's shape — subject and body — so closing and
+committing do not drift apart. `--pr` also prints a PR body built from the change file and the
+evidence. `--amend "<why>"` accepts a declared breach and writes the reason into the plan —
+only with the user's reason, never as a way past a red suite.
 
 Commits are split by task and by kind of change: one task that adds, fixes and documents is
 three commits. The subject is `type (TASK-ID): summary`; the body is the change file's
@@ -121,6 +129,9 @@ follow-up suggestions unless asked.
   add its row in `.agents/rules/INDEX.md`, and check it. The steps are in
   `.agents/templates/INDEX.md`; a rule that stays in chat does not exist.
 - **You cannot run the suite.** Say so and stop. Never close on an empty evidence table.
+- **You need an owner decision you cannot make.** `task block "<the question>"`. It stops being
+  the task in progress, the question waits in the file, and `start` shows it until the owner
+  answers; then `task resume` and continue. Do not guess and do not sit idle in the chat.
 - **You find work you will not do now.** Park it in `.agents/tasks/BACKLOG.md` with a status,
   the `path:line` and a next step. Do not leave it only in the report or a comment, and do not
   open a task for it. Picking it up later means `task new`, then delete the row.

@@ -105,7 +105,7 @@ SETUP.md                      the install contract
   tasks/                      INDEX (lanes, gates) + active/, archive/, .counter
   logs/                       INDEX (model + last five) -> MM-YYYY/: one file per change
   templates/                  INDEX -> the seeds and copyable rule examples
-scripts/                      INDEX + agent-kit.mjs: setup | check | pull | doctor | verify | harnesses | task | selftest
+scripts/                      INDEX + agent-kit.mjs: setup | check | pull | doctor | start | verify | harnesses | task | learnings | selftest
 .githooks/                    INDEX + pre-commit (scope) + commit-msg (message): optional guard
 .github/workflows/            INDEX + agent-kit.yml: the same gates on push
 SKILL.md                      the work loop: classify, open, gate, verify, close

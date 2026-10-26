@@ -1,8 +1,8 @@
 # scripts — the kit executable
 
-**Why** — one file is the whole tool: setup, check, pull, doctor, verify, harnesses, task,
-learnings, selftest. Reading it costs tens of thousands of characters; running it costs one
-exit code.
+**Why** — one file is the whole tool: setup, check, pull, doctor, start, verify, harnesses,
+task, learnings, selftest. Reading it costs tens of thousands of characters; running it costs
+one exit code.
 
 **Load it when** — a command errors in a way its output does not explain, or you are changing
 the kit itself. Never to answer an ordinary question about the workflow.

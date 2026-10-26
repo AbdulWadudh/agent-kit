@@ -8,11 +8,14 @@ verified.** Everything here serves that, and anything that stops serving it gets
 ## What you get
 
 - `AGENTS.md` — the entry point. Read once, then follow its start-here steps.
-- `.agents/project.md` — generated from your manifests: stack, real build/test/lint commands,
-  entry points, generated directories. One home, cited by everything else.
+- `.agents/project.md` — generated from your manifests: stack, real build/test/lint commands
+  with a tier (`always` on every verify, `milestone` at the baseline and close), entry points,
+  generated directories. One home, cited by everything else.
 - `.agents/tasks/` — one task file per unit of work, with a lane (QUICK or PLANNED), two
-  gates, an evidence table, and a close-out that derives the changed files from git. A parked
-  candidate lives in `BACKLOG.md` with a status; it is not a task until `task new` opens it.
+  gates, an evidence table that records each run's scope, and a close-out that derives the
+  changed files from git. A task can park on an owner question (`task block`) without holding
+  the single in-progress slot. A parked candidate lives in `BACKLOG.md` with a status; it is
+  not a task until `task new` opens it.
 - `.agents/rules/` — a router plus short rule files. One home per rule; indexes cite. Ready-made
   examples for TypeScript, Bun, Biome, API versioning, config and library docs sit in
   `.agents/templates/rule-examples/`; you install only the ones that are true.
@@ -80,7 +83,7 @@ template exactly — it wins if it disagrees with this message:
    the file it does read. List the files you wrote.
 5. Record the off-limits answers in AGENTS.md (Ask first and rules 1-4). Wire the guard if
    I said yes. Then run bun scripts/agent-kit.mjs doctor --strict until it exits 0.
-6. Run bun scripts/agent-kit.mjs verify and report the baseline honestly.
+6. Run bun scripts/agent-kit.mjs verify --full and report the baseline honestly.
 
 Report: the harnesses found and wired, the files you wrote, the detected stack, the commands
 you found and any you could not, the `rtk` row, what you filled, the doctor table, and the
@@ -106,15 +109,19 @@ You do not type commands. You describe the task:
 
 > "Login fails when the email has a plus sign. Fix it."
 
-The agent opens the task (`task new`, which records the baseline run for you), edits inside
-the declared write set, and closes it (`task close`, which runs the suite itself and refuses a
-red result). The kit exists so that path is checkable — not so that you drive it.
+The agent opens the task (`task new`, which records the full baseline run for you), edits
+inside the declared write set, and closes it (`task close`, which runs the full suite itself
+and refuses a red result). While working it runs `verify`, the quick suite — a slow build
+marked `milestone` only runs at the baseline, on `verify --full`, and at close. The kit exists
+so that path is checkable — not so that you drive it.
 
 What to ask instead of typing:
 
 | You say | The agent runs |
 |---|---|
+| "where are we?" | `start` — branch, commands and tiers, what is in flight, the last evidence, one next action |
 | "what's in flight?" | `task show` |
+| "we're stuck on a decision" | `task block "<the question>"`; the answer goes in chat, then `task resume` |
 | "what's parked?" | read `.agents/tasks/BACKLOG.md`; picking a row means `task new` and then deleting it |
 | "populate the docs" | run `.agents/templates/docs-populate.md`; it opens a PLANNED task and fills the pages, learnings and backlog |
 | "which agents can drive this repo?" | `harnesses`, then wire each skill folder it names |
@@ -207,9 +214,10 @@ schema change. Choosing per task is what keeps the gates honest.
 
 | Command | Question |
 |---|---|
-| `verify` | do the declared build, typecheck, lint and test commands exit 0 — with the codes recorded; is this the fourth identical red run? |
-| `task close` | did the diff stay inside the declared write set, is the evidence green, and is the outcome written down? |
-| `doctor` | do the docs name real paths, is every kit directory indexed, do the commands exist, are the task and logs lists current, is rtk installed, is the encoding clean, is every rule checkable and indexed, is the backlog triaged? |
+| `start` | what is the state of this repo right now — branch, commands and tiers, tasks, gate, last evidence, loop, stale flag, and the one next action? (read-only; it never writes) |
+| `verify` | do the `always` commands exit 0, and is this the fourth identical red run? `--full` adds the `milestone` rows, so the slow build is checked before close, not every pass |
+| `task close` | did the diff stay inside the declared write set, is the full suite green, and is the outcome written down? It also prints the commit message in the hook's shape |
+| `doctor` | do the docs name real paths, is every kit directory indexed, do the commands exist, are the task and logs lists current, is rtk installed, is the encoding clean, is every rule checkable and indexed, is the backlog triaged, is every blocked task carrying its question? |
 | `check` | has the template moved since install, and did you edit machinery you should not have? |
 
 Every one of them can fail. `selftest` asserts that by building a throwaway repo and

@@ -159,9 +159,10 @@ are not a reason to keep editing.
 | unfilled markers | a `FILL` marker or uppercase placeholder survived (`--strict` only) |
 | doc paths resolve | a path written in `docs/`, `.agents/` or the skill does not exist |
 | markdown links resolve | an index link points at a missing file |
-| declared commands | `project.md` names a package script that `package.json` does not have |
+| declared commands | `project.md` names a package script that `package.json` does not have, or a `When` value is not `always` or `milestone` |
 | active tasks indexed | a task file in `active/` is not in the task index |
 | write-set collisions | two active tasks declare overlapping `touches` |
+| blocked tasks | a `BLOCKED` task carries no question, or a task carries the block marker without the status |
 | backlog | a row in `.agents/tasks/BACKLOG.md` has an unknown status, a reused ID, a missing cell, or an empty item, source or next step |
 | rules are checkable | a rule file contains advice ("be careful", "try to", "consider") instead of a rule |
 | rules indexed | a file in `.agents/rules/` has no row in its `INDEX.md`, or a row names a missing file |
@@ -184,9 +185,23 @@ the task opens, so it cannot be forgotten:
 bun scripts/agent-kit.mjs task new bootstrap --lane quick
 ```
 
-Expected: the task id, then one line per declared command and `PASS — n/n command(s) exited 0`.
+Expected: the task id, then one line per declared command and `PASS (full) — n/n command(s) exited 0`.
 A failure here is the repo's problem, not the kit's: report it, do not work over it.
 `--no-baseline` skips the run; it also throws away the only way to tell an old red from a new one.
+
+The baseline is a **full** run. The `When` cell in `project.md` splits the rows:
+
+- `always` — `verify` runs it on every pass. Setup marks test, lint and typecheck here.
+- `milestone` — only the baseline, `verify --full` and `task close` run it. Setup marks build
+  here, because a full build is what makes an inner-loop iteration slow.
+
+So the inner loop is `verify` (quick), and the expensive row cannot be skipped at close:
+`task close` runs the full suite itself. Move a command between tiers in `project.md`, not in
+the kit, and confirm the slowest row is `milestone` while filling the file.
+
+`task show` and `start` say when the quick run is the whole story and when the milestone rows
+still wait. `start` is the read-only brief to begin a session with: branch, commands and tiers,
+active tasks, gate, last evidence, and one next action.
 
 `verify` also counts attempts: a red run with the same failing set over the same declared files
 is the same attempt repeated. At three, it refuses — and `task close` with it — until the Plan
