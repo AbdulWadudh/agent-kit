@@ -181,10 +181,12 @@ function frontMatter(text) {
 	for (const line of m[1].split(/\r?\n/)) {
 		const i = line.indexOf(":");
 		if (i < 0) continue;
-		out[line.slice(0, i).trim()] = line
-			.slice(i + 1)
-			.replace(/\s+#.*$/, "")
-			.trim();
+		const raw = line.slice(i + 1).trim();
+		// Quotes are YAML syntax, not content: `summary: "x # y"` keeps the hash, `a # b` does not.
+		const quoted = raw.match(/^(["'])([\s\S]*)\1$/);
+		out[line.slice(0, i).trim()] = quoted
+			? quoted[2]
+			: raw.replace(/\s+#.*$/, "").trim();
 	}
 	return out;
 }
@@ -1747,8 +1749,10 @@ function cmdSelftest() {
 			"task archived",
 		);
 		assert(
-			fs.readFileSync(abs(tmp, CHANGELOG), "utf8").includes("fixture change"),
-			"changelog line appended",
+			fs
+				.readFileSync(abs(tmp, CHANGELOG), "utf8")
+				.includes("— fixture change —"),
+			"changelog line appended, with the quotes stripped from the summary",
 		);
 		assert(
 			fs.readFileSync(abs(tmp, TASK_INDEX), "utf8").includes("TASK-101"),
