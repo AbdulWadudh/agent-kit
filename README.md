@@ -24,7 +24,7 @@ Copy the block below into a fresh agent session **in the repository you want to 
 answer its four questions. The template URL is already in it.
 
 ```text
-Set up agent-kit in this workspace: https://github.com/KSeventy9/agentic-repo-template
+Set up agent-kit in this workspace: https://github.com/KSeventy9/agent-kit
 
 Read the repo before you ask anything: manifests, entry points, and any harness config you
 can see (.claude/, .cursor/, .github/copilot-instructions.md, GEMINI.md, .windsurf/,
@@ -44,8 +44,8 @@ Then ask me these four questions, and wait for the answers before changing anyth
 Then run every step yourself; I am in chat, not a terminal. Follow SETUP.md from the
 template exactly — it wins if it disagrees with this message:
 
-1. git clone --depth 1 https://github.com/KSeventy9/agentic-repo-template "$TMPDIR/agent-kit"
-   bun "$TMPDIR/agent-kit/scripts/agent-kit.mjs" setup . --source https://github.com/KSeventy9/agentic-repo-template
+1. git clone --depth 1 https://github.com/KSeventy9/agent-kit "$TMPDIR/agent-kit"
+   bun "$TMPDIR/agent-kit/scripts/agent-kit.mjs" setup . --source https://github.com/KSeventy9/agent-kit
    (node instead of bun if Bun is absent; download the archive and pass the unpacked
    path as --source if git is unavailable)
 2. Fill AGENTS.md, .agents/project.md, docs/ARCH_MAP.md, docs/ENTRY_POINTS.md and
