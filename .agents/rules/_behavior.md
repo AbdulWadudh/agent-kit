@@ -4,11 +4,14 @@ Cross-cutting rules. They apply to every task, every file, every agent.
 
 ## 1. Evidence, not memory
 
-- Before a task: `agent-kit verify` establishes the baseline. A red baseline is reported,
-  never worked over.
-- After a task: `agent-kit verify` again, and `agent-kit task close` derives the changed
-  files from git. What the session remembers is not an inventory.
-- A gate is cleared by a command and its exit code, never by a sentence saying it passed.
+- `task new` records the baseline run. A red baseline is reported, never worked over.
+- `task close` runs the suite itself and refuses a red result. What the session remembers is
+  not a result; an exit code is.
+- `task close` derives the changed files from git. What the session remembers is not an
+  inventory; a diff is.
+- A gate is cleared by a command and its exit code — never by a sentence saying it passed.
+- A commit outside the declared write set is refused by `.githooks/pre-commit`. Bypassing it
+  with `--no-verify` is a deliberate act and belongs in the task's close-out.
 
 ## 2. One home per fact
 

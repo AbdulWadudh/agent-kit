@@ -4,6 +4,7 @@
   "machinery": [
     "scripts/agent-kit.mjs",
     ".github/workflows/agent-kit.yml",
+    ".githooks",
     ".opencode/skills/agent-kit",
     ".agents/sync-manifest.json",
     ".agents/templates",

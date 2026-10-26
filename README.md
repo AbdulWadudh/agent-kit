@@ -34,13 +34,24 @@ See `SETUP.md` for the contract and the expected output of each step.
 
 ## Daily use
 
-```bash
-bun scripts/agent-kit.mjs task new fix-login --lane planned
-bun scripts/agent-kit.mjs task show        # scope, plan, evidence — the thing G1/G2 asks you to read
-bun scripts/agent-kit.mjs verify --baseline # was it already broken?
-bun scripts/agent-kit.mjs verify           # records the evidence, prints the delta
-bun scripts/agent-kit.mjs task close       # scope-check, inventory, archive, index
-```
+You do not type commands. You describe the task:
+
+> "Login fails when the email has a plus sign. Fix it."
+
+The agent opens the task (`task new`, which records the baseline run for you), edits inside
+the declared write set, and closes it (`task close`, which runs the suite itself and refuses a
+red result). The kit exists so that path is checkable — not so that you drive it.
+
+What is worth typing yourself:
+
+| When | Command |
+|---|---|
+| you want to see what the agent claims | `task show` |
+| you want the truth check, not the agent's summary | `doctor --strict` (`--json` in CI) |
+| you are about to accept a template upgrade | `check`, then `pull --dry-run` |
+
+And when an agent commits outside its declared write set, the pre-commit guard stops it.
+`setup` wires `git config core.hooksPath .githooks`, so discipline is not the mechanism.
 
 `--amend "<why>"` on `task close` is the recorded way to accept a file that turned out to be
 in scope later; the reason is written into the archived plan.

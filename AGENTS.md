@@ -75,6 +75,7 @@ INIT_PROMPT.md                the text a human pastes into a new repo
   logs/changelog.md           thin index, one line per closed task
   templates/                  the seeds, plus rule-file examples and the task template
 scripts/agent-kit.mjs         setup | check | pull | doctor | verify | task | selftest
+.githooks/pre-commit          refuses a commit outside the active task's write set
 .opencode/skills/agent-kit/   project skill: the trigger and the do/do-not boundary
 examples/minimal/             what a filled repo looks like (not installed)
 docs/                         the knowledge seed a target repo authors from

@@ -29,7 +29,7 @@
 ## Active
 
 <!-- ACTIVE:START -->
-_Nothing in flight._
+- `TASK-101` [IN_PROGRESS] QUICK — [2026-10-26-TASK-101-hook-smoke.md](active/2026-10-26-TASK-101-hook-smoke.md)
 <!-- ACTIVE:END -->
 
 ## Recent (last 5)

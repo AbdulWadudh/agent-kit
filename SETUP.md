@@ -83,19 +83,19 @@ are not a reason to keep editing.
 
 ## 4. First verification baseline
 
+`task new` records the baseline itself. The "was it already broken?" run happens at the moment
+the task opens, so it cannot be forgotten:
+
 ```bash
 bun scripts/agent-kit.mjs task new bootstrap --lane quick
-bun scripts/agent-kit.mjs verify --baseline   # what the repo looked like coming in
-bun scripts/agent-kit.mjs verify              # after the fill; prints "fixed: ..." for the delta
 ```
 
-Expected: one line per declared command, then `PASS — n/n command(s) exited 0`. A failure
-here is the repo's problem, not the kit's: report it, do not work over it. The baseline run
-is what makes that sentence checkable — with it recorded, a red command that is still red is
-a known condition, not a new claim.
+Expected: the task id, then one line per declared command and `PASS — n/n command(s) exited 0`.
+A failure here is the repo's problem, not the kit's: report it, do not work over it.
+`--no-baseline` skips the run; it also throws away the only way to tell an old red from a new one.
 
-Commit the fill work before opening the first task. `task new` records the current `HEAD` as
-the baseline, and `task close` derives the changed-file inventory from it — a repo with no
+Commit the fill work **before** opening the first task. `task new` records the current `HEAD`
+as the baseline, and `task close` derives the changed-file inventory from it — a repo with no
 commit at all has no baseline to diff against.
 
 ## 5. Report

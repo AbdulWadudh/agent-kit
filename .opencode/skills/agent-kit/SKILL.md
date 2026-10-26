@@ -28,19 +28,23 @@ set up. Report the detected stack, the commands found, and anything you could no
 | Need | Command |
 |---|---|
 | what is in flight | `task show` |
-| open work | `task new <slug> --lane quick\|planned` |
-| prove it before and after | `verify --baseline`, then `verify` |
-| close | `task close` |
+| open work | `task new <slug> --lane quick\|planned` — records the baseline run itself |
+| mid-flight proof | `verify` (close runs it anyway) |
+| close | `task close` — runs the suite, refuses red, inventories |
 | drift vs template | `check`, `pull --dry-run`, `pull` |
 | truth check on the docs | `doctor --strict` |
 | mechanical repair | `doctor --fix` |
 
+The user does not type these. You do: `task new` when the work starts, `task close` when it
+ends. Everything else exists for the moment something looks wrong.
+
 ## Do
 
 - Read `AGENTS.md`, then `.agents/project.md`, before touching anything.
-- Declare `touches` in the task **before** the first edit, and keep every edit inside it.
-- Take the baseline run before the change and the evidence run after it. Two runs, two
-  exit codes.
+- Declare `touches` in the task **before** the first edit, and keep every edit inside it. The
+  pre-commit hook enforces it, so a slip is a failed commit, not a quiet breach.
+- Two runs, two exit codes: the baseline at `task new`, the evidence at `task close`. Read
+  both before claiming a fix — a red that was already red is not progress.
 - Halt at G1 (plan approval) and G2 (result approval) in the PLANNED lane.
 - Ask before a dependency, a schema change, a public interface change, or a deletion.
 - Cite a rule's home (`docs/`, `.agents/rules/`, `project.md`) instead of restating it.
