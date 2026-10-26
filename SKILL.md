@@ -19,9 +19,14 @@ then the one file it names; do not list a folder into context.
 
 ## Skills and tools, before you plan
 
-Check what is installed. A skill that covers the task is part of the plan, not a preference:
-name it, follow it, and never do from memory what it already solves. Nothing fits — say so.
-Same order for MCP servers and tools: the configured one first, hand-written code second.
+List what the harness exposes — installed skills (its skill folder or plugin list), configured
+MCP servers and their tools, and CLIs on `PATH` — then name the one that covers the task in the
+plan. A skill that matches is part of the plan, not a preference: read it and follow it; several
+fit, take the narrowest; none fits, say so and write the smallest step by hand. Use a configured
+MCP server before a hand-written script that does the same, and an existing CLI or repo script
+before a one-off. Re-check when the task changes shape. Installing a skill or wiring an MCP
+server is `SETUP.md` §3 and the owner's yes — not a mid-task fix. The rule and its sources are
+`.agents/rules/_behavior.md` §12.
 
 `agent-kit harnesses` lists the coding agents installed on this machine — HOME config, PATH,
 repo markers. The repo may show none of them. Say the list when you set up or report on a
