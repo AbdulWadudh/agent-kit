@@ -63,6 +63,7 @@ else lands here:
 | a new hallucination guard | `.agents/rules/anti-patterns.md` | its row in `.agents/rules/INDEX.md` |
 | a rule example for a domain | `.agents/templates/rule-examples/<domain>.md` | `rule-examples/INDEX.md` |
 | a file every installed repo starts with | `.agents/templates/<name>.seed.md` | manifest `seeds`, `.agents/templates/INDEX.md`, `SETUP.md` |
+| a prompt an agent runs, not a file it authors | `.agents/templates/<name>.md` | its row in `.agents/templates/INDEX.md`, and the step that runs it |
 | a command or a check | `scripts/agent-kit.mjs` | header and usage, the kit table in `AGENTS.seed.md`, `SETUP.md` if setup runs it, a `selftest` scenario, `README.md` if the owner runs it |
 | a directory the kit owns | the directory | `.agents/sync-manifest.json` (`machinery` or `owned`), its `INDEX.md` |
 

@@ -1,18 +1,21 @@
-# templates — the seeds, and examples to copy
+# templates — the seeds, the docs pass, and examples to copy
 
-**Why** — a target repo authors its own docs. This folder holds the blank shapes `setup` copies
-and one worked example per rule type, so no file has to be duplicated by hand.
+**Why** — a target repo authors its own docs. This folder holds the blank shapes `setup` copies,
+the prompt that fills them, and one worked example per rule type, so no file has to be
+duplicated by hand.
 
-**Load it when** — you are changing what an installed repo starts with, or adding, changing or
-removing a rule.
+**Load it when** — you are changing what an installed repo starts with, populating `docs/`, or
+adding, changing or removing a rule.
 
 | Path | Holds | Open when |
 |---|---|---|
 | `AGENTS.seed.md` | the target entry point: boundaries, layout, kit table | changing the installed contract |
 | `CLAUDE.seed.md` | the Claude pointer to `AGENTS.md` | same |
-| `tasks-INDEX.seed.md` | the task router, lane table, and last-five list | same |
+| `tasks-INDEX.seed.md` | the task router, lane table, backlog, and last-five list | same |
+| `backlog.seed.md` | the parked-work file and its three statuses | changing where TODOs are tracked |
 | `logs-INDEX.seed.md` | the change-log model and last-five list | same |
 | `learnings.seed.md` | the live-learnings shape and its cap | same |
+| `docs-populate.md` | the docs fill pass: inventory, interview, learnings, backlog | asked to populate or refresh `docs/` |
 | `task.md` | the per-task plan shape | `task new` reads it; you rarely need to |
 | `rule-examples/INDEX.md` | one rule file per domain | adding a rule for a new domain |
 

@@ -29,5 +29,8 @@ know where a boundary sits. Open one page, not all three.
 
 - A change that moves a boundary updates `ARCH_MAP.md` in the same task.
 - A change to an exported signature updates `API_SKELETON.md` in the same task.
+- A thin map or one that has drifted gets the full pass in
+  `.agents/templates/docs-populate.md`: inventory with `path:line`, one interview for what the
+  tree cannot answer, exception comments into learnings, TODOs into the backlog.
 - `agent-kit doctor` fails when a page here points at a file that does not exist, and when a
   path named in these docs is not real. That is the only maintenance this map gets for free.

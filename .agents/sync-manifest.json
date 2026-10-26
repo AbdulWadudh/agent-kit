@@ -22,6 +22,7 @@
     "docs/ENTRY_POINTS.md": "docs/ENTRY_POINTS.md",
     ".agents/rules/learnings.md": ".agents/templates/learnings.seed.md",
     ".agents/tasks/INDEX.md": ".agents/templates/tasks-INDEX.seed.md",
+    ".agents/tasks/BACKLOG.md": ".agents/templates/backlog.seed.md",
     ".agents/logs/INDEX.md": ".agents/templates/logs-INDEX.seed.md"
   },
   "prune": [

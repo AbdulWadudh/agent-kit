@@ -11,11 +11,14 @@ verified.** Everything here serves that, and anything that stops serving it gets
 - `.agents/project.md` — generated from your manifests: stack, real build/test/lint commands,
   entry points, generated directories. One home, cited by everything else.
 - `.agents/tasks/` — one task file per unit of work, with a lane (QUICK or PLANNED), two
-  gates, an evidence table, and a close-out that derives the changed files from git.
+  gates, an evidence table, and a close-out that derives the changed files from git. A parked
+  candidate lives in `BACKLOG.md` with a status; it is not a task until `task new` opens it.
 - `.agents/rules/` — a router plus short rule files. One home per rule; indexes cite. Ready-made
   examples for TypeScript, Bun, Biome, API versioning, config and library docs sit in
   `.agents/templates/rule-examples/`; you install only the ones that are true.
-- `docs/` — the knowledge seed: architecture map, API skeleton, entry points.
+- `docs/` — the knowledge seed: architecture map, API skeleton, entry points, and
+  `.agents/templates/docs-populate.md`, the pass that fills them from `path:line` evidence,
+  interviews the gaps, moves exception comments into learnings and TODOs into the backlog.
 - Indexed directories — every directory the kit owns has an `INDEX.md` saying what lives there,
   why, and when to open it. A session reads one index and one file, never a folder listing, so
   the always-on context stays small. `doctor` fails an unindexed directory.
@@ -112,6 +115,8 @@ What to ask instead of typing:
 | You say | The agent runs |
 |---|---|
 | "what's in flight?" | `task show` |
+| "what's parked?" | read `.agents/tasks/BACKLOG.md`; picking a row means `task new` and then deleting it |
+| "populate the docs" | run `.agents/templates/docs-populate.md`; it opens a PLANNED task and fills the pages, learnings and backlog |
 | "which agents can drive this repo?" | `harnesses`, then wire each skill folder it names |
 | "is this repo actually healthy?" | `doctor --strict` and reports the failing row |
 | "what changed since the template?" | `check`, then `pull --dry-run` |

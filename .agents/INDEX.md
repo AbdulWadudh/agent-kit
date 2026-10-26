@@ -11,6 +11,7 @@ do not read the directory.
 | `project.md` | stack, entry points and the exact commands (the only home for commands) | every session |
 | `rules/INDEX.md` | the rules router | every session, then only the matching rules |
 | `tasks/INDEX.md` | lanes, gates, active task | before opening, resuming or closing a task |
+| `tasks/BACKLOG.md` | parked candidates with a status; not tasks | looking for what is next, or recording a finding |
 | `logs/INDEX.md` | the change-log model and the five newest changes | recording or looking up a change |
 | `templates/INDEX.md` | seeds, copyable rule examples, and the steps for adding or changing a rule | editing a seed or a rule |
 | `sync-manifest.json` | what travels to a target repo, and what never does | installing, pulling, auditing the kit |

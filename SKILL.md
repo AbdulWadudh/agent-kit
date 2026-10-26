@@ -119,6 +119,9 @@ follow-up suggestions unless asked.
   add its row in `.agents/rules/INDEX.md`, and check it. The steps are in
   `.agents/templates/INDEX.md`; a rule that stays in chat does not exist.
 - **You cannot run the suite.** Say so and stop. Never close on an empty evidence table.
+- **You find work you will not do now.** Park it in `.agents/tasks/BACKLOG.md` with a status,
+  the `path:line` and a next step. Do not leave it only in the report or a comment, and do not
+  open a task for it. Picking it up later means `task new`, then delete the row.
 - **The change outgrows QUICK.** Stop, reopen it as PLANNED, take the gate.
 
 ## Not yours

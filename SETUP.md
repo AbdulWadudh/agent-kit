@@ -71,10 +71,17 @@ This is the only work that needs judgement. Four items, in this order:
 |---|---|
 | `AGENTS.md` | every `<!-- FILL:... -->` replaced; every `<UPPERCASE PLACEHOLDER>` replaced; rules 1-4 are constraints that are true **only** in this repo |
 | `.agents/project.md` | the detected commands are correct; the detection notes are confirmed or deleted; domain notes say what the code cannot |
-| `docs/ARCH_MAP.md`, `docs/ENTRY_POINTS.md`, `docs/API_SKELETON.md` | one real row or signature per entry; no invented layer |
+| `docs/ARCH_MAP.md`, `docs/ENTRY_POINTS.md`, `docs/API_SKELETON.md` | one real row or signature per entry; no invented layer. The full pass is `.agents/templates/docs-populate.md` |
 | `.agents/rules/` | one file per domain this repo actually has, copied from `.agents/templates/rule-examples/` when one matches. `code` (the TypeScript example) earns its file in any TypeScript repo; `config` and `api` only where the repo has tunables or HTTP routes. Simplicity needs no file — it is `_behavior.md` §8, and `_behavior.md` ships with the machinery. No file, no rule: do not install a rule about a language the repo does not use |
 
 `examples/minimal/` in the template shows all four after the fill, for a fictional repo.
+
+**Populating the docs in full.** `.agents/templates/docs-populate.md` is the pass that fills
+these pages from evidence: it inventories the tree with `path:line`, asks three to five
+questions only where the code cannot answer, writes an exception comment's reason into
+`.agents/rules/learnings.md`, and parks every `TODO` in `.agents/tasks/BACKLOG.md` with a
+status. It opens a PLANNED task, so run it after the fill commit in §5 — that commit is the
+only one that predates a task.
 
 **Ask, do not invent.** Rules 1-4 and the domain notes are facts only the owner has. Propose two
 or three candidates from the tree in the session, get a yes, then write them. An invented rule
@@ -155,6 +162,7 @@ are not a reason to keep editing.
 | declared commands | `project.md` names a package script that `package.json` does not have |
 | active tasks indexed | a task file in `active/` is not in the task index |
 | write-set collisions | two active tasks declare overlapping `touches` |
+| backlog | a row in `.agents/tasks/BACKLOG.md` has an unknown status, a reused ID, a missing cell, or an empty item, source or next step |
 | rules are checkable | a rule file contains advice ("be careful", "try to", "consider") instead of a rule |
 | rules indexed | a file in `.agents/rules/` has no row in its `INDEX.md`, or a row names a missing file |
 | archived tasks changelogged | a task is in `archive/` but has no file under `.agents/logs/MM-YYYY/` |

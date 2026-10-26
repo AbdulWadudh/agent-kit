@@ -11,7 +11,9 @@ the one task it names; not the folders.
 1. **Check Active** below. If a task is in flight, open it and resume from its last recorded
    step. Do not start a second one.
 2. **Otherwise open a task:** `agent-kit task new <slug> --lane quick|planned`.
-3. **Never work from memory.** The task file is the state; if a fact is not in it, it did not
+3. **Looking for what is next?** Read `BACKLOG.md` — parked candidates, not tasks. A row
+   becomes work only when the owner picks it, and then it is deleted.
+4. **Never work from memory.** The task file is the state; if a fact is not in it, it did not
    happen.
 
 ## Lanes
@@ -34,6 +36,12 @@ the one task it names; not the folders.
 - An out-of-scope commit, or a message with no task and summary, is reported by the
   `.githooks/` hooks in clones that opted into them (`git config core.hooksPath .githooks`).
   Same rule, earlier warning — not a second rule.
+
+## Backlog
+
+`BACKLOG.md` lists what the owner parked: `later`, `not-now`, `not-important`. A row has no
+lane and no write set; `task new` plus deleting the row is the only promotion. `doctor` checks
+the vocabulary, the IDs and the cells, so a malformed row fails before it wastes a session.
 
 ## Active
 

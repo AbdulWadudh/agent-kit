@@ -840,7 +840,10 @@ function cmdSetup({ target, sourceRoot, sourceSpec, noRtk, home, pathEnv }) {
 		"  2. .agents/project.md   confirm the detected commands; add what the code cannot say",
 	);
 	console.log(
-		"  3. docs/            ARCH_MAP, ENTRY_POINTS, API_SKELETON from the real tree",
+		"  3. docs/            ARCH_MAP, ENTRY_POINTS, API_SKELETON from the real tree;",
+	);
+	console.log(
+		"                      the full pass is .agents/templates/docs-populate.md",
 	);
 	console.log(
 		"\nThen: agent-kit doctor --strict   (must exit 0 before you call setup done)\n",
@@ -1411,6 +1414,49 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 		"task statuses",
 		unknown.map((u) => `${u.f} (${u.s || "missing"})`).join(", "),
 	);
+
+	// 5b. parked work is a candidate, not a second task list: the vocabulary and identity are
+	// checked, and a promoted row is deleted rather than marked done.
+	const backlogText = readIf(abs(base, `${TASKS}/BACKLOG.md`));
+	if (backlogText === null) {
+		add("PASS", "backlog", "not installed");
+	} else {
+		const allowed = new Set(["later", "not-now", "not-important"]);
+		const ids = new Set();
+		const badRows = [];
+		const backlogRows = fenceFree(backlogText)
+			.split(/\r?\n/)
+			.filter((l) => l.trim().startsWith("|"))
+			.map((l) =>
+				l
+					.split("|")
+					.slice(1, -1)
+					.map((c) => c.replace(/`/g, "").trim()),
+			)
+			.filter(
+				(c) =>
+					c.length &&
+					c[0].toLowerCase() !== "id" &&
+					!c.every((cell) => /^:?-+:?$/.test(cell)),
+			);
+		for (const cells of backlogRows) {
+			const [id, status, item, source, next] = cells;
+			if (cells.length !== 5) {
+				badRows.push(`${id || "(row)"}: needs 5 cells`);
+				continue;
+			}
+			if (!/^B-\d{2,}$/.test(id)) badRows.push(`${id || "(no id)"}: ID is B-NN`);
+			else if (ids.has(id)) badRows.push(`${id}: duplicate`);
+			else ids.add(id);
+			if (!allowed.has(status)) badRows.push(`${id}: status "${status}"`);
+			if (!item || !source || !next) badRows.push(`${id}: empty cell`);
+		}
+		add(
+			badRows.length ? "FAIL" : "PASS",
+			"backlog",
+			badRows.length ? badRows.slice(0, 4).join(", ") : `${ids.size} row(s)`,
+		);
+	}
 
 	// 6. learnings cap: the live file is a queue, not an archive — past the cap it moves on
 	const learn = readIf(abs(base, ".agents/rules/learnings.md"));
@@ -2753,10 +2799,11 @@ function cmdSelftest() {
 
 		console.log("\n20. the rules router and the folder agree");
 		// Scenario 16 leaves a red doctor on purpose, so assert the row, not the exit code.
-		const rulesRow = () => {
+		const doctorRow = (name) => {
 			const out = captured(() => cmdDoctor({ root: tmp, jsonOut: true }));
-			return JSON.parse(out).rows.find((r) => r.name === "rules indexed");
+			return JSON.parse(out).rows.find((r) => r.name === name);
 		};
+		const rulesRow = () => doctorRow("rules indexed");
 		const extraRule = abs(tmp, ".agents/rules/extra.md");
 		write(extraRule, "# extra\n\n- a rule for a domain nobody indexed.\n");
 		const noRow = rulesRow();
@@ -2779,6 +2826,64 @@ function cmdSelftest() {
 			rulesRow().status === "PASS",
 			"doctor accepts the router and the folder once they agree",
 		);
+
+		console.log("\n21. the backlog holds candidates, not tasks");
+		const backlogP = abs(tmp, `${TASKS}/BACKLOG.md`);
+		const backlog = (rows) =>
+			write(
+				backlogP,
+				[
+					"# Backlog — parked work",
+					"",
+					"| ID | Status | Item | Source | Next step |",
+					"|---|---|---|---|---|",
+					...rows,
+					"",
+				].join("\n"),
+			);
+		assert(
+			exists(backlogP) && doctorRow("backlog").status === "PASS",
+			"setup installs a backlog that passes with nothing parked",
+		);
+		backlog([
+			"| `B-01` | `later` | retry the upload | `src/index.ts:1` | decide the budget |",
+		]);
+		assert(doctorRow("backlog").status === "PASS", "a well-formed row passes");
+		backlog([
+			"| `B-01` | `someday` | retry the upload | `src/index.ts:1` | decide the budget |",
+		]);
+		const statusRow = doctorRow("backlog");
+		assert(
+			statusRow.status === "FAIL" && statusRow.detail.includes("someday"),
+			"doctor fails a status outside the vocabulary",
+		);
+		backlog([
+			"| `B-01` | `later` | retry the upload | `src/index.ts:1` | decide the budget |",
+			"| `B-01` | `later` | retry the download | `src/index.ts:2` | decide the budget |",
+		]);
+		assert(
+			doctorRow("backlog").detail.includes("duplicate"),
+			"doctor fails a reused ID",
+		);
+		backlog([
+			"| `B-01` | `later` | retry the upload | `src/index.ts:1` |  |",
+		]);
+		assert(
+			doctorRow("backlog").status === "FAIL",
+			"doctor fails a row with no next step",
+		);
+		backlog([]);
+		assert(
+			doctorRow("backlog").status === "PASS",
+			"doctor accepts the empty backlog again",
+		);
+		fs.rmSync(backlogP);
+		const noBacklog = doctorRow("backlog");
+		assert(
+			noBacklog.status === "PASS" && noBacklog.detail.includes("not installed"),
+			"an older install without the seed is not failed",
+		);
+		write(backlogP, read(abs(SCRIPT_ROOT, ".agents/templates/backlog.seed.md")));
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });
 		if (junkDir) fs.rmSync(junkDir, { recursive: true, force: true });
