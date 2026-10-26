@@ -1,26 +1,45 @@
-# 📌 Task Index & Routing Hub
+# Task Index and Routing
 
-## 🛠️ TASK ROUTING PROTOCOL (Read & Execute First)
-1. **Check Active Task**: Look at `Current Active Task` below. If a task is active, open it and resume work from the last logged step in its scratchpad.
-2. **If New Task Needed**:
-   - Read `.agents/tasks/.counter` (e.g. `100`), increment by 1 (`101`), and save `101` back to `.counter`.
-   - Copy `.agents/tasks/templates/task-template.md` to `.agents/tasks/active/YYYY-MM-DD-TASK-101-<slug>.md`.
-   - Update `Current Active Task` below with the new file path and set status to `IN_PROGRESS`.
+## Routing
 
----
+1. **Check Active** below. If a task is in flight, open it and resume from its last recorded
+   step. Do not start a second one.
+2. **Otherwise open a task:** `agent-kit task new <slug> --lane quick|planned`.
+3. **Never work from memory.** The task file is the state; if a fact is not in it, it did not
+   happen.
 
-## 🟢 Current Active Task
-- **Active Task File**: None
-- **Status**: `IDLE`
+## Lanes
 
----
+| | QUICK | PLANNED |
+|---|---|---|
+| **Eligible when** | three files or fewer, one domain, reversible with `git revert`, no contract change | everything else |
+| **G1 — plan** | record intent in the task and proceed | **halt** for approval before the first edit |
+| **G2 — result** | `verify` plus evidence, then close | **halt** for approval after `verify`, before close |
+| **Typical** | typo, doc fix, one-file bug, a test | feature, refactor, schema, interface change |
 
-## 🕒 Recent Tasks (Last 5 Only)
-| Date | Task ID | Description | Status | Path |
-| :--- | :--- | :--- | :--- | :--- |
-| `YYYY-MM-DD` | `TASK-100` | Initial template setup | ✅ Done | `.agents/tasks/archive/` |
+## Gates
 
----
+- **G1** and **G2** are the only two halts. A halt means: stop, present, wait. Not "proceed
+  and note it".
+- **Always halt, in every lane:** a destructive or irreversible action, a new dependency, a
+  schema or migration change, deleting files outside the declared write set, or a red
+  verification baseline.
+- A rejection returns to the plan. An unapproved plan never reaches an edit.
 
-## 🗄️ Historical Archive Rule
-Tasks older than the recent 5 entries are archived in `.agents/tasks/archive/YYYY-MM/`. Do NOT read archived task files unless specifically instructed.
+## Active
+
+<!-- ACTIVE:START -->
+_Nothing in flight._
+<!-- ACTIVE:END -->
+
+## Recent (last 5)
+
+| Date | ID | Lane | Outcome | File |
+|---|---|---|---|---|
+<!-- RECENT:START -->
+<!-- RECENT:END -->
+
+## Archive
+
+Closed tasks move to `.agents/tasks/archive/YYYY-MM/`. Do not read them unless the user asks
+about history; the changelog already carries the one-line version.

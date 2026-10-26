@@ -1,35 +1,42 @@
-# 🤖 Codebase Audit & Rule Initialization Prompt
+# Init Prompt
 
-Use this prompt in a fresh session to audit an existing repository and initialize/refresh all `.agents/` and `docs/` knowledge structures.
+Paste this into a fresh agent session inside the repository you want to set up. Replace the
+URL with this template's repository.
 
-```markdown
-# SYSTEM PROMPT: CODEBASE AUDITOR & RULE INITIALIZER
+```text
+Set up agent-kit in this repository: <template-url>
 
-## 🎯 OBJECTIVE
-You are an AI Repository Architect. Your goal is to inspect the current codebase, extract its tech stack, audit existing operational rules/standards, check if any rules require modifications or updates, and automatically generate or refresh the repository's `.md` documentation infrastructure.
+Follow SETUP.md from that repository exactly. In short:
+1. git clone --depth 1 <template-url> "$TMPDIR/agent-kit"
+2. bun "$TMPDIR/agent-kit/scripts/agent-kit.mjs" setup . --source <template-url>
+   (use node if bun is not installed)
+3. Fill AGENTS.md, .agents/project.md, docs/ARCH_MAP.md, docs/ENTRY_POINTS.md,
+   docs/API_SKELETON.md and the three rule seeds from the REAL tree. Do not invent a
+   path, a command or a layer.
+4. bun scripts/agent-kit.mjs doctor --strict   -- must exit 0
+5. bun scripts/agent-kit.mjs verify           -- report the baseline honestly
 
----
-
-## 📋 EXECUTION PROTOCOL
-
-### PHASE 1: CODEBASE & ARCHITECTURE DISCOVERY
-1. Inspect folder hierarchy (`src/`, `scripts/`, etc.).
-2. Identify tech stack, framework versions, package dependencies, and build/test commands.
-3. Map application entry points, core domain logic, side-effect modules, and generated directories.
-
-### PHASE 2: AUDIT EXISTING RULES & STANDARDS
-1. Inspect existing standards files (`AGENTS.md`, `OPERATING-PRINCIPLES.md`, `CONTRIBUTING.md`).
-2. Identify gaps and hallucination risks.
-
-### PHASE 3: RULE MODIFICATION & FEEDBACK PROMPT
-1. Summarize current rules and recommend adjustments.
-2. Confirm rule updates before writing `.md` files.
-
-### PHASE 4: GENERATE / REFRESH `.MD` INFRASTRUCTURE
-Generate or update directory-wise `.md` files using Progressive Disclosure (index files <150 lines):
-- Root Master Entry (`AGENTS.md`)
-- Documentation Hub (`docs/INDEX.md`, `ARCH_MAP.md`, `API_SKELETON.md`, `ENTRY_POINTS.md`)
-- Task Subsystem (`.agents/tasks/INDEX.md`, `.counter`, templates)
-- Changelog Subsystem (`.agents/changelog/INDEX.md`, `active.md`, templates)
-- Driver & Verification Hub (`.agents/driver/INDEX.md`, `task.sh`, `verify_task.sh`, `init_knowledge.sh`)
+Then report: detected stack, the commands you found (and any you could not find),
+what you filled, the doctor table, and the next action. Do not claim a step passed
+without showing its output.
 ```
+
+## Why this prompt is short
+
+It names a contract (`SETUP.md`) instead of restating it. That is the same rule the template
+enforces on the codebase: one home per fact. If this prompt and `SETUP.md` ever disagree,
+`SETUP.md` wins and this file is the bug.
+
+## If the agent cannot clone
+
+Two fallbacks, in order:
+
+1. **Archive.** Download the repository's zip, unpack to a temp directory, run the same
+   `setup` command with that path as `--source`.
+2. **Manual copy.** Copy `scripts/`, `.agents/` and `docs/` into the target, then run
+   `bun scripts/agent-kit.mjs setup . --source .` from the target root. The script adopts
+   the repo in place: it records the hash baseline of what is already there and clears
+   `source`, so `check` and `pull` report "not set up" until you install from a real source.
+
+The manual path loses history, not correctness: without a recorded `--source`, drift
+against the template cannot be measured. Prefer the clone when git is available.
