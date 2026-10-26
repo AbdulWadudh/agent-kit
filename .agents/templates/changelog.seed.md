@@ -1,8 +1,19 @@
-# Agent Changelog
+# Changelog
 
-A thin index: one line per closed task. The why lives in the plan each line links to, never
-here. Newest last, so the last three lines are the recent-state signal `AGENTS.md` asks for.
+Release notes, one block per release. `agent-kit task close` appends each finished task to
+🚧 Unreleased under its `type`; `agent-kit release <version> --summary "<what shipped>"`
+promotes that block into a release and starts a fresh one. Never hand-compose an entry.
 
-`agent-kit task close` appends the line. Never hand-compose one.
+## 🚧 Unreleased
 
-## Index
+### 🟢 Added
+_None yet._
+
+### 🔵 Changed
+_None yet._
+
+### 🛠️ Fixed
+_None yet._
+
+### ⚠️ Deprecated / Removed
+_None yet._

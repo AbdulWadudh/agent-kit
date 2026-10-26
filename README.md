@@ -63,20 +63,59 @@ it on where an agent commits unattended; skip it if your team would rather not h
 
 ## What the changelog is
 
-`.agents/logs/changelog.md` — one line per closed task, written by `task close`, never by hand:
+`.agents/logs/changelog.md` is the release notes, and both halves of it are generated:
 
 ```
-- **2026-10-26** — `TASK-101` — prove the hook fires — [plan](../tasks/archive/2026-10/TASK-101-hook-smoke.md)
+## 🚧 Unreleased
+
+### 🟢 Added
+- `TASK-118`: rate-limited the invite endpoint
+
+### 🔵 Changed
+- `TASK-116`: session tokens now rotate on refresh
 ```
 
-The line is the index; the link is the evidence: that plan holds the scope, the baseline run,
-the post-change run with real exit codes, and the file inventory. `doctor` fails if an
-archived task has no line, so the history cannot quietly lose a change. The task index
-deliberately does **not** repeat these rows — one home per fact.
+`task close` files one entry under the task's `type` (`added`, `changed`, `fixed`, `removed`).
+When the batch is done:
 
-This is agent memory, not release notes. If the repo publishes a user-facing `CHANGELOG.md`,
-that file has a different audience and a different cadence; keep both, and do not generate one
-from the other.
+```bash
+bun scripts/agent-kit.mjs release 0.4.0 --summary "Invites are rate-limited and sessions rotate."
+```
+
+That turns the Unreleased block into a release — summary, the categories that have entries, and
+Touched Modules derived from the archived plans' file inventories:
+
+```
+## 🚀 Release [v0.4.0] — 2026-10-27
+
+### 🚀 Summary
+Invites are rate-limited and sessions rotate.
+
+---
+
+### 🟢 Added
+- `TASK-118`: rate-limited the invite endpoint
+
+### 🔵 Changed
+- `TASK-116`: session tokens now rotate on refresh
+
+---
+
+### 📦 Touched Modules
+- `src/api/invites/`
+- `src/session.ts`
+```
+
+and leaves a fresh, empty Unreleased block behind. `release` refuses an empty batch and a
+version that is not `1.2.3`-shaped; the version is the one thing it will not invent.
+
+Each task ID is the pointer back to the evidence: the archived plan holds the scope, the
+baseline run, the post-change run with real exit codes and the inventory. `doctor` fails if an
+archived task has no entry, so the notes cannot quietly lose a change — and the task index
+deliberately does not repeat them.
+
+If the repo already publishes a user-facing `CHANGELOG.md`, this is a different audience and a
+different cadence. Keep both, and do not generate one from the other.
 
 `--amend "<why>"` on `task close` is the recorded way to accept a file that turned out to be
 in scope later; the reason is written into the archived plan.

@@ -72,7 +72,7 @@ INIT_PROMPT.md                the text a human pastes into a new repo
   project.md                  generated per repo: stack + commands (single source)
   rules/                      INDEX (router) + _behavior + one file per domain
   tasks/                      INDEX, active/, archive/, .counter
-  logs/changelog.md           thin index, one line per closed task
+  logs/changelog.md           release notes: Unreleased + one block per release
   templates/                  the seeds, plus rule-file examples and the task template
 scripts/agent-kit.mjs         setup | check | pull | doctor | verify | task | selftest
 .githooks/pre-commit          optional per-clone guard: refuses an out-of-scope commit

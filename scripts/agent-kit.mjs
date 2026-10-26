@@ -16,6 +16,7 @@
  *   task new <slug> [--lane quick|planned] open a task and record the baseline run
  *   task show [--id TASK-N]                the active task's scope, plan and evidence
  *   task close [--amend "<why>"]           run the suite, scope-check, record, archive, index
+ *   release <version> --summary "<text>"   promote the Unreleased block into release notes
  *   task guard                             pre-commit gate: refuse an out-of-scope commit
  *   selftest                               prove every gate can fail, in a temp repo
  *
@@ -42,6 +43,17 @@ const TASK_INDEX = `${TASKS}/INDEX.md`;
 const TASK_TEMPLATE = ".agents/templates/task.md";
 const LOG_DIR = ".agents/logs";
 const CHANGELOG = `${LOG_DIR}/changelog.md`;
+
+// Release-notes vocabulary. One home: the writer, the doctor check and the release command
+// all read it from here.
+const UNRELEASED = "## 🚧 Unreleased";
+const CATEGORIES = [
+	["added", "🟢 Added"],
+	["changed", "🔵 Changed"],
+	["fixed", "🛠️ Fixed"],
+	["removed", "⚠️ Deprecated / Removed"],
+];
+const ENTRY_RE = /^- `[A-Z][A-Z0-9-]*`: \S/;
 
 const TEXT_EXT = new Set([
 	".md",
@@ -1132,13 +1144,13 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 		vague.slice(0, 5).join(", "),
 	);
 
-	// 7. changelog shape
+	// 7. changelog shape: every bullet is `- \`TASK-N\`: text`, so the notes stay machine-built
 	const log = readIf(abs(base, CHANGELOG));
 	if (log !== null) {
 		const bad = log
 			.split(/\r?\n/)
 			.filter((l) => l.startsWith("- "))
-			.filter((l) => !/^- \*\*\d{4}-\d{2}-\d{2}\*\*/.test(l));
+			.filter((l) => !ENTRY_RE.test(l));
 		add(
 			bad.length ? "WARN" : "PASS",
 			"changelog lines",
@@ -1407,13 +1419,29 @@ function cmdTaskClose({ root, id, amend, noVerify }) {
 
 	if (!fm.summary)
 		problems.push(
-			"front-matter summary is empty (it becomes the changelog line)",
+			"front-matter summary is empty (it becomes the changelog entry)",
+		);
+	const type = (fm.type || "changed").toLowerCase();
+	if (!CATEGORIES.some(([t]) => t === type))
+		problems.push(
+			`front-matter type "${fm.type}" is not one of ${CATEGORIES.map(([t]) => t).join(", ")}`,
 		);
 	const touches = list(fm.touches);
 	if (touches.length === 0)
 		problems.push("front-matter touches is empty (declare the write set)");
 	if (/<!--\s*FILL:/.test(text))
 		problems.push("unfilled <!-- FILL: --> marker left in the task file");
+
+	// The changelog is the record, so a repo without its shape is not closable.
+	const logNow = readIf(abs(base, CHANGELOG));
+	const shaped =
+		logNow !== null &&
+		logNow.includes(UNRELEASED) &&
+		CATEGORIES.every(([, h]) => logNow.includes(`### ${h}`));
+	if (!shaped)
+		problems.push(
+			`${CHANGELOG} is missing "${UNRELEASED}" or a category heading — restore it from .agents/templates/changelog.seed.md`,
+		);
 
 	// Close runs the suite itself: the last moment the tree is still "as delivered" is the
 	// only moment worth recording, and an agent cannot forget a step it never had to take.
@@ -1438,7 +1466,9 @@ function cmdTaskClose({ root, id, amend, noVerify }) {
 		const dirty = (git(base, ["status", "--porcelain"]) || "")
 			.split(/\r?\n/)
 			.map((l) => l.slice(3).trim().split(" -> ").pop())
-			.filter(Boolean);
+			.filter(Boolean)
+			// git reports a new directory as one `dir/` entry; the inventory is about files.
+			.flatMap((d) => (d.endsWith("/") ? expand(base, d) : [d]));
 		changed = [...new Set([...diff.split(/\r?\n/), ...dirty].filter(Boolean))];
 	} else {
 		problems.push(
@@ -1504,9 +1534,8 @@ function cmdTaskClose({ root, id, amend, noVerify }) {
 	write(abs(base, `${archive}/${file}`), text);
 	fs.rmSync(abs(base, rel));
 
-	const line = `- **${today}** — \`${fm.id}\` — ${fm.summary} — [plan](../tasks/archive/${month}/${file})`;
-	const log = readIf(abs(base, CHANGELOG)) || "# Agent Changelog\n\n## Index\n";
-	write(abs(base, CHANGELOG), `${log.replace(/\s*$/, "")}\n${line}\n`);
+	const log = readIf(abs(base, CHANGELOG)) || "";
+	write(abs(base, CHANGELOG), appendEntry(log, type, `- \`${fm.id}\`: ${fm.summary}`));
 
 	let index = read(abs(base, TASK_INDEX));
 	index = block(index, "ACTIVE", "_Nothing in flight._");
@@ -1515,7 +1544,184 @@ function cmdTaskClose({ root, id, amend, noVerify }) {
 	console.log(`\nClosed ${fm.id}`);
 	console.log(`  archived  ${archive}/${file}`);
 	console.log(`  inventory ${changed.length} file(s)`);
-	console.log(`  changelog ${CHANGELOG}\n`);
+	console.log(`  changelog ${CHANGELOG} (${type}, unreleased)\n`);
+	return 0;
+}
+
+// ------------------------------------------------------------- changelog
+
+/** The empty Unreleased block, exactly as the seed ships it. */
+function unreleasedBlock() {
+	return [
+		UNRELEASED,
+		"",
+		...CATEGORIES.map(([, heading]) => `### ${heading}\n_None yet._\n`),
+	]
+		.join("\n")
+		.replace(/\n+$/, "");
+}
+
+/** Add one `- \`TASK-N\`: text` line under the matching category, replacing `_None yet._`. */
+function appendEntry(log, type, entry) {
+	const heading = CATEGORIES.find(([t]) => t === type);
+	if (!heading) return log;
+	const lines = log.split(/\r?\n/);
+	const start = lines.findIndex((l) => l.trim() === UNRELEASED);
+	if (start < 0) return log;
+	let stop = lines.findIndex((l, i) => i > start && /^## /.test(l));
+	if (stop < 0) stop = lines.length;
+
+	const cat = lines.findIndex(
+		(l, i) => i > start && i < stop && l.trim() === `### ${heading[1]}`,
+	);
+	if (cat < 0) return log;
+	let catEnd = lines.findIndex((l, i) => i > cat + 1 && i < stop && /^### /.test(l));
+	if (catEnd < 0) catEnd = stop;
+
+	const body = lines
+		.slice(cat + 1, catEnd)
+		.filter((l) => l.trim() && l.trim() !== "_None yet._");
+	body.push(entry);
+	const next = [
+		...lines.slice(0, cat + 1),
+		...body,
+		"",
+		...lines.slice(catEnd),
+	];
+	return next.join("\n").replace(/\n{3,}/g, "\n\n");
+}
+
+/**
+ * Files touched by the batch, collapsed the way release notes want them: a directory that
+ * contributed more than one file is shown once, a lone file is shown by name.
+ */
+function moduleList(base, ids) {
+	const plans = new Map();
+	for (const rel of expand(base, `${TASKS}/archive`)) {
+		if (!rel.endsWith(".md")) continue;
+		const fm = frontMatter(read(abs(base, rel)));
+		if (fm.id) plans.set(fm.id, rel);
+	}
+	const files = new Set();
+	for (const id of ids) {
+		const rel = plans.get(id);
+		const m = rel
+			? read(abs(base, rel)).match(
+					/<!-- FILES:START -->([\s\S]*?)<!-- FILES:END -->/,
+				)
+			: null;
+		for (const line of (m ? m[1] : "").split(/\r?\n/)) {
+			const p = line.match(/^- `(.+)`$/);
+			if (p) files.add(p[1]);
+		}
+	}
+	const dirs = new Map();
+	for (const f of files) {
+		const d = path.posix.dirname(f);
+		dirs.set(d, (dirs.get(d) || 0) + 1);
+	}
+	const out = new Set();
+	for (const f of files) {
+		const d = path.posix.dirname(f);
+		out.add(d !== "." && dirs.get(d) > 1 ? `${d}/` : f);
+	}
+	return [...out].sort();
+}
+
+function cmdRelease({ root, version, summary }) {
+	const base = path.resolve(root || process.cwd());
+	if (!version)
+		die('usage: release <version> --summary "<what this batch accomplished>"');
+	const v = version.replace(/^v/i, "");
+	if (!/^\d+(\.\d+)+$/.test(v))
+		die(`"${version}" is not a version (expected 1.2.3 or v1.2.3)`);
+	if (!summary)
+		die('release needs --summary "<one or two sentences: what shipped>"');
+
+	// Usage mistakes exit; repo state is reported, so a caller (and selftest) can act on it.
+	const log = readIf(abs(base, CHANGELOG));
+	if (log === null) {
+		console.error(`agent-kit: missing ${CHANGELOG}`);
+		return 1;
+	}
+	const lines = log.split(/\r?\n/);
+	const start = lines.findIndex((l) => l.trim() === UNRELEASED);
+	if (start < 0) {
+		console.error(`agent-kit: ${CHANGELOG} has no "${UNRELEASED}" section`);
+		return 1;
+	}
+	let stop = lines.findIndex((l, i) => i > start && /^## /.test(l));
+	if (stop < 0) stop = lines.length;
+
+	const entries = lines
+		.slice(start, stop)
+		.filter((l) => ENTRY_RE.test(l))
+		.map((l) => l.trim());
+	if (entries.length === 0) {
+		console.error(
+			`agent-kit: nothing to release — the ${UNRELEASED} section has no entries`,
+		);
+		return 1;
+	}
+
+	const ids = [...new Set(entries.join("\n").match(/`[A-Z][A-Z0-9-]*`/g))].map(
+		(s) => s.replace(/`/g, ""),
+	);
+	const modules = moduleList(base, ids);
+	const today = new Date().toISOString().slice(0, 10);
+
+	// Keep each entry under the category it was filed in.
+	const filled = CATEGORIES.flatMap(([, heading]) => {
+		const at = lines.findIndex(
+			(l, i) => i > start && i < stop && l.trim() === `### ${heading}`,
+		);
+		if (at < 0) return [];
+		const end = lines.findIndex(
+			(l, i) => i > at && i < stop && /^(##|###) /.test(l),
+		);
+		const own = lines
+			.slice(at + 1, end < 0 ? stop : end)
+			.filter((l) => ENTRY_RE.test(l))
+			.map((l) => l.trim());
+		return own.length ? [`### ${heading}`, ...own, ""] : [];
+	});
+
+	const release = [
+		`## 🚀 Release [v${v}] — ${today}`,
+		"",
+		"### 🚀 Summary",
+		summary,
+		"",
+		"---",
+		"",
+		...filled,
+	];
+	if (modules.length)
+		release.push(
+			"---",
+			"",
+			"### 📦 Touched Modules",
+			...modules.map((m) => `- \`${m}\``),
+			"",
+		);
+
+	const next = [
+		...lines.slice(0, start),
+		...unreleasedBlock().split("\n"),
+		"",
+		...release,
+		...lines.slice(stop),
+	];
+	write(
+		abs(base, CHANGELOG),
+		`${next.join("\n").replace(/\n{3,}/g, "\n\n").replace(/\s*$/, "")}\n`,
+	);
+
+	console.log(`\nReleased v${v} — ${entries.length} task(s), ${modules.length} module(s)`);
+	console.log(`  ${CHANGELOG}`);
+	console.log(
+		`  unreleased is empty again; commit the changelog with the batch it describes.\n`,
+	);
 	return 0;
 }
 
@@ -1748,10 +1954,10 @@ function cmdSelftest() {
 			"task archived",
 		);
 		assert(
-			fs
-				.readFileSync(abs(tmp, CHANGELOG), "utf8")
-				.includes("— fixture change —"),
-			"changelog line appended, with the quotes stripped from the summary",
+			read(abs(tmp, CHANGELOG)).includes(
+				"### 🔵 Changed\n- `TASK-101`: fixture change",
+			),
+			"changelog entry filed under its change type, quotes stripped from the summary",
 		);
 		assert(
 			!read(abs(tmp, TASK_INDEX)).includes("RECENT"),
@@ -1906,6 +2112,78 @@ function cmdSelftest() {
 			read(abs(tmp, "scripts/agent-kit.mjs")).includes("local edit 2"),
 			"the dry run wrote nothing",
 		);
+
+		console.log("\n13. release promotes the unreleased block");
+		assert(
+			quiet(() =>
+				cmdRelease({ root: tmp, version: "0.1.0", summary: "first batch" }),
+			) === 0,
+			"release exits 0 with entries waiting",
+		);
+		const notes = read(abs(tmp, CHANGELOG));
+		assert(
+			notes.includes("## 🚀 Release [v0.1.0]"),
+			"the release header carries the version",
+		);
+		assert(
+			notes.includes("### 🚀 Summary\nfirst batch"),
+			"the summary is written above the categories",
+		);
+		assert(
+			notes.includes("### 📦 Touched Modules") &&
+				notes.includes("- `src/index.ts`"),
+			"touched modules are derived from the archived plans",
+		);
+		assert(
+			(notes.match(/_None yet\._/g) || []).length === 4,
+			"a fresh, empty Unreleased block is left behind",
+		);
+		assert(
+			quiet(() => cmdDoctor({ root: tmp })) === 0,
+			"doctor accepts the released file and still finds every task in it",
+		);
+		assert(
+			quiet(() =>
+				cmdRelease({ root: tmp, version: "0.2.0", summary: "nothing" }),
+			) === 1,
+			"release refuses an empty batch",
+		);
+
+		console.log("\n14. a new directory is inventoried as files, not as one entry");
+		// Scenario 12 left an uncommitted edit; commit it so this task's diff is only its own.
+		git(tmp, ["add", "-A"]);
+		git(tmp, [
+			"-c",
+			"user.email=t@t",
+			"-c",
+			"user.name=t",
+			"commit",
+			"-qm",
+			"settle",
+		]);
+		quiet(() =>
+			cmdTaskNew({ root: tmp, slug: "new-dir", lane: "quick", noBaseline: true }),
+		);
+		fillTask(["src/lib/"], "added a small module");
+		write(abs(tmp, "src/lib/a.ts"), "export const a = 1;\n");
+		write(abs(tmp, "src/lib/b.ts"), "export const b = 2;\n");
+		assert(
+			quiet(() => cmdTaskClose({ root: tmp })) === 0,
+			"close accepts a new directory inside the declared write set",
+		);
+		const withDir =
+			walk(abs(tmp, `${TASKS}/archive`))
+				.map((f) => read(abs(tmp, `${TASKS}/archive/${f}`)))
+				.find((t) => t.includes("added a small module")) || "";
+		assert(
+			withDir.includes("- `src/lib/a.ts`") &&
+				withDir.includes("- `src/lib/b.ts`"),
+			"both files are listed",
+		);
+		assert(
+			!withDir.includes("- `src/lib/`"),
+			"the directory itself is not listed as a file",
+		);
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });
 		if (junkDir) fs.rmSync(junkDir, { recursive: true, force: true });
@@ -1998,6 +2276,12 @@ function main(argv) {
 				'usage: task new <slug> | task show | task close [--id TASK-N] [--amend "<why>"] | task guard',
 			);
 		}
+		case "release":
+			return cmdRelease({
+				root: process.cwd(),
+				version: positional[0],
+				summary: value("summary"),
+			});
 		case "selftest":
 			return cmdSelftest();
 		case "help":

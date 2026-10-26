@@ -6,6 +6,7 @@ created: {{DATE}}
 baseline: {{BASELINE}}
 touches: []
 depends_on: []
+type: changed  # added | changed | fixed | removed — picks the changelog section
 summary: ""
 ---
 # {{ID}} — {{TITLE}}
@@ -54,7 +55,7 @@ table that records a non-zero exit.
 
 ## Close-out
 
-**Outcome** — <!-- FILL:outcome — one line, plain words, factual. Becomes the changelog line. -->
+**Outcome** — <!-- FILL:outcome — one line, plain words, factual. Becomes the changelog entry. -->
 
 **Docs updated**
 - <!-- FILL:docs-updated — or write "none needed: <reason>" and delete the bullet. -->

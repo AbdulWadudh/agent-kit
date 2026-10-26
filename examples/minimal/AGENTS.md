@@ -60,8 +60,9 @@ session, then follow it.
 | Command | Use |
 |---|---|
 | `doctor` | truth checks over docs, declarations and tasks; `--strict` also fails on unfilled markers; `--fix` repairs encoding only |
-| `verify` | run the declared build/typecheck/lint/test commands and record the evidence; `--baseline` records the "before" run |
-| `task new <slug> --lane quick\|planned` | open a task |
+| `task new <slug> --lane quick\|planned` | open a task and record the baseline run |
 | `task show` | print the active task's scope, plan and evidence |
-| `task close` | scope-check against git, record the inventory, archive, index; `--amend "<why>"` accepts a declared breach |
+| `task close` | run the suite, scope-check against git, record the inventory, archive, file the changelog entry |
+| `release <version> --summary "<what shipped>"` | promote Unreleased into release notes |
+| `verify` | mid-flight check; writes the evidence table and prints the delta |
 | `check` / `pull --dry-run` / `pull` | drift against the template; `pull` never overwrites a locally modified file without `--force` |

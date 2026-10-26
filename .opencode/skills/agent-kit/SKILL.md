@@ -30,7 +30,8 @@ set up. Report the detected stack, the commands found, and anything you could no
 | what is in flight | `task show` |
 | open work | `task new <slug> --lane quick\|planned` — records the baseline run itself |
 | mid-flight proof | `verify` (close runs it anyway) |
-| close | `task close` — runs the suite, refuses red, inventories |
+| close | `task close` — runs the suite, refuses red, inventories, files the changelog entry |
+| ship a batch | `release <version> --summary "<what shipped>"` — promotes Unreleased into release notes |
 | drift vs template | `check`, `pull --dry-run`, `pull` |
 | truth check on the docs | `doctor --strict` |
 | mechanical repair | `doctor --fix` |
@@ -62,7 +63,7 @@ ends. Everything else exists for the moment something looks wrong.
 - Do not claim a gate passed without its exit code. `task close` refuses an evidence table
   with a non-zero exit.
 - Do not write a rule that reading a diff cannot check; `doctor` fails on vague advice.
-- Do not hand-write a changelog line, an evidence table or a file inventory. The kit derives
+- Do not hand-write a changelog entry, an evidence table or a file inventory. The kit derives
   all three.
 - Do not paste the plan into a subagent prompt. Give it the files, the deliverable and the
   stopping condition.

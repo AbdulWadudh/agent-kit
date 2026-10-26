@@ -60,7 +60,8 @@ You are working in <PROJECT NAME>. Read this file once per session, then follow 
 | `doctor` | truth checks over docs, declarations and tasks; `--strict` also fails on unfilled markers; `--fix` repairs encoding only; `--json` for CI |
 | `task new <slug> --lane quick\|planned` | open a task **and record the baseline run** (`--no-baseline` to skip) |
 | `task show` | print the active task's scope, plan and evidence — the thing G1/G2 asks a human to read |
-| `task close` | run the suite, scope-check against git, record the inventory, archive, and append the changelog line; `--amend "<why>"` accepts a declared breach and writes the reason into the plan; `--no-verify` only when the suite cannot run here |
+| `task close` | run the suite, scope-check against git, record the inventory, archive, and file the changelog entry under the task's `type`; `--amend "<why>"` accepts a declared breach and writes the reason into the plan; `--no-verify` only when the suite cannot run here |
+| `release <version> --summary "<what shipped>"` | promote the Unreleased block into release notes and start a fresh one |
 | `verify` | mid-flight check; writes the evidence table and prints the delta against the baseline |
 | `task guard` | the pre-commit hook: refuses a commit outside the declared write set. Silent when no task is open. **Opt-in per clone** via `git config core.hooksPath .githooks` |
 | `check` / `pull --dry-run` / `pull` | drift against the template; `pull` never overwrites a locally modified file without `--force` |
