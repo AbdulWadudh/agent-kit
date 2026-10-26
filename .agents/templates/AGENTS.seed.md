@@ -71,6 +71,7 @@ You are working in <PROJECT NAME>. Read this file once per session, then follow 
 | `release <version> --summary "<what shipped>"` | promote the Unreleased block into release notes and start a fresh one |
 | `verify` | mid-flight check; writes the evidence table and prints the delta against the baseline |
 | `task guard` | the pre-commit hook: refuses a commit outside the declared write set. Silent when no task is open. **Opt-in per clone** via `git config core.hooksPath .githooks` |
+| `learnings archive` | move entries past the 30 cap into `.agents/learnings/archive/`; the live list is the part a session reads |
 | `check` / `pull --dry-run` / `pull` | drift against the template; `pull` never overwrites a locally modified file without `--force` |
 
 The owner is not expected to type any of this. The agent runs `task new` and `task close`, and

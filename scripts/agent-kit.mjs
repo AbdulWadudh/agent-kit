@@ -18,6 +18,7 @@
  *   task close [--amend "<why>"]           run the suite, scope-check, record, archive, index
  *   release <version> --summary "<text>"   promote the Unreleased block into release notes
  *   task guard                             pre-commit gate: refuse an out-of-scope commit
+ *   learnings archive                      move entries past the 30 cap into .agents/learnings/
  *   selftest                               prove every gate can fail, in a temp repo
  *
  * Design rule: one canonical home per fact. Commands live in .agents/project.md
@@ -1179,13 +1180,22 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 		unknown.map((u) => `${u.f} (${u.s || "missing"})`).join(", "),
 	);
 
-	// 6. learnings cap
+	// 6. learnings cap: the live file is a queue, not an archive — past the cap it moves on
 	const learn = readIf(abs(base, ".agents/rules/learnings.md"));
 	if (learn !== null) {
 		const n = learn
 			.split(/\r?\n/)
 			.filter((l) => l.trim().startsWith("-")).length;
-		add(n > 30 ? "WARN" : "PASS", "learnings size", `${n} entries (cap 30)`);
+		const archived = expand(base, ".agents/learnings/archive").filter((r) =>
+			r.endsWith(".md"),
+		).length;
+		add(
+			n > 30 ? "WARN" : "PASS",
+			"learnings size",
+			`${n} live entries (cap 30)${n > 30 ? " — run agent-kit learnings archive" : ""}${
+				archived ? `, ${archived} archive file(s)` : ""
+			}`,
+		);
 	}
 
 	// 6b. a rule that cannot be checked by reading a diff is advice, not a rule.
@@ -1844,6 +1854,51 @@ function cmdTaskGuard({ root }) {
 	return 1;
 }
 
+// ---------------------------------------------------------------- learnings
+
+/**
+ * The live learnings file is a queue a session reads, so it has a cap. Past it, the oldest
+ * entries go to `.agents/learnings/archive/<YYYY-MM>.md` — same move as an archived task:
+ * kept, dated, out of the way.
+ */
+function cmdLearningsArchive({ root, keep = 30 }) {
+	const base = path.resolve(root || process.cwd());
+	const rel = ".agents/rules/learnings.md";
+	const text = readIf(abs(base, rel));
+	if (text === null) die(`${rel} does not exist`);
+	const lines = text.split(/\r?\n/);
+	const at = lines
+		.map((l, i) => (l.trim().startsWith("- ") ? i : -1))
+		.filter((i) => i >= 0);
+	if (at.length <= keep) {
+		console.log(`nothing to archive — ${at.length} entries (cap ${keep})`);
+		return 0;
+	}
+	const moving = at.slice(0, at.length - keep);
+	const month = new Date().toISOString().slice(0, 7);
+	const archiveRel = `.agents/learnings/archive/${month}.md`;
+	const head = readIf(abs(base, archiveRel));
+	write(
+		abs(base, archiveRel),
+		`${
+			head === null
+				? `# Learnings archive — ${month}\n\nEntries that left \`${rel}\` when it passed the cap.\n\n`
+				: head.replace(/\s*$/, "\n")
+		}${moving.map((i) => lines[i]).join("\n")}\n`,
+	);
+	write(
+		abs(base, rel),
+		`${lines
+			.filter((_, i) => !moving.includes(i))
+			.join("\n")
+			.replace(/\s*$/, "")}\n`,
+	);
+	console.log(
+		`archived ${moving.length} to ${archiveRel}, kept ${keep} live\n`,
+	);
+	return 0;
+}
+
 // ---------------------------------------------------------------- selftest
 
 function cmdSelftest() {
@@ -2326,6 +2381,38 @@ function cmdSelftest() {
 			quiet(() => cmdDoctor({ root: tmp })) === 1,
 			"an AI trailer fails, so the rule cannot silently lapse",
 		);
+
+		console.log("\n17. learnings past the cap move to the archive");
+		const learnP = abs(tmp, ".agents/rules/learnings.md");
+		const live = () =>
+			read(learnP)
+				.split(/\r?\n/)
+				.filter((l) => l.trim().startsWith("- ")).length;
+		write(
+			learnP,
+			`${read(learnP).replace(/\s*$/, "\n")}${Array.from(
+				{ length: 31 },
+				(_, i) => `- lesson ${i + 1}`,
+			).join("\n")}\n`,
+		);
+		assert(live() > 30, "the live list is over the cap");
+		assert(
+			quiet(() => cmdLearningsArchive({ root: tmp })) === 0,
+			"learnings archive exits 0",
+		);
+		assert(live() === 30, "the live list is cut back to the cap");
+		const archivedFiles = expand(tmp, ".agents/learnings/archive").filter((r) =>
+			r.endsWith(".md"),
+		);
+		assert(
+			archivedFiles.length === 1 &&
+				read(abs(tmp, archivedFiles[0])).includes("\n- lesson 1\n"),
+			"the oldest entries are kept, in a dated archive file",
+		);
+		assert(
+			!read(learnP).includes("\n- lesson 1\n"),
+			"and they are gone from the list a session reads",
+		);
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });
 		if (junkDir) fs.rmSync(junkDir, { recursive: true, force: true });
@@ -2417,6 +2504,11 @@ function main(argv) {
 			return die(
 				'usage: task new <slug> | task show | task close [--id TASK-N] [--amend "<why>"] | task guard',
 			);
+		}
+		case "learnings": {
+			if (args[1] !== "archive")
+				return die("usage: learnings archive  (moves entries past the 30 cap)");
+			return cmdLearningsArchive({ root: process.cwd() });
 		}
 		case "release":
 			return cmdRelease({

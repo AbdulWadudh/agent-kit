@@ -157,7 +157,7 @@ schema change. Choosing per task is what keeps the gates honest.
 | `check` | has the template moved since install, and did you edit machinery you should not have? |
 
 Every one of them can fail. `selftest` asserts that by building a throwaway repo and
-deliberately tripping each gate — sixteen scenarios, from a red baseline to a scope breach.
+deliberately tripping each gate — from a red baseline to a scope breach.
 
 ## The skill
 

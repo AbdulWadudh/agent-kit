@@ -49,7 +49,8 @@ context this agent already holds.
 
 A learning enters `learnings.md` as one line. When the same lesson is needed a second
 time, it is promoted into the rule file it belongs to and deleted from the list. The cap
-is 30 entries — `agent-kit doctor` warns past it.
+is 30 entries: past it, `agent-kit learnings archive` moves the oldest into
+`.agents/learnings/archive/`, and `doctor` warns until the live list is back under the cap.
 
 ## 8. The simplicity ladder
 
