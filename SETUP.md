@@ -85,6 +85,10 @@ bun scripts/agent-kit.mjs verify
 Expected: one line per declared command, then `PASS — n/n command(s) exited 0`. A failure
 here is the repo's problem, not the kit's: report it, do not work over it.
 
+Commit the fill work before opening the first task. `task new` records the current `HEAD` as
+the baseline, and `task close` derives the changed-file inventory from it — a repo with no
+commit at all has no baseline to diff against.
+
 ## 5. Report
 
 Tell the owner, in plain words:
