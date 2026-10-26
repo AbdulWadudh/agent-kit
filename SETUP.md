@@ -66,8 +66,15 @@ is an illustration and is ignored by the checker.
 
 ## 3. Skills and MCP
 
-`setup` installs none of these: ask in one message, recommend, then install what the owner
-approves and list the files you wrote. Sources for every one of them are in
+`setup` installs none of these. **Ask the owner; install only what comes back yes.** One
+message, in these words or close to them:
+
+> Shall I install the recommended skills — ponytail, prompt-master, caveman and the anthropic
+> skills? I have said what each one fixes below. And separately: agent-browser drives a real
+> browser, including live sites and accounts, so it is opt-in — install that too, or leave it?
+
+Then read the answer as a list: each yes is installed and reported, each no is dropped for this
+repo and not asked again unprompted. Sources for every one of them are in
 `.agents/rules/_behavior.md` §12 — one home, so the list cannot drift between files.
 
 | Skill | Gap the kit's own loop does not close |

@@ -24,6 +24,7 @@ Release notes. `task close` files each task under its `type`; `release <version>
 - `TEMPLATE`: `SETUP.md` §2 names the rules setup installs — `code`, `config`, `api`, and `simplicity`, which needs no file because it ships as `_behavior.md` §8
 - `TEMPLATE`: the seed `AGENTS.md` and the commit step in `SETUP.md` §5 both say it outright — the repo's configured identity is the author, never the session's, and no co-author or AI trailer — so the rule arrives with the install, not with the first violation
 - `TEMPLATE`: the changelog is explained in four lines, not sixty — `task close` and `release` do the work, so the README says what the file is and how a batch ships
+- `TEMPLATE`: installing a skill is a question, not a default — setup asks "shall I install the recommended skills?", a no is final for that repo, and agent-browser is asked separately
 
 ### 🛠️ Fixed
 _None yet._

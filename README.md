@@ -42,9 +42,10 @@ Then ask me these five questions, and wait for the answers before changing anyth
 3. What is off-limits: directories, generated or vendored paths, secrets, anything you must
    ask before changing?
 4. What is the first task you want to hand over?
-5. Skills: install ponytail, prompt-master, caveman and the anthropic skills, with the
-   reason each earns its place? And separately — agent-browser lets you drive a real browser,
-   including live sites and accounts, so it is opt-in: say yes only if you want that here.
+5. Skills: shall I install the recommended ones — ponytail, prompt-master, caveman and the
+   anthropic skills? Ask me, install only what I say yes to, and say what each is for.
+   Separately, on its own: agent-browser drives a real browser, including live sites and
+   accounts, so it is opt-in — ask me that one apart from the rest.
 
 Then run every step yourself; I am in chat, not a terminal. Follow SETUP.md from the
 template exactly — it wins if it disagrees with this message:

@@ -106,10 +106,12 @@ words. Name the risk and the cost. Leave the jargon in the code.
   (https://github.com/DietrichGebert/ponytail), prompt-master
   (https://github.com/nidhinjs/prompt-master), caveman
   (https://github.com/juliusbrussee/caveman), anthropic skills
-  (https://github.com/anthropics/skills). `agent-browser`
-  (https://github.com/vercel-labs/agent-browser, skill at https://agent-browser.dev/skills) is
-  opt-in: it drives a real browser, so the owner asks for it or it is not installed.
+  (https://github.com/anthropics/skills). Being recommended is not consent: ask the owner
+  "shall I install the recommended skills?" and install only what comes back yes.
+  `agent-browser` (https://github.com/vercel-labs/agent-browser, skill at
+  https://agent-browser.dev/skills) is a separate question — it drives a real browser.
 - Keep an installed skill current from its own source when asked. Never install one the owner
-  declined, and never re-add one that was removed without asking.
+  declined, never re-add one that was removed without asking, and never install one "while you
+  were there".
 - For a library, SDK, CLI or cloud API, read current docs rather than training data. With
   `docs-lookup.md` installed that means `ctx7`; otherwise the project's own source of truth.
