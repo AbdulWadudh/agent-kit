@@ -1,6 +1,10 @@
 # Rules Index
 
-Load only what matches the work. Read `_behavior.md` every session.
+**Why** — a rule is written once and loaded only where it applies, so an unrelated task does
+not pay for it.
+
+**Load it when** — every session. Open `_behavior.md`; add only the domain files whose "read
+when" column matches the files you will touch. Load only what matches.
 
 | Domain | File | Read when |
 |---|---|---|

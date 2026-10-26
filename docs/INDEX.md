@@ -1,7 +1,11 @@
-# Codebase Knowledge Hub
+# docs — the codebase map
 
-Read this before searching the tree. It is the map, not the territory: when it disagrees
-with the code, the code wins and this file is the bug.
+**Why** — searching a tree costs more than reading a map that says where the logic lives. This
+is the map, not the territory: when it disagrees with the code, the code wins and this file is
+the bug.
+
+**Load it when** — a task touches code you have not already read this session, or you do not
+know where a boundary sits. Open one page, not all three.
 
 ## Navigation protocol
 

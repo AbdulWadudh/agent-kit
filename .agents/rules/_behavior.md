@@ -20,6 +20,9 @@ A rule is written once. Every other surface carries a pointer, at most one opera
 sentence plus a link. If you are about to write the same rule twice, you are about to
 create a contradiction with a delay on it.
 
+A directory is read through its `INDEX.md`: one row, then one file. A folder listing is not
+context.
+
 ## 3. Plans contain no code
 
 A plan states intent, steps, files and acceptance criteria. Code goes to the file, in one
