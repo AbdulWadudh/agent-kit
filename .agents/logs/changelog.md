@@ -1,8 +1,6 @@
 # Changelog
 
-Release notes, one block per release. `agent-kit task close` appends each finished task to
-🚧 Unreleased under its `type`; `agent-kit release <version> --summary "<what shipped>"`
-promotes that block into a release and starts a fresh one. Never hand-compose an entry.
+Release notes. `task close` files each task under its `type`; `release <version> --summary "..."` promotes the block. Never hand-compose an entry.
 
 ## 🚧 Unreleased
 
@@ -24,6 +22,8 @@ promotes that block into a release and starts a fresh one. Never hand-compose an
 - `TEMPLATE`: the repository is `agent-kit` — every install URL now matches the name the CLI, the README title and the skill already used
 - `TEMPLATE`: `SKILL.md` checks the installed skills and MCP servers before planning, names the one it uses, and points at `_behavior.md` §12 to keep them current
 - `TEMPLATE`: `SETUP.md` §2 names the rules setup installs — `code`, `config`, `api`, and `simplicity`, which needs no file because it ships as `_behavior.md` §8
+- `TEMPLATE`: the seed `AGENTS.md` and the commit step in `SETUP.md` §5 both say it outright — the repo's configured identity is the author, never the session's, and no co-author or AI trailer — so the rule arrives with the install, not with the first violation
+- `TEMPLATE`: the changelog is explained in four lines, not sixty — `task close` and `release` do the work, so the README says what the file is and how a batch ships
 
 ### 🛠️ Fixed
 _None yet._

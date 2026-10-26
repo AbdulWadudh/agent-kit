@@ -120,62 +120,20 @@ it on where an agent commits unattended; skip it if your team would rather not h
 
 ## What the changelog is
 
-`.agents/logs/changelog.md` is the release notes, and both halves of it are generated:
+`.agents/logs/changelog.md` is release notes, and both halves are generated. `task close` files
+each task under its `type`, so an entry is always one bullet:
 
 ```
-## 🚧 Unreleased
-
 ### 🟢 Added
 - `TASK-118`: rate-limited the invite endpoint
-
-### 🔵 Changed
-- `TASK-116`: session tokens now rotate on refresh
 ```
 
-`task close` files one entry under the task's `type` (`added`, `changed`, `fixed`, `removed`).
-When the batch is done:
+`release 0.4.0 --summary "Invites are rate-limited."` turns that block into a release — summary,
+the categories with entries, Touched Modules from the archived plans — and leaves a fresh
+Unreleased block. It refuses an empty batch and a version that is not `1.2.3`-shaped.
 
-```bash
-bun scripts/agent-kit.mjs release 0.4.0 --summary "Invites are rate-limited and sessions rotate."
-```
-
-That turns the Unreleased block into a release — summary, the categories that have entries, and
-Touched Modules derived from the archived plans' file inventories:
-
-```
-## 🚀 Release [v0.4.0] — 2026-10-27
-
-### 🚀 Summary
-Invites are rate-limited and sessions rotate.
-
----
-
-### 🟢 Added
-- `TASK-118`: rate-limited the invite endpoint
-
-### 🔵 Changed
-- `TASK-116`: session tokens now rotate on refresh
-
----
-
-### 📦 Touched Modules
-- `src/api/invites/`
-- `src/session.ts`
-```
-
-and leaves a fresh, empty Unreleased block behind. `release` refuses an empty batch and a
-version that is not `1.2.3`-shaped; the version is the one thing it will not invent.
-
-Each task ID is the pointer back to the evidence: the archived plan holds the scope, the
-baseline run, the post-change run with real exit codes and the inventory. `doctor` fails if an
-archived task has no entry, so the notes cannot quietly lose a change — and the task index
-deliberately does not repeat them.
-
-If the repo already publishes a user-facing `CHANGELOG.md`, this is a different audience and a
-different cadence. Keep both, and do not generate one from the other.
-
-`--amend "<why>"` on `task close` is the recorded way to accept a file that turned out to be
-in scope later; the reason is written into the archived plan.
+The task ID is the pointer to the evidence, and `doctor` fails an archived task with no entry.
+If the repo also publishes a user-facing `CHANGELOG.md`, keep both: different audience.
 
 ## The two lanes
 

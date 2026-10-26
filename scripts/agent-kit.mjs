@@ -2093,7 +2093,14 @@ function cmdSelftest() {
 
 		console.log("\n10. doctor --fix repairs encoding only");
 		const docP = abs(tmp, "docs/ARCH_MAP.md");
-		write(docP, `\uFEFF${read(docP).replace(/\n/g, "\r\n")}`);
+		// Normalise first: a Windows checkout with autocrlf hands us CRLF already, and the
+		// assertion below is about --fix, not about what the template shipped.
+		write(
+			docP,
+			`\uFEFF${read(docP)
+				.replace(/\r\n/g, "\n")
+				.replace(/\n/g, "\r\n")}`,
+		);
 		assert(
 			quiet(() => cmdDoctor({ root: tmp })) === 1,
 			"doctor exits 1 on a BOM",

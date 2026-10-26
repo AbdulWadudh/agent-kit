@@ -1,8 +1,6 @@
 # Changelog
 
-Release notes, one block per release. `agent-kit task close` appends each finished task to
-🚧 Unreleased under its `type`; `agent-kit release <version> --summary "<what shipped>"`
-promotes that block into a release and starts a fresh one. Never hand-compose an entry.
+Release notes. `task close` files each task under its `type`; `release <version> --summary "..."` promotes the block. Never hand-compose an entry.
 
 ## 🚧 Unreleased
 

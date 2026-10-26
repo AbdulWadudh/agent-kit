@@ -137,6 +137,11 @@ Commit the fill work **before** opening the first task. `task new` records the c
 as the baseline, and `task close` derives the changed-file inventory from it — a repo with no
 commit at all has no baseline to diff against.
 
+Commit it as the repo's own identity: never `-c user.name`/`-c user.email`, never the harness
+or session name, and never a `Co-Authored-By` or "Generated with" trailer. `doctor`'s
+`commit identity` row fails a trailer and warns when the author is not the configured identity.
+If git has no identity here, stop and ask — do not invent one.
+
 `setup` does not touch git config. If an agent will commit unattended in this clone and you want
 the earlier warning, opt in once:
 
