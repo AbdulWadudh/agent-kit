@@ -31,8 +31,9 @@ the one task it names; not the folders.
   schema or migration change, deleting files outside the declared write set, or a red
   verification baseline.
 - A rejection returns to the plan. An unapproved plan never reaches an edit.
-- An out-of-scope commit is reported by `.githooks/pre-commit` in clones that opted into it
-  (`git config core.hooksPath .githooks`). Same rule, earlier warning — not a second rule.
+- An out-of-scope commit, or a message with no task and summary, is reported by the
+  `.githooks/` hooks in clones that opted into them (`git config core.hooksPath .githooks`).
+  Same rule, earlier warning — not a second rule.
 
 ## Active
 

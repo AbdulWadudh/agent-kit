@@ -72,14 +72,14 @@ You are working in <PROJECT NAME>. Read this file once per session, then follow 
 | `task show` | print the active task's scope, plan and evidence — the thing G1/G2 asks a human to read |
 | `task close` | run the suite, scope-check against git, record the inventory, archive, and write the change file under `.agents/logs/MM-YYYY/`; `--amend "<why>"` accepts a declared breach and writes the reason into the plan; `--no-verify` only when the suite cannot run here |
 | `verify` | mid-flight check; writes the evidence table and prints the delta against the baseline |
-| `task guard` | the pre-commit hook: refuses a commit outside the declared write set. Silent when no task is open. **Opt-in per clone** via `git config core.hooksPath .githooks` |
+| `task guard [--message <file>]` | the hooks: `pre-commit` refuses a commit outside the declared write set (silent when no task is open); `commit-msg` warns — never blocks — on a subject that is not `type (TASK-ID): summary` or a body with no summary. **Opt-in per clone** via `git config core.hooksPath .githooks` |
 | `learnings archive` | move entries past the 30 cap into `.agents/learnings/archive/`; the live list is the part a session reads |
 | `check` / `pull --dry-run` / `pull` | drift against the template; `pull` never overwrites a locally modified file without `--force` |
 
 The owner is not expected to type any of this. The agent runs `task new` and `task close`, and
-`task close` is where the write set is checked — that check always runs. The commit guard is a
-per-clone extra that warns earlier; it is off unless someone opts in, because it is git config
-and a shared repo must not rewrite a teammate's git behaviour on install.
+`task close` is where the write set is checked — that check always runs. The hooks are a
+per-clone extra that warns earlier; they are off unless someone opts in, because it is git
+config and a shared repo must not rewrite a teammate's git behaviour on install.
 
 `SKILL.md` is the work loop; this file is the contract it runs under. A harness with its own
 skill folder gets a pointer to that one file, never a copy that drifts.

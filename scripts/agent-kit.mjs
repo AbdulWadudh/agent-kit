@@ -18,7 +18,7 @@
  *   task new <slug> [--lane quick|planned] open a task and record the baseline run
  *   task show [--id TASK-N]                the active task's scope, plan and evidence
  *   task close [--amend "<why>"]           run the suite, scope-check, record, archive, index
- *   task guard                             pre-commit gate: refuse an out-of-scope commit
+ *   task guard [--message <file>]          hook gate: scope (pre-commit), message (commit-msg)
  *   learnings archive                      move entries past the 30 cap into .agents/learnings/
  *   selftest                               prove every gate can fail, in a temp repo
  *
@@ -113,6 +113,9 @@ function write(p, text) {
 function copy(from, to) {
 	fs.mkdirSync(path.dirname(to), { recursive: true });
 	fs.copyFileSync(from, to);
+	// Git runs a hook only when it is executable; a file copy does not carry the bit.
+	if (path.basename(path.dirname(to)) === ".githooks" && !to.endsWith(".md"))
+		fs.chmodSync(to, 0o755);
 }
 
 function walk(dir, base = dir, acc = []) {
@@ -820,8 +823,9 @@ function cmdSetup({ target, sourceRoot, sourceSpec, noRtk, home, pathEnv }) {
 	console.log(
 		"\n  Optional commit guard (off by default, per clone, bypassable):",
 		"\n    git config core.hooksPath .githooks",
-		"\n  It makes git refuse a commit outside the active task's write set.",
-		"\n  `task close` performs the same check, so declining costs a late warning, not the check.",
+		"\n  It refuses a commit outside the active task's write set, and warns — never blocks —",
+		"\n  on a message that is not `type (TASK-ID): summary` with a summary in the body.",
+		"\n  `task close` performs the scope check either way; the message rule is the session's.",
 	);
 	console.log(
 		"\nNext (the only work that needs judgement — ask the owner, do not invent):",
@@ -1167,7 +1171,7 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 			wired ? "PASS" : "WARN",
 			"commit guard",
 			wired
-				? "wired to .githooks"
+				? "wired to .githooks (scope + message)"
 				: "optional: git config core.hooksPath .githooks (task close checks anyway)",
 		);
 
@@ -1949,12 +1953,71 @@ function refreshRecents(base) {
 
 // ---------------------------------------------------------------- guard
 
+const COMMIT_TYPES =
+	"feat|fix|docs|refactor|test|chore|perf|build|ci|style|revert";
+
 /**
- * Pre-commit gate. Opt-in per clone (`git config core.hooksPath .githooks`): a shared repo
- * must not rewrite a human's git behaviour on install. Silent when no task is open.
+ * Message gate, run by `.githooks/commit-msg`. The subject names the type and the task; the
+ * body is the change file's summary. A repo with no task yet (the setup fill commit) has no
+ * ID to name, so the gate stays out of the way until the first task exists.
+ *
+ * Advisory by design: a shared checkout must never block a human's `git commit`. A wrong
+ * message prints the expected shape and exits 0; the rule itself stays binding on the agent.
  */
-function cmdTaskGuard({ root }) {
+function guardCommitMessage(base, file) {
+	const text = readIf(file);
+	if (text === null) {
+		console.error(`agent-kit: cannot read the commit message file: ${file}`);
+		return 0;
+	}
+	const lines = text.split(/\r?\n/).filter((l) => !/^\s*#/.test(l));
+	while (lines.length && !lines[0].trim()) lines.shift();
+	while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+	const subject = lines[0] || "";
+	// Git writes these itself; the session did not author them.
+	if (/^(Merge |Revert "|fixup! |squash! )/.test(subject)) return 0;
+
+	const ids = new Set();
+	for (const lane of ["active", "archive"]) {
+		const dir = abs(base, TASKS, lane);
+		for (const rel of walk(dir)) {
+			if (!rel.endsWith(".md")) continue;
+			const id = frontMatter(read(abs(dir, rel))).id;
+			if (id) ids.add(id);
+		}
+	}
+	if (ids.size === 0) return 0;
+
+	const ref = subject.match(
+		new RegExp(`^(${COMMIT_TYPES}) \\((TASK-\\d+)\\): \\S`),
+	);
+	const fail = (why) => {
+		console.error(`\nagent-kit: commit message warning. ${why}`);
+		console.error(`  got:   ${subject || "(empty)"}`);
+		console.error("  want:  <type> (TASK-ID): <summary>");
+		console.error(`  types: ${COMMIT_TYPES.replaceAll("|", ", ")}`);
+		console.error("  body:  a blank line, then the change file's summary");
+		console.error("  The commit proceeds; rewrite it with `git commit --amend`.\n");
+		return 0;
+	};
+	if (!ref) return fail("The subject is not `type (TASK-ID): summary`.");
+	if (!ids.has(ref[2]))
+		return fail(`${ref[2]} is not a task in active/ or archive/.`);
+	if ((lines[1] || "").trim())
+		return fail("The body must start after a blank line.");
+	if (!lines.slice(2).some((l) => l.trim()))
+		return fail("The body is empty: write what changed and why.");
+	return 0;
+}
+
+/**
+ * Hook gate. Opt-in per clone (`git config core.hooksPath .githooks`): a shared repo must not
+ * rewrite a human's git behaviour on install. Without `--message`, the pre-commit scope check,
+ * silent when no task is open; with it, the commit-msg check.
+ */
+function cmdTaskGuard({ root, message }) {
 	const base = path.resolve(root || process.cwd());
+	if (message) return guardCommitMessage(base, message);
 	const dir = abs(base, `${TASKS}/active`);
 	const active = exists(dir)
 		? fs.readdirSync(dir).filter((f) => f.endsWith(".md"))
@@ -2606,6 +2669,56 @@ function cmdSelftest() {
 				0,
 			"harnesses exits 0",
 		);
+
+		console.log("\n19. the commit message names the task and carries a summary");
+		const msgDir = fs.mkdtempSync(path.join(os.tmpdir(), "agent-kit-msg-"));
+		const guardMsg = (text) => {
+			const p = abs(msgDir, "msg.txt");
+			write(p, text);
+			const out = [];
+			const log = console.log;
+			const err = console.error;
+			console.log = () => {};
+			console.error = (s) => out.push(String(s));
+			try {
+				return { code: cmdTaskGuard({ root: tmp, message: p }), out: out.join("\n") };
+			} finally {
+				console.log = log;
+				console.error = err;
+			}
+		};
+		const valid = guardMsg(
+			"fix (TASK-101): close the scope gap\n\nTASK-101 — fixture change\n",
+		);
+		assert(
+			valid.code === 0 && !valid.out,
+			"a typed subject naming a known task, with a body, passes in silence",
+		);
+		const merged = guardMsg("Merge branch 'main' into fixture\n");
+		assert(
+			merged.code === 0 && !merged.out,
+			"a merge message is not a session's commit",
+		);
+		const noBody = guardMsg("fix (TASK-101): close the scope gap\n");
+		assert(
+			noBody.code === 0 &&
+				noBody.out.includes("commit message warning") &&
+				noBody.out.includes("The body is empty"),
+			"a subject with no body warns and lets the commit through",
+		);
+		const unknown = guardMsg(
+			"fix (TASK-999): close the scope gap\n\nsummary\n",
+		);
+		assert(
+			unknown.code === 0 && unknown.out.includes("TASK-999 is not a task"),
+			"an unknown task ID warns and lets the commit through",
+		);
+		const untyped = guardMsg("update the guard\n\nsummary\n");
+		assert(
+			untyped.code === 0 && untyped.out.includes("commit message warning"),
+			"a subject with no type or task warns and lets the commit through",
+		);
+		fs.rmSync(msgDir, { recursive: true, force: true });
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });
 		if (junkDir) fs.rmSync(junkDir, { recursive: true, force: true });
@@ -2700,9 +2813,13 @@ function main(argv) {
 					amend: value("amend"),
 					noVerify: flag("no-verify"),
 				});
-			if (sub === "guard") return cmdTaskGuard({ root: process.cwd() });
+			if (sub === "guard")
+				return cmdTaskGuard({
+					root: process.cwd(),
+					message: value("message"),
+				});
 			return die(
-				'usage: task new <slug> | task show | task close [--id TASK-N] [--amend "<why>"] | task guard',
+				'usage: task new <slug> | task show | task close [--id TASK-N] [--amend "<why>"] | task guard [--message <file>]',
 			);
 		}
 		case "learnings": {

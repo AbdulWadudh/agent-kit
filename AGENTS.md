@@ -89,7 +89,7 @@ SETUP.md                      the install contract
   logs/                       INDEX (model + last five) -> MM-YYYY/: one file per change
   templates/                  INDEX -> the seeds and copyable rule examples
 scripts/                      INDEX + agent-kit.mjs: setup | check | pull | doctor | verify | harnesses | task | selftest
-.githooks/                    INDEX + pre-commit: optional per-clone guard
+.githooks/                    INDEX + pre-commit (scope) + commit-msg (message): optional guard
 .github/workflows/            INDEX + agent-kit.yml: the same gates on push
 SKILL.md                      the work loop: classify, open, gate, verify, close
 examples/                     INDEX -> minimal/: what a filled repo looks like (not installed)

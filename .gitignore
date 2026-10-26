@@ -1,3 +1,5 @@
 .perch
 .githooks/*
 !.githooks/INDEX.md
+!.githooks/pre-commit
+!.githooks/commit-msg

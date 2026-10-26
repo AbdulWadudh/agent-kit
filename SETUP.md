@@ -158,7 +158,7 @@ are not a reason to keep editing.
 | rules are checkable | a rule file contains advice ("be careful", "try to", "consider") instead of a rule |
 | archived tasks changelogged | a task is in `archive/` but has no file under `.agents/logs/MM-YYYY/` |
 | recent lists | a task or logs index is missing its `RECENT` block, or the last five entries are stale |
-| commit guard | WARN, not FAIL: the optional pre-commit hook is not wired in this clone |
+| commit guard | WARN, not FAIL: the optional `pre-commit` and `commit-msg` hooks are not wired in this clone |
 | commit identity | a commit message carries AI attribution (FAIL); a commit author is not the configured identity (WARN) |
 
 `harnesses` is not in this table: it reads the machine, so CI cannot reproduce it. Its output
@@ -188,6 +188,11 @@ or session name, and never a `Co-Authored-By` or "Generated with" trailer. `doct
 `commit identity` row fails a trailer and warns when the author is not the configured identity.
 If git has no identity here, stop and ask — do not invent one.
 
+The fill commit is the one commit that needs no task ID, because no task exists yet. From the
+first task on, a commit is one task and one kind of change: the subject is
+`type (TASK-ID): summary`, and the body is the change file's summary. The rule and its type
+list are `.agents/rules/_behavior.md` §10.
+
 `setup` does not touch git config. If an agent will commit unattended in this clone and you want
 the earlier warning, opt in once:
 
@@ -196,8 +201,11 @@ git config core.hooksPath .githooks
 ```
 
 It is per clone and bypassable (`git commit --no-verify`), so it is a speed bump, not the check.
-`task close` is the check. Skip it if the team would rather not have a hook; `doctor` reports it
-as a WARN with that command, not a failure.
+`pre-commit` refuses a commit outside the write set, which `task close` also checks;
+`commit-msg` prints the expected shape for a message that is not `type (TASK-ID): summary` or
+carries no body summary, and exits 0 — it warns, never blocks. The message rule is the
+session's instruction, not a hook's gate. Skip the hooks if the team would rather not have
+them; `doctor` reports them as a WARN with that command, not a failure.
 
 ## 6. Report
 

@@ -46,7 +46,8 @@ Then ask me these five questions, and wait for the answers before changing anyth
 1. Harnesses: after setup I will detect them from HOME, PATH and the repo. Is there one
    installed somewhere unusual that the detection may miss?
 2. Should the commit guard be wired on this clone? It refuses a commit that leaves the
-   active task's write set. It is git config, so it is off by default.
+   active task's write set, and warns — never blocks — on a message that does not name the
+   task and carry a summary. It is git config, so it is off by default.
 3. What is off-limits: directories, generated or vendored paths, secrets, anything you must
    ask before changing?
 4. What is the first task you want to hand over?
@@ -122,16 +123,21 @@ the workflow. If its environment cannot execute commands at all, it must say so 
 agent that cannot run the gates cannot claim the work is verified, and telling you to paste a
 script moves the problem instead of solving it.
 
-And when an agent commits outside its declared write set, the optional pre-commit guard
-reports it:
+And when an agent commits outside its declared write set, the optional scope hook refuses it;
+the message hook only warns:
 
 ```bash
 git config core.hooksPath .githooks   # per clone, off by default
 ```
 
 It is off by default on purpose. It is git config, not a repo file: every clone would
-otherwise get a hook nobody asked for, and the same check already runs at `task close`. Turn
-it on where an agent commits unattended; skip it if your team would rather not have a hook.
+otherwise get a hook nobody asked for. The scope check also runs at `task close`. The message
+check prints the expected shape and exits 0 — it never blocks a human's commit — and it stays
+quiet until the repo's first task exists. Turn it on where an agent commits unattended; skip
+it if your team would rather not have a hook.
+
+A commit is one task and one kind of change. Its subject is
+`fix (TASK-118): rate-limit the invite endpoint`; the body is the change file's summary.
 
 ## What the changelog is
 

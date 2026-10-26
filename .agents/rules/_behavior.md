@@ -90,10 +90,25 @@ words. Name the risk and the cost. Leave the jargon in the code.
 - No `Co-Authored-By`, no "Generated with ...", no AI attribution in commits, PR bodies,
   issues or changelog entries.
 - Commit or push only when asked. On the default branch, branch first.
+- One commit is one task and one kind of change. A task that adds a feature, fixes a bug and
+  updates docs is three commits, each with the files that belong to it. Never one bulk commit
+  for a session's work.
+- Stage by path. `git add -A`, `git add .` and `git commit -a` sweep in work that belongs to
+  another commit; a path that is not part of this commit stays unstaged.
+- The subject carries the type and the task:
+  `type (TASK-ID): imperative summary` — lower-case type, one space before the parenthesis,
+  no full stop. Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `build`,
+  `ci`, `style`, `revert`.
+- The body is the change file's summary, after one blank line: what changed and why, in plain
+  words. A commit with no body is not finished.
+- `.githooks/commit-msg` prints the expected shape when a message misses it and exits 0; it
+  never blocks the owner, so this rule is the session's alone to keep. `.githooks/pre-commit`
+  checks the write set. The one commit without a task ID is the setup fill commit, made before
+  the first task exists.
 - Every closed task leaves one change file under `.agents/logs/MM-YYYY/`: the summary and the
   files it touched. `task close` writes it and refreshes the five-entry Recent lists in both
   indexes; never hand-write one, and never keep a second ledger.
-- A failing hook gets its cause fixed. `--no-verify` is not an option.
+- A failing scope hook gets its cause fixed. `--no-verify` is not an option.
 
 ## 11. Decisions before build
 

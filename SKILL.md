@@ -97,6 +97,12 @@ inventories the files, archives the plan and writes the change file
 (`.agents/logs/MM-YYYY/`). `--amend "<why>"` accepts a declared breach and writes the
 reason into the plan — only with the user's reason, never as a way past a red suite.
 
+Commits are split by task and by kind of change: one task that adds, fixes and documents is
+three commits. The subject is `type (TASK-ID): summary`; the body is the change file's
+summary. Stage those files, never the tree. `.githooks/commit-msg` warns when the shape misses
+and never blocks; keeping it right is on you. The rule and its type list are
+`.agents/rules/_behavior.md` §10.
+
 ## 9. Report
 
 One short message: what changed, what proved it, what is still open. Name the task ID. If rtk
