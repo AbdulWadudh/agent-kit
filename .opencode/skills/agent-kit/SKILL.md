@@ -41,8 +41,9 @@ ends. Everything else exists for the moment something looks wrong.
 ## Do
 
 - Read `AGENTS.md`, then `.agents/project.md`, before touching anything.
-- Declare `touches` in the task **before** the first edit, and keep every edit inside it. The
-  pre-commit hook enforces it, so a slip is a failed commit, not a quiet breach.
+- Declare `touches` in the task **before** the first edit, and keep every edit inside it.
+  `task close` checks it against the diff; a wired pre-commit hook is an earlier warning, not
+  the check itself.
 - Two runs, two exit codes: the baseline at `task new`, the evidence at `task close`. Read
   both before claiming a fix — a red that was already red is not progress.
 - Halt at G1 (plan approval) and G2 (result approval) in the PLANNED lane.

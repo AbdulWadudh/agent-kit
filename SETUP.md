@@ -78,6 +78,8 @@ are not a reason to keep editing.
 | active tasks indexed | a task file in `active/` is not in the task index |
 | write-set collisions | two active tasks declare overlapping `touches` |
 | rules are checkable | a rule file contains advice ("be careful", "try to", "consider") instead of a rule |
+| archived tasks changelogged | a task is in `archive/` but has no line in `.agents/logs/changelog.md` |
+| commit guard | WARN, not FAIL: the optional pre-commit hook is not wired in this clone |
 
 `--json` prints the same rows as `{ ok, fails, warns, rows }` for a CI comment or a gate.
 
@@ -97,6 +99,17 @@ A failure here is the repo's problem, not the kit's: report it, do not work over
 Commit the fill work **before** opening the first task. `task new` records the current `HEAD`
 as the baseline, and `task close` derives the changed-file inventory from it — a repo with no
 commit at all has no baseline to diff against.
+
+`setup` does not touch git config. If an agent will commit unattended in this clone and you want
+the earlier warning, opt in once:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+It is per clone and bypassable (`git commit --no-verify`), so it is a speed bump, not the check.
+`task close` is the check. Skip it if the team would rather not have a hook; `doctor` reports it
+as a WARN with that command, not a failure.
 
 ## 5. Report
 

@@ -14,7 +14,7 @@
 |---|---|---|
 | **Eligible when** | three files or fewer, one domain, reversible with `git revert`, no contract change | everything else |
 | **G1 — plan** | record intent in the task and proceed | **halt** for approval before the first edit |
-| **G2 — result** | `verify` plus evidence, then close | **halt** for approval after `verify`, before close |
+| **G2 — result** | `task close` runs the suite and closes | **halt** for approval after the suite, before close |
 | **Typical** | typo, doc fix, one-file bug, a test | feature, refactor, schema, interface change |
 
 ## Gates
@@ -25,6 +25,8 @@
   schema or migration change, deleting files outside the declared write set, or a red
   verification baseline.
 - A rejection returns to the plan. An unapproved plan never reaches an edit.
+- An out-of-scope commit is reported by `.githooks/pre-commit` in clones that opted into it
+  (`git config core.hooksPath .githooks`). Same rule, earlier warning — not a second rule.
 
 ## Active
 
@@ -32,15 +34,8 @@
 _Nothing in flight._
 <!-- ACTIVE:END -->
 
-## Recent (last 5)
+## History
 
-| Date | ID | Lane | Outcome | File |
-|---|---|---|---|---|
-<!-- RECENT:START -->
-| 2026-10-26 | `TASK-101` | QUICK | "prove the hook fires" | [2026-10-26-TASK-101-hook-smoke.md](archive/2026-10/2026-10-26-TASK-101-hook-smoke.md) |
-<!-- RECENT:END -->
-
-## Archive
-
-Closed tasks move to `.agents/tasks/archive/YYYY-MM/`. Do not read them unless the user asks
-about history; the changelog already carries the one-line version.
+Closed tasks move to `.agents/tasks/archive/YYYY-MM/`. `.agents/logs/changelog.md` carries the
+one-line version and links the plan, so this index stays small and never repeats it. Do not
+read the archive unless the user asks about history.

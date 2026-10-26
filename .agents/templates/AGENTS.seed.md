@@ -60,13 +60,15 @@ You are working in <PROJECT NAME>. Read this file once per session, then follow 
 | `doctor` | truth checks over docs, declarations and tasks; `--strict` also fails on unfilled markers; `--fix` repairs encoding only; `--json` for CI |
 | `task new <slug> --lane quick\|planned` | open a task **and record the baseline run** (`--no-baseline` to skip) |
 | `task show` | print the active task's scope, plan and evidence — the thing G1/G2 asks a human to read |
-| `task close` | run the suite, scope-check against git, record the inventory, archive, index; `--amend "<why>"` accepts a declared breach and writes the reason into the plan; `--no-verify` only when the suite cannot run here |
+| `task close` | run the suite, scope-check against git, record the inventory, archive, and append the changelog line; `--amend "<why>"` accepts a declared breach and writes the reason into the plan; `--no-verify` only when the suite cannot run here |
 | `verify` | mid-flight check; writes the evidence table and prints the delta against the baseline |
-| `task guard` | the pre-commit hook: refuses a commit outside the declared write set. Silent when no task is open |
+| `task guard` | the pre-commit hook: refuses a commit outside the declared write set. Silent when no task is open. **Opt-in per clone** via `git config core.hooksPath .githooks` |
 | `check` / `pull --dry-run` / `pull` | drift against the template; `pull` never overwrites a locally modified file without `--force` |
 
-The owner is not expected to type any of this. The agent runs `task new` and `task close`;
-the guard fires at commit time, so the boundary holds even when nobody remembers it.
+The owner is not expected to type any of this. The agent runs `task new` and `task close`, and
+`task close` is where the write set is checked — that check always runs. The commit guard is a
+per-clone extra that warns earlier; it is off unless someone opts in, because it is git config
+and a shared repo must not rewrite a teammate's git behaviour on install.
 
 Harnesses that load project skills can also pick this up from
 `.opencode/skills/agent-kit/SKILL.md`; everything it says is already in this file.

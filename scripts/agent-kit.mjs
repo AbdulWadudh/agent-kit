@@ -598,14 +598,14 @@ function cmdSetup({ target, sourceRoot, sourceSpec }) {
 	}
 	write(abs(root, STATE), `${JSON.stringify(next, null, 2)}\n`);
 
-	const wired = wireHooks(root);
 	console.log(`\nSetup -> ${root}`);
 	console.log(`  ${copied} copied, ${kept} kept, template v${next.version}\n`);
 	if (rows.length) table(rows);
 	console.log(
-		wired
-			? "\n  commit guard: wired (git core.hooksPath = .githooks)"
-			: "\n  commit guard: not wired (no .git yet). After `git init`, run: git config core.hooksPath .githooks",
+		"\n  Optional commit guard (off by default, per clone, bypassable):",
+		"\n    git config core.hooksPath .githooks",
+		"\n  It makes git refuse a commit outside the active task's write set.",
+		"\n  `task close` performs the same check, so declining costs a late warning, not the check.",
 	);
 	console.log("\nNext (the only work that needs judgement):");
 	console.log(
@@ -891,7 +891,9 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 		add(
 			wired ? "PASS" : "WARN",
 			"commit guard",
-			wired ? "wired to .githooks" : "not wired: git config core.hooksPath .githooks",
+			wired
+				? "wired to .githooks"
+				: "optional: git config core.hooksPath .githooks (task close checks anyway)",
 		);
 	}
 
@@ -1141,6 +1143,19 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 			bad.length ? "WARN" : "PASS",
 			"changelog lines",
 			bad.slice(0, 3).join(" | "),
+		);
+
+		// 8. completeness: an archived task with no changelog line is a change nobody can find.
+		const undocumented = expand(base, `${TASKS}/archive`)
+			.filter((rel) => rel.endsWith(".md"))
+			.filter((rel) => {
+				const id = frontMatter(read(abs(base, rel))).id;
+				return id && !log.includes(`\`${id}\``);
+			});
+		add(
+			undocumented.length ? "FAIL" : "PASS",
+			"archived tasks changelogged",
+			undocumented.slice(0, 3).join(", "),
 		);
 	}
 
@@ -1495,15 +1510,6 @@ function cmdTaskClose({ root, id, amend, noVerify }) {
 
 	let index = read(abs(base, TASK_INDEX));
 	index = block(index, "ACTIVE", "_Nothing in flight._");
-	const row = `| ${today} | \`${fm.id}\` | ${fm.lane || "PLANNED"} | ${fm.summary} | [${file}](archive/${month}/${file}) |`;
-	const recent = index.match(
-		/<!-- RECENT:START -->([\s\S]*?)<!-- RECENT:END -->/,
-	);
-	const existing = recent
-		? recent[1].split(/\r?\n/).filter((l) => l.trim().startsWith("|"))
-		: [];
-	const kept = existing.filter((l) => l.trim() !== row).slice(0, 4);
-	index = block(index, "RECENT", [row, ...kept].join("\n"));
 	write(abs(base, TASK_INDEX), index);
 
 	console.log(`\nClosed ${fm.id}`);
@@ -1515,17 +1521,9 @@ function cmdTaskClose({ root, id, amend, noVerify }) {
 
 // ---------------------------------------------------------------- guard
 
-/** Point git at the shipped hooks, once. Per-clone config, so `pull` cannot do it later. */
-function wireHooks(root) {
-	if (!exists(abs(root, ".git"))) return false;
-	if (git(root, ["config", "core.hooksPath"]) === ".githooks") return true;
-	git(root, ["config", "core.hooksPath", ".githooks"]);
-	return git(root, ["config", "core.hooksPath"]) === ".githooks";
-}
-
 /**
- * Pre-commit gate. Runs where the commit happens, so it does not depend on the agent
- * remembering a command. Silent when no task is open: an unrelated commit is not our business.
+ * Pre-commit gate. Opt-in per clone (`git config core.hooksPath .githooks`): a shared repo
+ * must not rewrite a human's git behaviour on install. Silent when no task is open.
  */
 function cmdTaskGuard({ root }) {
 	const base = path.resolve(root || process.cwd());
@@ -1756,9 +1754,23 @@ function cmdSelftest() {
 			"changelog line appended, with the quotes stripped from the summary",
 		);
 		assert(
-			fs.readFileSync(abs(tmp, TASK_INDEX), "utf8").includes("TASK-101"),
-			"recent row indexed",
+			!read(abs(tmp, TASK_INDEX)).includes("RECENT"),
+			"the task index no longer keeps a second copy of the changelog",
 		);
+		assert(
+			quiet(() => cmdDoctor({ root: tmp })) === 0,
+			"doctor accepts a closed task and its changelog line",
+		);
+		const handArchived = abs(
+			tmp,
+			`${TASKS}/archive/2026-10/2099-01-01-TASK-999-hand-closed.md`,
+		);
+		write(handArchived, "---\nid: TASK-999\nstatus: DONE\n---\n# hand closed\n");
+		assert(
+			quiet(() => cmdDoctor({ root: tmp })) === 1,
+			"doctor fails on an archived task with no changelog line",
+		);
+		fs.rmSync(handArchived);
 		const archived =
 			walk(abs(tmp, `${TASKS}/archive`)).map((f) =>
 				read(abs(tmp, `${TASKS}/archive/${f}`)),

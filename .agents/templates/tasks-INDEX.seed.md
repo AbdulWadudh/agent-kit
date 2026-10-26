@@ -25,8 +25,8 @@
   schema or migration change, deleting files outside the declared write set, or a red
   verification baseline.
 - A rejection returns to the plan. An unapproved plan never reaches an edit.
-- The pre-commit guard refuses a commit outside the declared write set. That is the same rule
-  with teeth, not a second rule.
+- An out-of-scope commit is reported by `.githooks/pre-commit` in clones that opted into it
+  (`git config core.hooksPath .githooks`). Same rule, earlier warning — not a second rule.
 
 ## Active
 
@@ -34,14 +34,8 @@
 _Nothing in flight._
 <!-- ACTIVE:END -->
 
-## Recent (last 5)
+## History
 
-| Date | ID | Lane | Outcome | File |
-|---|---|---|---|---|
-<!-- RECENT:START -->
-<!-- RECENT:END -->
-
-## Archive
-
-Closed tasks move to `.agents/tasks/archive/YYYY-MM/`. Do not read them unless the user asks
-about history; the changelog already carries the one-line version.
+Closed tasks move to `.agents/tasks/archive/YYYY-MM/`. `.agents/logs/changelog.md` carries the
+one-line version and links the plan, so this index stays small and never repeats it. Do not
+read the archive unless the user asks about history.

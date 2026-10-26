@@ -10,8 +10,9 @@ Cross-cutting rules. They apply to every task, every file, every agent.
 - `task close` derives the changed files from git. What the session remembers is not an
   inventory; a diff is.
 - A gate is cleared by a command and its exit code — never by a sentence saying it passed.
-- A commit outside the declared write set is refused by `.githooks/pre-commit`. Bypassing it
-  with `--no-verify` is a deliberate act and belongs in the task's close-out.
+- A commit outside the declared write set is not refused by the repo — `.githooks/pre-commit`
+  is per-clone and opt-in. Do not rely on it; `task close` is the check that always runs. If
+  this clone has the guard and you bypass it with `--no-verify`, say so in the close-out.
 
 ## 2. One home per fact
 

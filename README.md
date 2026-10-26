@@ -50,8 +50,33 @@ What is worth typing yourself:
 | you want the truth check, not the agent's summary | `doctor --strict` (`--json` in CI) |
 | you are about to accept a template upgrade | `check`, then `pull --dry-run` |
 
-And when an agent commits outside its declared write set, the pre-commit guard stops it.
-`setup` wires `git config core.hooksPath .githooks`, so discipline is not the mechanism.
+And when an agent commits outside its declared write set, the optional pre-commit guard
+reports it:
+
+```bash
+git config core.hooksPath .githooks   # per clone, off by default
+```
+
+It is off by default on purpose. It is git config, not a repo file: every clone would
+otherwise get a hook nobody asked for, and the same check already runs at `task close`. Turn
+it on where an agent commits unattended; skip it if your team would rather not have a hook.
+
+## What the changelog is
+
+`.agents/logs/changelog.md` — one line per closed task, written by `task close`, never by hand:
+
+```
+- **2026-10-26** — `TASK-101` — prove the hook fires — [plan](../tasks/archive/2026-10/TASK-101-hook-smoke.md)
+```
+
+The line is the index; the link is the evidence: that plan holds the scope, the baseline run,
+the post-change run with real exit codes, and the file inventory. `doctor` fails if an
+archived task has no line, so the history cannot quietly lose a change. The task index
+deliberately does **not** repeat these rows — one home per fact.
+
+This is agent memory, not release notes. If the repo publishes a user-facing `CHANGELOG.md`,
+that file has a different audience and a different cadence; keep both, and do not generate one
+from the other.
 
 `--amend "<why>"` on `task close` is the recorded way to accept a file that turned out to be
 in scope later; the reason is written into the archived plan.
