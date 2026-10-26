@@ -75,4 +75,6 @@ per-clone extra that warns earlier; it is off unless someone opts in, because it
 and a shared repo must not rewrite a teammate's git behaviour on install.
 
 Harnesses that load project skills can also pick this up from
-`.opencode/skills/agent-kit/SKILL.md`; everything it says is already in this file.
+`.opencode/skills/agent-kit/SKILL.md`; everything it says is already in this file. That path is
+the skill's one home: a harness with its own skill directory gets a pointer in its own format,
+never a copy that drifts.

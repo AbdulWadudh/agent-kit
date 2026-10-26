@@ -18,15 +18,51 @@ verified.** Everything here serves that, and anything that stops serving it gets
 - `examples/minimal/` — what a filled repo looks like, for a fictional project.
 - `scripts/agent-kit.mjs` — the only executable surface. Zero dependencies. Bun or Node.
 
-## Install
+## Start here
 
-Paste `INIT_PROMPT.md` into the session. The agent runs this; you do not:
+Copy the block below into a fresh agent session **in the repository you want to set up**.
+Replace `<template-url>` with this template's URL, then answer its four questions — the agent
+does the rest, including wiring the skill for every harness you name.
 
-```bash
-git clone --depth 1 <template-url> "$TMPDIR/agent-kit"
-bun "$TMPDIR/agent-kit/scripts/agent-kit.mjs" setup . --source <template-url>
-bun scripts/agent-kit.mjs doctor --strict
+```text
+Set up agent-kit in this workspace: <template-url>
+
+Ask me these four questions first, and wait for my answers before changing anything:
+
+1. Which agents or harnesses do you use here — opencode, Claude Code, Cursor, Codex,
+   Copilot, Gemini CLI, Windsurf, something else? List them; I will wire the skill for each.
+2. Should the commit guard be wired on this clone? It refuses a commit that leaves the
+   active task's write set. It is git config, so it is off by default.
+3. What is off-limits: directories, generated or vendored paths, secrets, anything you must
+   ask before changing?
+4. What is the first task you want to hand over?
+
+Then run every step yourself; I am in chat, not a terminal. Follow SETUP.md from the
+template exactly — it wins if it disagrees with this message:
+
+1. git clone --depth 1 <template-url> "$TMPDIR/agent-kit"
+   bun "$TMPDIR/agent-kit/scripts/agent-kit.mjs" setup . --source <template-url>
+   (node instead of bun if Bun is absent; download the archive and pass the unpacked
+   path as --source if git is unavailable)
+2. Fill AGENTS.md, .agents/project.md, docs/ARCH_MAP.md, docs/ENTRY_POINTS.md and
+   docs/API_SKELETON.md from the real tree. Ask, do not invent: propose candidates for
+   rules 1-4 from my answers and the code, get a yes, then write them.
+3. Install the skill for every harness I named. Its one home is
+   .opencode/skills/agent-kit/SKILL.md; elsewhere write a thin pointer in the format that
+   harness actually loads — not a copy. If a harness has no skill mechanism, put the
+   trigger in the file it does read.
+4. Record the off-limits answers in AGENTS.md (Ask first and rules 1-4). Wire the guard if
+   I said yes. Then run bun scripts/agent-kit.mjs doctor --strict until it exits 0.
+5. Run bun scripts/agent-kit.mjs verify and report the baseline honestly.
+
+Report: the harnesses you wired and the files you wrote, the detected stack, the commands you
+found and any you could not, what you filled, the doctor table, and the next action. Do not
+claim a step passed without showing its output. Do not start the first task until I say go.
 ```
+
+`SETUP.md` is the contract; if this prompt and that file ever disagree, `SETUP.md` wins.
+
+## What setup does
 
 `setup` detects your stack, writes `.agents/project.md`, and copies the kit. It never
 overwrites a file that already exists. `doctor --strict` exits non-zero until the fill work

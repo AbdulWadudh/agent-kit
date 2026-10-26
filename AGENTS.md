@@ -66,7 +66,6 @@ file; ship a seed whose example paths would be read as real.
 ```
 AGENTS.md                     this file (the template's own entry point)
 SETUP.md                      the install contract
-INIT_PROMPT.md                the text a human pastes into a new repo
 .agents/
   sync-manifest.json          machinery / seeds / owned / prune
   project.md                  generated per repo: stack + commands (single source)

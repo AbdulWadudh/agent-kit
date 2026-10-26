@@ -7,7 +7,7 @@ promotes that block into a release and starts a fresh one. Never hand-compose an
 ## 🚧 Unreleased
 
 ### 🟢 Added
-_None yet._
+- `TEMPLATE`: README `Start here` — a paste-ready setup prompt that makes the agent ask four questions first (harnesses to wire, commit guard, off-limits paths, first task), then set up, wire the skill per harness, and report
 
 ### 🔵 Changed
 - `TEMPLATE`: the changelog is release notes: `task close` files each entry under its change type, `release` promotes the batch
@@ -18,7 +18,7 @@ _None yet._
 _None yet._
 
 ### ⚠️ Deprecated / Removed
-_None yet._
+- `TEMPLATE`: `INIT_PROMPT.md` — the README prompt is the single paste site now, and its manual-copy fallback moved into `SETUP.md` §0
 
 ---
 

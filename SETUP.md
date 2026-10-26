@@ -13,6 +13,12 @@ git clone --depth 1 <template-url> "$TMPDIR/agent-kit"
 No git? Download the archive and unpack it. The only requirement is that
 `scripts/agent-kit.mjs` and `.agents/sync-manifest.json` are reachable.
 
+No git and no archive? Copy `scripts/`, `.agents/` and `docs/` into the target and run
+`bun scripts/agent-kit.mjs setup . --source .` from the target root. The script adopts the
+repo in place: it records the hash baseline of what is already there and clears `source`, so
+`check` and `pull` report "not set up" until you install from a real source. That path loses
+history, not correctness.
+
 ## 1. Scaffold
 
 From the **target repo root**:
@@ -36,7 +42,7 @@ Expected output: `N copied, M kept, template v1`, a per-file table, then the fou
 
 Guard rails: it never overwrites an existing file, and it refuses a directory whose
 `template.json` says `"role": "template"` unless that directory is also the source (the
-manual-copy fallback in `INIT_PROMPT.md`).
+manual-copy fallback in §0).
 
 ## 2. Fill
 
