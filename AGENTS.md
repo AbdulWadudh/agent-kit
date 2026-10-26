@@ -8,8 +8,8 @@ then do the one thing you were asked to do.
 Do not improvise a file layout. Run the kit:
 
 ```bash
-git clone --depth 1 <template-url> "$TMPDIR/agent-kit"
-bun "$TMPDIR/agent-kit/scripts/agent-kit.mjs" setup . --source <template-url>
+git clone --depth 1 https://github.com/KSeventy9/agentic-repo-template "$TMPDIR/agent-kit"
+bun "$TMPDIR/agent-kit/scripts/agent-kit.mjs" setup . --source https://github.com/KSeventy9/agentic-repo-template
 bun scripts/agent-kit.mjs doctor --strict
 ```
 

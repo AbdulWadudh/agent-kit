@@ -20,17 +20,21 @@ verified.** Everything here serves that, and anything that stops serving it gets
 
 ## Start here
 
-Copy the block below into a fresh agent session **in the repository you want to set up**.
-Replace `<template-url>` with this template's URL, then answer its four questions — the agent
-does the rest, including wiring the skill for every harness you name.
+Copy the block below into a fresh agent session **in the repository you want to set up**, then
+answer its four questions. The template URL is already in it.
 
 ```text
-Set up agent-kit in this workspace: <template-url>
+Set up agent-kit in this workspace: https://github.com/KSeventy9/agentic-repo-template
 
-Ask me these four questions first, and wait for my answers before changing anything:
+Read the repo before you ask anything: manifests, entry points, and any harness config you
+can see (.claude/, .cursor/, .github/copilot-instructions.md, GEMINI.md, .windsurf/,
+opencode config). Say which harnesses you found — I will wire the skill for each — and which
+rule examples in the template fit this codebase; a rule about a language this repo does not
+use does not get installed.
 
-1. Which agents or harnesses do you use here — opencode, Claude Code, Cursor, Codex,
-   Copilot, Gemini CLI, Windsurf, something else? List them; I will wire the skill for each.
+Then ask me these four questions, and wait for the answers before changing anything:
+
+1. Harnesses: is that list right, and is one missing that the repo cannot show?
 2. Should the commit guard be wired on this clone? It refuses a commit that leaves the
    active task's write set. It is git config, so it is off by default.
 3. What is off-limits: directories, generated or vendored paths, secrets, anything you must
@@ -40,14 +44,14 @@ Ask me these four questions first, and wait for my answers before changing anyth
 Then run every step yourself; I am in chat, not a terminal. Follow SETUP.md from the
 template exactly — it wins if it disagrees with this message:
 
-1. git clone --depth 1 <template-url> "$TMPDIR/agent-kit"
-   bun "$TMPDIR/agent-kit/scripts/agent-kit.mjs" setup . --source <template-url>
+1. git clone --depth 1 https://github.com/KSeventy9/agentic-repo-template "$TMPDIR/agent-kit"
+   bun "$TMPDIR/agent-kit/scripts/agent-kit.mjs" setup . --source https://github.com/KSeventy9/agentic-repo-template
    (node instead of bun if Bun is absent; download the archive and pass the unpacked
    path as --source if git is unavailable)
 2. Fill AGENTS.md, .agents/project.md, docs/ARCH_MAP.md, docs/ENTRY_POINTS.md and
    docs/API_SKELETON.md from the real tree. Ask, do not invent: propose candidates for
    rules 1-4 from my answers and the code, get a yes, then write them.
-3. Install the skill for every harness I named. Take the frontmatter (name and description)
+3. Install the skill for every harness you found. Take the frontmatter (name and description)
    from SKILL.md, put it in that harness's skill folder, and make the body one line:
    "Read SKILL.md at the repository root." A pointer, never a copy. If a harness has no
    skill mechanism, put the trigger in the file it does read. List the files you wrote.

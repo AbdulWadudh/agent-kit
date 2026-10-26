@@ -16,6 +16,7 @@ promotes that block into a release and starts a fresh one. Never hand-compose an
 - `TEMPLATE`: the skill is harness-neutral at root `SKILL.md`; `doctor` requires it, and the setup prompt writes a pointer per named harness instead of shipping one harness's folder
 - `TEMPLATE`: `SKILL.md` is now the work loop — classify, open, G1, work, verify, G2, close, report, with the failure branches — not an install guide; `AGENTS.md` lists it as step 1, so it is read even without skill support
 - `TEMPLATE`: the setup prompt says exactly how to wire a harness (its frontmatter, one-line body), and `doctor` has a `skill pointers` row that fails a copy
+- `TEMPLATE`: the setup prompt carries the real template URL and reads the repo before asking — harnesses and matching rule examples come from evidence, not from the user's memory
 
 ### 🛠️ Fixed
 _None yet._

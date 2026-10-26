@@ -7,7 +7,7 @@ because "the agent said it was done" is not a result.
 ## 0. Fetch the template
 
 ```bash
-git clone --depth 1 <template-url> "$TMPDIR/agent-kit"
+git clone --depth 1 https://github.com/KSeventy9/agentic-repo-template "$TMPDIR/agent-kit"
 ```
 
 No git? Download the archive and unpack it. The only requirement is that
@@ -24,7 +24,7 @@ history, not correctness.
 From the **target repo root**:
 
 ```bash
-bun "$TMPDIR/agent-kit/scripts/agent-kit.mjs" setup . --source <template-url>
+bun "$TMPDIR/agent-kit/scripts/agent-kit.mjs" setup . --source https://github.com/KSeventy9/agentic-repo-template
 ```
 
 Fallback if Bun is absent: `node` instead of `bun`. Same file, same behaviour.
