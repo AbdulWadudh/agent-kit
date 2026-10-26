@@ -2,6 +2,7 @@
 id: TASK-101
 lane: QUICK
 status: DONE
+closed: 2026-10-26
 created: 2026-10-26
 baseline: 2f7b5c1fa5ee6a490c21b7dd1dc86b80309436b0
 touches: [".githooks/", "scripts/agent-kit.mjs", ".agents/sync-manifest.json", ".agents/rules/_behavior.md", ".agents/templates/", ".opencode/skills/agent-kit/", "AGENTS.md", "README.md", "SETUP.md"]

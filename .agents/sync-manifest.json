@@ -1,18 +1,18 @@
 {
   "version": 1,
-
   "machinery": [
     "scripts/agent-kit.mjs",
+    "scripts/INDEX.md",
     ".github/workflows/agent-kit.yml",
     ".githooks",
     "SKILL.md",
+    ".agents/INDEX.md",
     ".agents/sync-manifest.json",
     ".agents/templates",
     ".agents/rules/INDEX.md",
     ".agents/rules/_behavior.md",
     ".agents/rules/anti-patterns.md"
   ],
-
   "seeds": {
     "AGENTS.md": ".agents/templates/AGENTS.seed.md",
     "CLAUDE.md": ".agents/templates/CLAUDE.seed.md",
@@ -22,21 +22,20 @@
     "docs/ENTRY_POINTS.md": "docs/ENTRY_POINTS.md",
     ".agents/rules/learnings.md": ".agents/templates/learnings.seed.md",
     ".agents/tasks/INDEX.md": ".agents/templates/tasks-INDEX.seed.md",
-    ".agents/logs/changelog.md": ".agents/templates/changelog.seed.md"
+    ".agents/logs/INDEX.md": ".agents/templates/logs-INDEX.seed.md"
   },
-
   "prune": [
     ".agents/changelog",
     ".agents/driver",
     ".agents/tasks/templates",
     ".agents/tasks/template.md"
   ],
-
   "owned": [
     ".agents/project.md",
     ".agents/template.json",
     ".agents/tasks/active",
     ".agents/tasks/archive",
-    ".agents/tasks/.counter"
+    ".agents/tasks/.counter",
+    ".agents/logs"
   ]
 }

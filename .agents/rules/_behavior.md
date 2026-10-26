@@ -90,6 +90,9 @@ words. Name the risk and the cost. Leave the jargon in the code.
 - No `Co-Authored-By`, no "Generated with ...", no AI attribution in commits, PR bodies,
   issues or changelog entries.
 - Commit or push only when asked. On the default branch, branch first.
+- Every closed task leaves one change file under `.agents/logs/MM-YYYY/`: the summary and the
+  files it touched. `task close` writes it and refreshes the five-entry Recent lists in both
+  indexes; never hand-write one, and never keep a second ledger.
 - A failing hook gets its cause fixed. `--no-verify` is not an option.
 
 ## 11. Decisions before build

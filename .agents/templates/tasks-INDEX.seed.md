@@ -1,5 +1,11 @@
 # Task Index and Routing
 
+**Why** — the task file is the only state a session trusts, and the lane decides which gates
+apply. This index is the one routing table.
+
+**Load it when** — a session starts, or before opening, resuming or closing a task. Then open
+the one task it names; not the folders.
+
 ## Routing
 
 1. **Check Active** below. If a task is in flight, open it and resume from its last recorded
@@ -34,8 +40,14 @@
 _Nothing in flight._
 <!-- ACTIVE:END -->
 
+## Recent
+
+<!-- RECENT:START -->
+_Nothing yet._
+<!-- RECENT:END -->
+
 ## History
 
-Closed tasks move to `.agents/tasks/archive/YYYY-MM/`. `.agents/logs/changelog.md` carries the
-one-line version and links the plan, so this index stays small and never repeats it. Do not
-read the archive unless the user asks about history.
+Closed tasks move to `.agents/tasks/archive/YYYY-MM/`, and each leaves one change file in
+`.agents/logs/MM-YYYY/`. The five newest of both are listed above and in the logs index;
+open anything older only when the user asks about it.
