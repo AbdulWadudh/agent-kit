@@ -13,9 +13,10 @@
  *   pull [--dry-run|--force|--seeds]       apply the sync, then doctor
  *   doctor [--strict] [--fix] [--json]     truth checks over the repo's own docs
  *   verify [--baseline]                    run the declared commands, record the evidence
- *   task new <slug> [--lane quick|planned] open a task
+ *   task new <slug> [--lane quick|planned] open a task and record the baseline run
  *   task show [--id TASK-N]                the active task's scope, plan and evidence
- *   task close [--amend "<why>"]           scope-check, record, archive, index
+ *   task close [--amend "<why>"]           run the suite, scope-check, record, archive, index
+ *   task guard                             pre-commit gate: refuse an out-of-scope commit
  *   selftest                               prove every gate can fail, in a temp repo
  *
  * Design rule: one canonical home per fact. Commands live in .agents/project.md
