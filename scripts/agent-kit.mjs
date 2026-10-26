@@ -619,18 +619,20 @@ function cmdSetup({ target, sourceRoot, sourceSpec }) {
 		"\n  It makes git refuse a commit outside the active task's write set.",
 		"\n  `task close` performs the same check, so declining costs a late warning, not the check.",
 	);
-	console.log("\nNext (the only work that needs judgement):");
 	console.log(
-		"  1. AGENTS.md        fill every <!-- FILL:... --> and <PLACEHOLDER>",
+		"\nNext (the only work that needs judgement — ask the owner, do not invent):",
 	);
 	console.log(
-		"  2. .agents/project.md   confirm the detected commands, add domain notes",
+		"  1. AGENTS.md        every <!-- FILL:... --> / <PLACEHOLDER>, and rules 1-4:",
+	);
+	console.log(
+		"                      propose candidates from the tree, get a yes, then write them",
+	);
+	console.log(
+		"  2. .agents/project.md   confirm the detected commands; add what the code cannot say",
 	);
 	console.log(
 		"  3. docs/            ARCH_MAP, ENTRY_POINTS, API_SKELETON from the real tree",
-	);
-	console.log(
-		"  4. AGENTS.md rule 1-4   the constraints that are true only in this repo",
 	);
 	console.log(
 		"\nThen: agent-kit doctor --strict   (must exit 0 before you call setup done)\n",

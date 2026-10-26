@@ -20,8 +20,10 @@ bun scripts/agent-kit.mjs doctor --strict
 
 Then do the only part that needs judgement, in this order: `AGENTS.md` markers and rules
 1-4, `.agents/project.md` domain notes, then `docs/ARCH_MAP.md`, `docs/ENTRY_POINTS.md`,
-`docs/API_SKELETON.md` from the real tree. `doctor --strict` exiting 0 is the definition of
-set up. Report the detected stack, the commands found, and anything you could not find.
+`docs/API_SKELETON.md` from the real tree. Rules 1-4 and the domain notes are the owner's
+knowledge: propose candidates from the tree and get a yes rather than inventing an invariant.
+`doctor --strict` exiting 0 is the definition of set up. Report the detected stack, the
+commands found, and anything you could not find.
 
 ## Working in a repo that already has it
 

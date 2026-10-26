@@ -51,6 +51,10 @@ This is the only work that needs judgement. Four items, in this order:
 
 `examples/minimal/` in the template shows all four after the fill, for a fictional repo.
 
+**Ask, do not invent.** Rules 1-4 and the domain notes are facts only the owner has. Propose two
+or three candidates from the tree in the session, get a yes, then write them. An invented rule
+is worse than an empty section: the next agent will treat it as true.
+
 Convention: **uppercase** placeholders are obligations. Lowercase `<like-this>` inside prose
 is an illustration and is ignored by the checker.
 
