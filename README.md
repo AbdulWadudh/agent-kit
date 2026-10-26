@@ -12,7 +12,9 @@ verified.** Everything here serves that, and anything that stops serving it gets
   entry points, generated directories. One home, cited by everything else.
 - `.agents/tasks/` — one task file per unit of work, with a lane (QUICK or PLANNED), two
   gates, an evidence table, and a close-out that derives the changed files from git.
-- `.agents/rules/` — a router plus short rule files. One home per rule; indexes cite.
+- `.agents/rules/` — a router plus short rule files. One home per rule; indexes cite. Ready-made
+  examples for TypeScript, Bun, Biome, API versioning, config and library docs sit in
+  `.agents/templates/rule-examples/`; you install only the ones that are true.
 - `docs/` — the knowledge seed: architecture map, API skeleton, entry points.
 - `SKILL.md` — the work loop: classify, open, gate, verify, close, report.
 - `examples/minimal/` — what a filled repo looks like, for a fictional project.
@@ -21,7 +23,7 @@ verified.** Everything here serves that, and anything that stops serving it gets
 ## Start here
 
 Copy the block below into a fresh agent session **in the repository you want to set up**, then
-answer its four questions. The template URL is already in it.
+answer its five questions. The template URL is already in it.
 
 ```text
 Set up agent-kit in this workspace: https://github.com/AbdulWadudh/agent-kit
@@ -32,7 +34,7 @@ opencode config). Say which harnesses you found — I will wire the skill for ea
 rule examples in the template fit this codebase; a rule about a language this repo does not
 use does not get installed.
 
-Then ask me these four questions, and wait for the answers before changing anything:
+Then ask me these five questions, and wait for the answers before changing anything:
 
 1. Harnesses: is that list right, and is one missing that the repo cannot show?
 2. Should the commit guard be wired on this clone? It refuses a commit that leaves the
@@ -40,6 +42,9 @@ Then ask me these four questions, and wait for the answers before changing anyth
 3. What is off-limits: directories, generated or vendored paths, secrets, anything you must
    ask before changing?
 4. What is the first task you want to hand over?
+5. Skills: install ponytail, prompt-master, caveman and the anthropic skills, with the
+   reason each earns its place? And separately — agent-browser lets you drive a real browser,
+   including live sites and accounts, so it is opt-in: say yes only if you want that here.
 
 Then run every step yourself; I am in chat, not a terminal. Follow SETUP.md from the
 template exactly — it wins if it disagrees with this message:
@@ -50,14 +55,17 @@ template exactly — it wins if it disagrees with this message:
    path as --source if git is unavailable)
 2. Fill AGENTS.md, .agents/project.md, docs/ARCH_MAP.md, docs/ENTRY_POINTS.md and
    docs/API_SKELETON.md from the real tree. Ask, do not invent: propose candidates for
-   rules 1-4 from my answers and the code, get a yes, then write them.
-3. Install the skill for every harness you found. Take the frontmatter (name and description)
+   rules 1-4 from my answers and the code, get a yes, then write them. Install the rule
+   examples that are true here — code, config, api — and say which ones you skipped and why.
+3. Install the skills I approved for each harness (SETUP.md §3), and list the files you wrote.
+   If I said yes to agent-browser, install it and its skill; if I said no, do not.
+4. Install the skill for every harness you found. Take the frontmatter (name and description)
    from SKILL.md, put it in that harness's skill folder, and make the body one line:
    "Read SKILL.md at the repository root." A pointer, never a copy. If a harness has no
    skill mechanism, put the trigger in the file it does read. List the files you wrote.
-4. Record the off-limits answers in AGENTS.md (Ask first and rules 1-4). Wire the guard if
+5. Record the off-limits answers in AGENTS.md (Ask first and rules 1-4). Wire the guard if
    I said yes. Then run bun scripts/agent-kit.mjs doctor --strict until it exits 0.
-5. Run bun scripts/agent-kit.mjs verify and report the baseline honestly.
+6. Run bun scripts/agent-kit.mjs verify and report the baseline honestly.
 
 Report: the harnesses you wired and the files you wrote, the detected stack, the commands you
 found and any you could not, what you filled, the doctor table, and the next action. Do not
@@ -190,7 +198,7 @@ schema change. Choosing per task is what keeps the gates honest.
 | `check` | has the template moved since install, and did you edit machinery you should not have? |
 
 Every one of them can fail. `selftest` asserts that by building a throwaway repo and
-deliberately tripping each gate — twelve scenarios, from a red baseline to a scope breach.
+deliberately tripping each gate — sixteen scenarios, from a red baseline to a scope breach.
 
 ## The skill
 
@@ -206,6 +214,11 @@ So install is not the skill's job — it happens once, before any of this exists
 README prompt. That is also why one file is enough for every harness: `AGENTS.md` lists it as
 step 1 of "start here", so an agent reads the loop even where no skill mechanism exists. A
 harness with its own skill folder gets a four-line pointer, not a copy.
+
+Companion skills are recommended, not bundled: ponytail, prompt-master, caveman and the
+anthropic skills — and `agent-browser` only if you say yes, because it drives a real browser
+and can reach live sites and accounts. The sources and the exact question to ask are in
+`SETUP.md` §3 and `.agents/rules/_behavior.md` §12.
 
 No plugin: a plugin is code that runs on every turn, and this needs instructions at the
 moment the work starts. `examples/minimal/` shows a filled repo, for when you want to see the

@@ -14,6 +14,16 @@ this file, they win.
 Read `AGENTS.md`, then `.agents/project.md`. Run `task show` — resume what is in flight before
 opening anything new. Load only the rule files that match the files you will touch.
 
+## Skills and tools, before you plan
+
+Check what is installed. A skill that covers the task is part of the plan, not a preference:
+name it, follow it, and never do from memory what it already solves. Nothing fits — say so.
+Same order for MCP servers and tools: the configured one first, hand-written code second.
+
+Keep them current when the owner asks: reinstall from the skill's own source, listed in
+`.agents/rules/_behavior.md` §12. Where `agent-browser` is installed it drives a real browser:
+it never sends, posts, buys or logs in unless the task says to.
+
 ## 2. Classify
 
 QUICK: at most three files, reversible, no public interface, schema, dependency or data
@@ -68,7 +78,8 @@ stop — no follow-up suggestions unless asked.
 
 ## Not yours
 
-- Installing or upgrading the kit. That is `SETUP.md` and the README prompt, once.
+- Installing or upgrading the kit, or a skill the owner has not approved. That is `SETUP.md`,
+  once, and a chat decision.
 - The release version, and the one-sentence summary. Draft both, get a yes, then run
   `release`.
 - Editing machinery (`scripts/`, `.agents/templates/`, the manifest) to make a gate pass.

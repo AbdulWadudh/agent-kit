@@ -938,6 +938,37 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 				? "wired to .githooks"
 				: "optional: git config core.hooksPath .githooks (task close checks anyway)",
 		);
+
+		// Commits belong to the owner: no session identity, no AI trailer. A second human
+		// author is a WARN, not a FAIL — only the trailer is never acceptable.
+		const history = git(base, ["log", "--format=%an <%ae>%x00%B%x1e"]) || "";
+		const commits = history
+			.split("\x1e")
+			.filter((c) => c.trim())
+			.map((c) => {
+				const [who, ...rest] = c.split("\x00");
+				return { who: who.trim(), body: rest.join("\x00") };
+			});
+		const attributed = commits.filter((c) =>
+			/(^|\n)co-authored-by:[ \t]*\S|(^|\n)generated with |noreply@anthropic\.com|🤖/i.test(
+				c.body,
+			),
+		);
+		const identity = git(base, ["config", "user.email"]);
+		const foreign = identity
+			? [...new Set(commits.map((c) => c.who))].filter(
+					(w) => !w.toLowerCase().includes(identity.toLowerCase()),
+				)
+			: [];
+		add(
+			attributed.length ? "FAIL" : foreign.length ? "WARN" : "PASS",
+			"commit identity",
+			attributed.length
+				? `${attributed.length} commit(s) carry AI attribution`
+				: foreign.length
+					? `not ${identity}: ${foreign.join(", ")}`
+					: identity || "no identity configured",
+		);
 	}
 
 	if (!isTemplate) {
@@ -2243,6 +2274,28 @@ function cmdSelftest() {
 		assert(
 			quiet(() => cmdDoctor({ root: tmp })) === 1,
 			"a copy of the loop fails, so it cannot drift",
+		);
+		fs.rmSync(abs(tmp, ".claude"), { recursive: true, force: true });
+
+		console.log("\n16. commits carry the owner's identity only");
+		git(tmp, ["config", "user.email", "owner@example.com"]);
+		git(tmp, ["config", "user.name", "Owner"]);
+		git(tmp, ["add", "-A"]);
+		git(tmp, ["commit", "-q", "-m", "chore: owner commit"]);
+		assert(
+			quiet(() => cmdDoctor({ root: tmp })) === 0,
+			"another human author warns, it does not fail a repo",
+		);
+		git(tmp, [
+			"commit",
+			"-q",
+			"--allow-empty",
+			"-m",
+			"chore: x\n\nCo-Authored-By: Agent <agent@local>",
+		]);
+		assert(
+			quiet(() => cmdDoctor({ root: tmp })) === 1,
+			"an AI trailer fails, so the rule cannot silently lapse",
 		);
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });

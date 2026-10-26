@@ -11,8 +11,8 @@ Cross-cutting rules. They apply to every task, every file, every agent.
   inventory; a diff is.
 - A gate is cleared by a command and its exit code — never by a sentence saying it passed.
 - A commit outside the declared write set is not refused by the repo — `.githooks/pre-commit`
-  is per-clone and opt-in. Do not rely on it; `task close` is the check that always runs. If
-  this clone has the guard and you bypass it with `--no-verify`, say so in the close-out.
+  is per-clone and opt-in. Do not rely on it; `task close` is the check that always runs. A
+  git hook is never bypassed; see §10.
 
 ## 2. One home per fact
 
@@ -62,7 +62,54 @@ Before adding a rule, script, check or file, stop at the first rung that holds:
 5. Can it be one line a reader gets at a glance?
 6. Otherwise: the minimum that works.
 
+The bans, each from a real mistake:
+
+- No constant for a single use, and none for a use that does not exist yet.
+- No helper wrapping one expression; inline it.
+- No interface with one implementation, no factory for one product, no config for a value
+  that never changes.
+- No abstraction "for later" — later can add it, shaped by real call sites.
+
+Rewriting the same file four times means the problem was not understood: stop and read it.
+Never simplify away validation at a trust boundary, error handling, security, accessibility,
+or anything the owner asked for.
+
 ## 9. Talk to the owner in their language
 
 The user is the product owner; the agent is the dev. Report outcomes first, in plain
 words. Name the risk and the cost. Leave the jargon in the code.
+
+## 10. Commits are the owner's
+
+- Use the repo's configured identity. Never pass `-c user.name` or `-c user.email`, and never
+  invent one from session context. No identity configured: stop and ask.
+- No `Co-Authored-By`, no "Generated with ...", no AI attribution in commits, PR bodies,
+  issues or changelog entries.
+- Commit or push only when asked. On the default branch, branch first.
+- A failing hook gets its cause fixed. `--no-verify` is not an option.
+
+## 11. Decisions before build
+
+- Before a feature, surface the choices that are expensive to reverse — data shape, IDs,
+  timestamps, API and message contracts, ownership, migration strategy, folder layout — as
+  options with a recommendation.
+- Flag a gap in the spec when you see it, not when you hit it.
+- Raise only what changes the work. No speculative features, no options that cost the same
+  later.
+- Once the owner decides, record it and do not re-open it.
+
+## 12. Sources before memory
+
+- Check the installed skills and MCP servers first, and name the one you used. A skill that
+  applies is not optional — questions and exploration included.
+- Recommended companions, and their sources: ponytail
+  (https://github.com/DietrichGebert/ponytail), prompt-master
+  (https://github.com/nidhinjs/prompt-master), caveman
+  (https://github.com/juliusbrussee/caveman), anthropic skills
+  (https://github.com/anthropics/skills). `agent-browser`
+  (https://github.com/vercel-labs/agent-browser, skill at https://agent-browser.dev/skills) is
+  opt-in: it drives a real browser, so the owner asks for it or it is not installed.
+- Keep an installed skill current from its own source when asked. Never install one the owner
+  declined, and never re-add one that was removed without asking.
+- For a library, SDK, CLI or cloud API, read current docs rather than training data. With
+  `docs-lookup.md` installed that means `ctx7`; otherwise the project's own source of truth.

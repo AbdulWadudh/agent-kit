@@ -7,7 +7,11 @@ promotes that block into a release and starts a fresh one. Never hand-compose an
 ## 🚧 Unreleased
 
 ### 🟢 Added
-- `TEMPLATE`: README `Start here` — a paste-ready setup prompt that makes the agent ask four questions first (harnesses to wire, commit guard, off-limits paths, first task), then set up, wire the skill per harness, and report
+- `TEMPLATE`: README `Start here` — a paste-ready setup prompt that makes the agent ask five questions first (harnesses to wire, commit guard, off-limits paths, first task, skills), then set up, install them, wire the skill per harness, and report
+- `TEMPLATE`: `_behavior.md` §10-12 — commits belong to the owner, expensive decisions surface before building, and sources beat memory
+- `TEMPLATE`: rule examples for Bun, Biome, API versioning, config tiers and library docs; the TypeScript example now carries the owner's code conventions
+- `TEMPLATE`: `doctor` row `commit identity` — a commit carrying AI attribution fails, and a commit author other than the configured identity warns
+- `TEMPLATE`: `SETUP.md` §3 — the four companion skills and why each earns its place, the separate agent-browser opt-in, and "use the configured MCP servers before writing the equivalent"
 
 ### 🔵 Changed
 - `TEMPLATE`: the changelog is release notes: `task close` files each entry under its change type, `release` promotes the batch
@@ -18,6 +22,8 @@ promotes that block into a release and starts a fresh one. Never hand-compose an
 - `TEMPLATE`: the setup prompt says exactly how to wire a harness (its frontmatter, one-line body), and `doctor` has a `skill pointers` row that fails a copy
 - `TEMPLATE`: the setup prompt carries the real template URL and reads the repo before asking — harnesses and matching rule examples come from evidence, not from the user's memory
 - `TEMPLATE`: the repository is `agent-kit` — every install URL now matches the name the CLI, the README title and the skill already used
+- `TEMPLATE`: `SKILL.md` checks the installed skills and MCP servers before planning, names the one it uses, and points at `_behavior.md` §12 to keep them current
+- `TEMPLATE`: `SETUP.md` §2 names the rules setup installs — `code`, `config`, `api`, and `simplicity`, which needs no file because it ships as `_behavior.md` §8
 
 ### 🛠️ Fixed
 _None yet._

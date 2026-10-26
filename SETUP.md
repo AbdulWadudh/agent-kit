@@ -53,7 +53,7 @@ This is the only work that needs judgement. Four items, in this order:
 | `AGENTS.md` | every `<!-- FILL:... -->` replaced; every `<UPPERCASE PLACEHOLDER>` replaced; rules 1-4 are constraints that are true **only** in this repo |
 | `.agents/project.md` | the detected commands are correct; the detection notes are confirmed or deleted; domain notes say what the code cannot |
 | `docs/ARCH_MAP.md`, `docs/ENTRY_POINTS.md`, `docs/API_SKELETON.md` | one real row or signature per entry; no invented layer |
-| `.agents/rules/` | one file per domain this repo actually has, copied from `.agents/templates/rule-examples/` when one matches. No file, no rule — do not install a rule about a language the repo does not use |
+| `.agents/rules/` | one file per domain this repo actually has, copied from `.agents/templates/rule-examples/` when one matches. `code` (the TypeScript example) earns its file in any TypeScript repo; `config` and `api` only where the repo has tunables or HTTP routes. Simplicity needs no file — it is `_behavior.md` §8, and `_behavior.md` ships with the machinery. No file, no rule: do not install a rule about a language the repo does not use |
 
 `examples/minimal/` in the template shows all four after the fill, for a fictional repo.
 
@@ -64,7 +64,31 @@ is worse than an empty section: the next agent will treat it as true.
 Convention: **uppercase** placeholders are obligations. Lowercase `<like-this>` inside prose
 is an illustration and is ignored by the checker.
 
-## 3. Verify
+## 3. Skills and MCP
+
+`setup` installs none of these: ask in one message, recommend, then install what the owner
+approves and list the files you wrote. Sources for every one of them are in
+`.agents/rules/_behavior.md` §12 — one home, so the list cannot drift between files.
+
+| Skill | Gap the kit's own loop does not close |
+|---|---|
+| ponytail | over-building: the smallest change that works, and the check that proves it |
+| prompt-master | a prompt written for one tool instead of prose the owner can read |
+| caveman | token cost of long sessions |
+| anthropic skills | documents, spreadsheets, slides, PDFs, frontend polish |
+
+`agent-browser` is **opt-in and asked separately**. It drives a real browser: live sites,
+accounts, local pages. Never install it because it looked useful; ask whether this repo needs
+an agent that can load and click pages, and take a no.
+
+Install with the harness's own mechanism (its skill folder, or its plugin command). Leave it
+as a pointer, never a copy: `doctor`'s `skill pointers` row fails a copy of an installed
+skill, because the first edit to either side would make the two disagree.
+
+Then say what MCP servers the harness already has, and use those before writing the
+equivalent by hand. `doctor` cannot see MCP; that is a report line, not a check.
+
+## 4. Verify
 
 ```bash
 bun scripts/agent-kit.mjs doctor --strict
@@ -92,10 +116,11 @@ are not a reason to keep editing.
 | archived tasks changelogged | a task is in `archive/` but has no entry in `.agents/logs/changelog.md` |
 | changelog lines | a bullet is not `- \`TASK-N\`: text` (WARN: someone hand-wrote one) |
 | commit guard | WARN, not FAIL: the optional pre-commit hook is not wired in this clone |
+| commit identity | a commit message carries AI attribution (FAIL); a commit author is not the configured identity (WARN) |
 
 `--json` prints the same rows as `{ ok, fails, warns, rows }` for a CI comment or a gate.
 
-## 4. First verification baseline
+## 5. First verification baseline
 
 `task new` records the baseline itself. The "was it already broken?" run happens at the moment
 the task opens, so it cannot be forgotten:
@@ -123,7 +148,7 @@ It is per clone and bypassable (`git commit --no-verify`), so it is a speed bump
 `task close` is the check. Skip it if the team would rather not have a hook; `doctor` reports it
 as a WARN with that command, not a failure.
 
-## 5. Report
+## 6. Report
 
 Tell the owner, in plain words:
 
