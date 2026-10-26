@@ -9,14 +9,15 @@
  *
  * Commands
  *   setup [target] [--source <path|url>]   scaffold a repo; never overwrites an authored file
+ *          [--no-rtk]                     skip the token-saver install
  *   check [--json]                         drift table vs the template; never writes
  *   pull [--dry-run|--force|--seeds]       apply the sync, then doctor
  *   doctor [--strict] [--fix] [--json]     truth checks over the repo's own docs
  *   verify [--baseline]                    run the declared commands, record the evidence
+ *   harnesses                              list the coding agents on this machine (HOME, PATH, repo)
  *   task new <slug> [--lane quick|planned] open a task and record the baseline run
  *   task show [--id TASK-N]                the active task's scope, plan and evidence
  *   task close [--amend "<why>"]           run the suite, scope-check, record, archive, index
- *   release <version> --summary "<text>"   promote the Unreleased block into release notes
  *   task guard                             pre-commit gate: refuse an out-of-scope commit
  *   learnings archive                      move entries past the 30 cap into .agents/learnings/
  *   selftest                               prove every gate can fail, in a temp repo
@@ -43,19 +44,25 @@ const TASKS = ".agents/tasks";
 const TASK_INDEX = `${TASKS}/INDEX.md`;
 const TASK_TEMPLATE = ".agents/templates/task.md";
 const LOG_DIR = ".agents/logs";
-const CHANGELOG = `${LOG_DIR}/changelog.md`;
 
-// Release-notes vocabulary. One home: the writer, the doctor check and the release command
-// all read it from here.
-const UNRELEASED = "## 🚧 Unreleased";
+// A change is one file, filed under the month it landed in:
+// `logs/MM-YYYY/YYYY-MM-DD-TASK-N-slug.md`. One home for the vocabulary: close validates
+// against it, the writer renders the heading.
 const CATEGORIES = [
 	["added", "🟢 Added"],
 	["changed", "🔵 Changed"],
 	["fixed", "🛠️ Fixed"],
 	["removed", "⚠️ Deprecated / Removed"],
 ];
-const ENTRY_RE = /^- `[A-Z][A-Z0-9-]*`: \S/;
 const ENTRY_LIMIT = 140;
+
+// The indexes carry the last few entries, so a session reads a list instead of a folder.
+// [index, folder, date field]
+const RECENT_LISTS = [
+	[TASK_INDEX, `${TASKS}/archive`, "closed"],
+	[`${LOG_DIR}/INDEX.md`, LOG_DIR, "date"],
+];
+const RECENT_LIMIT = 5;
 
 const TEXT_EXT = new Set([
 	".md",
@@ -117,6 +124,23 @@ function walk(dir, base = dir, acc = []) {
 		} else {
 			acc.push(posix(path.relative(base, path.join(dir, e.name))));
 		}
+	}
+	return acc;
+}
+
+/** State stores are addressed by their parent index, not by one of their own. */
+const STATE_DIRS = new Set(["active", "archive", "learnings"]);
+
+/** Directories under `dir`, repo-relative. Month folders are entries, not areas to index. */
+function walkDirs(dir, base = dir, acc = []) {
+	if (!isDir(dir)) return acc;
+	for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+		if (!e.isDirectory() || SKIP_DIRS.has(e.name) || STATE_DIRS.has(e.name))
+			continue;
+		if (/^\d{2}-\d{4}$/.test(e.name)) continue;
+		const p = path.join(dir, e.name);
+		acc.push(posix(path.relative(base, p)));
+		walkDirs(p, base, acc);
 	}
 	return acc;
 }
@@ -257,6 +281,14 @@ function block(text, name, body) {
 	);
 	if (!re.test(text)) return text;
 	return text.replace(re, `$1\n${body}\n$2`);
+}
+
+/** The body of a named block, or null when its markers are absent. */
+function blockBody(text, name) {
+	const m = text.match(
+		new RegExp(`<!-- ${name}:START -->([\\s\\S]*?)<!-- ${name}:END -->`),
+	);
+	return m ? m[1].trim() : null;
 }
 
 function sectionRows(text) {
@@ -527,9 +559,169 @@ function projectMd(stack, today) {
 	return lines.join("\n");
 }
 
+// ---------------------------------------------------------------- token saver
+
+/**
+ * `rtk` filters shell output before an agent reads it. It is a machine tool, not a repo file:
+ * setup installs it once, every later run only verifies it. The skill calls it explicitly
+ * (`rtk git status`), so no harness hook has to be patched.
+ */
+function rtkVersion(root) {
+	if (run("rtk gain", root, 30000).code !== 0) return null;
+	return (run("rtk --version", root, 15000).out || "").trim() || "installed";
+}
+
+function ensureRtk(root) {
+	const version = rtkVersion(root);
+	if (version) return ["PRESENT", "rtk", version];
+	// `rtk --version` working while `gain` fails is the other rtk package (Rust Type Kit).
+	if (run("rtk --version", root, 15000).code === 0)
+		return [
+			"CONFLICT",
+			"rtk",
+			"another rtk is installed (Rust Type Kit): cargo uninstall rtk, then install rtk-ai.rtk",
+		];
+
+	const installs = {
+		win32: [
+			"winget install --id rtk-ai.rtk -e --accept-source-agreements --accept-package-agreements",
+			"cargo install --git https://github.com/rtk-ai/rtk rtk",
+		],
+		unix: [
+			"brew install rtk",
+			"curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh",
+		],
+	};
+	const commands =
+		process.platform === "win32"
+			? installs.win32
+			: run("brew --version", root, 15000).code === 0
+				? installs.unix
+				: installs.unix.slice(1);
+
+	for (const command of commands) {
+		if (run(command, root, 600000).code !== 0) continue;
+		const after = rtkVersion(root);
+		return after
+			? ["INSTALLED", "rtk", after]
+			: ["INSTALLED", "rtk", "reopen the shell if rtk is not on PATH"];
+	}
+	return [
+		"MISSING",
+		"rtk",
+		"install manually: https://github.com/rtk-ai/rtk — `rtk gain` must work",
+	];
+}
+
+// ---------------------------------------------------------------- harnesses
+
+/**
+ * A harness is what the owner runs an agent in. Its config lives in HOME, not in the repo:
+ * a target with no harness files can still be driven by several of them. This is a report,
+ * not a gate — a machine without one is advice, not a broken repo.
+ *
+ * `home` and `repo` are markers, `bin` is a PATH name. `skill` is the in-repo pointer the
+ * harness discovers on its own; add one only where the folder convention is known.
+ */
+const HARNESSES = [
+	{ name: "Claude Code", home: [".claude"], bin: ["claude"], repo: [".claude"], skill: ".claude/skills/agent-kit/SKILL.md" },
+	{ name: "Codex CLI", home: [".codex"], bin: ["codex"], repo: [".codex"] },
+	{ name: "Cursor", home: [".cursor"], bin: ["cursor"], repo: [".cursor"] },
+	{ name: "Gemini CLI", home: [".gemini"], bin: ["gemini"], repo: [".gemini", "GEMINI.md"] },
+	{ name: "GitHub Copilot", home: [".copilot", ".config/github-copilot"], bin: ["copilot"], repo: [".github/copilot-instructions.md"] },
+	{ name: "Windsurf", home: [".codeium/windsurf"], bin: ["windsurf"], repo: [".windsurf"] },
+	{ name: "OpenCode", home: [".config/opencode", ".local/share/opencode"], bin: ["opencode"], repo: [".opencode", "opencode.json"], skill: ".opencode/skills/agent-kit/SKILL.md" },
+	{ name: "Qoder", home: [".qoder"], repo: [".qoder"] },
+	{ name: "Qwen Code", home: [".qwen"], bin: ["qwen"], repo: [".qwen", "QWEN.md"] },
+	{ name: "Cline", home: [".cline"], repo: [".cline", ".clinerules"] },
+	{ name: "Kiro", home: [".kiro"], repo: [".kiro"] },
+	{ name: "Kilo Code", home: [".config/kilo"], repo: [".kilocode"] },
+	{ name: "Aider", home: [".aider", ".aider.conf.yml"], bin: ["aider"], repo: [".aider.conf.yml"] },
+	{ name: "Amp", home: [".config/amp"], bin: ["amp"], repo: [".amp"] },
+	{ name: "Goose", home: [".config/goose"], bin: ["goose"], repo: [".goosehints"] },
+	{ name: "Crush", home: [".config/crush"], bin: ["crush"], repo: [".crush"] },
+	{ name: "Factory Droid", home: [".factory"], bin: ["droid"], repo: [".factory"] },
+	{ name: "OpenHands", home: [".openhands"], repo: [".openhands"] },
+	{ name: "Warp", home: [".warp"], repo: ["WARP.md"] },
+	{ name: "Continue", home: [".continue"], repo: [".continue"] },
+	{ name: "Roo Code", home: [".roo"], repo: [".roo", ".roorules"] },
+	{ name: "Trae", home: [".trae"], repo: [".trae"] },
+	{ name: "Zed", home: [".config/zed"], bin: ["zed"], repo: [".zed"] },
+	{ name: "Augment Code", home: [".augment"], repo: [".augment"] },
+	{ name: "Amazon Q Developer", home: [".aws/amazonq"], repo: [".amazonq"] },
+	{ name: "iFlow", home: [".iflow"], bin: ["iflow"], repo: [".iflow"] },
+	{ name: "Kimi CLI", home: [".kimi"], bin: ["kimi"], repo: [".kimi"] },
+	{ name: "Mistral Vibe", home: [".vibe"], bin: ["vibe"], repo: [".vibe"] },
+	{ name: "Plandex", home: [".plandex"], bin: ["plandex"], repo: [".plandex"] },
+	{ name: "Junie", home: [".junie"], repo: [".junie"] },
+];
+
+function onPath(bin, pathEnv) {
+	const exts =
+		process.platform === "win32"
+			? ["", ...(process.env.PATHEXT || ".EXE;.CMD;.BAT;.COM").split(";")]
+			: [""];
+	for (const raw of pathEnv.split(path.delimiter)) {
+		const dir = raw.replace(/^"|"$/g, "");
+		if (!dir) continue;
+		for (const ext of exts) {
+			const p = path.join(dir, bin + ext);
+			if (exists(p) && fs.statSync(p).isFile()) return true;
+		}
+	}
+	return false;
+}
+
+function detectHarnesses(repoRoot, home, pathEnv = process.env.PATH || "") {
+	const homeDir = home === undefined ? os.homedir() : home;
+	const found = [];
+	for (const h of HARNESSES) {
+		const evidence = [];
+		for (const p of h.home || [])
+			if (exists(path.join(homeDir, p))) evidence.push(`~/${posix(p)}`);
+		for (const b of h.bin || [])
+			if (onPath(b, pathEnv)) evidence.push(`${b} on PATH`);
+		for (const p of h.repo || [])
+			if (exists(abs(repoRoot, p))) evidence.push(p);
+		if (evidence.length) found.push({ ...h, evidence });
+	}
+	return found;
+}
+
+/** The sentence setup and `harnesses` both print. One home for the finding and the wiring. */
+function harnessLines(found) {
+	if (!found.length)
+		return [
+			"Harnesses found: none in HOME, PATH or the repo.",
+			"  AGENTS.md is still the entry point for any agent that reads it.",
+		];
+	const lines = [
+		`Harnesses found: ${found.map((h) => h.name).join(", ")}`,
+		"  Say this list. The repo may show none of them: detection reads HOME config and PATH.",
+	];
+	const pointers = found.filter((h) => h.skill);
+	if (pointers.length)
+		lines.push(
+			`  Wire the skill for each: ${pointers.map((h) => h.skill).join(", ")}`,
+		);
+	return lines;
+}
+
+function cmdHarnesses({ root, home, pathEnv } = {}) {
+	const base = path.resolve(root || process.cwd());
+	const found = detectHarnesses(base, home, pathEnv);
+	console.log("\nHarnesses on this machine (HOME config, PATH, repo markers):");
+	for (const h of found)
+		console.log(`  ${h.name.padEnd(20)}  ${h.evidence.join(", ")}`);
+	if (found.length) console.log("");
+	for (const line of harnessLines(found)) console.log(`  ${line}`);
+	console.log("");
+	return 0;
+}
+
 // ---------------------------------------------------------------- setup
 
-function cmdSetup({ target, sourceRoot, sourceSpec }) {
+function cmdSetup({ target, sourceRoot, sourceSpec, noRtk, home, pathEnv }) {
 	const root = path.resolve(target || process.cwd());
 	const src = path.resolve(sourceRoot || SCRIPT_ROOT);
 	const selfAdopt = root === src;
@@ -589,6 +781,11 @@ function cmdSetup({ target, sourceRoot, sourceSpec }) {
 		kept++;
 	}
 
+	const rtk = noRtk
+		? ["SKIPPED", "rtk", "--no-rtk: shell output stays uncompressed"]
+		: ensureRtk(root);
+	rows.push(rtk);
+
 	// Baseline = what we just installed. Drift is measured against this, never against memory.
 	const next = {
 		role: "target",
@@ -615,6 +812,11 @@ function cmdSetup({ target, sourceRoot, sourceSpec }) {
 	console.log(`\nSetup -> ${root}`);
 	console.log(`  ${copied} copied, ${kept} kept, template v${next.version}\n`);
 	if (rows.length) table(rows);
+	if (rtk[0] === "MISSING" || rtk[0] === "CONFLICT")
+		console.log(`\nToken saver: ${rtk[2]}`);
+	console.log("");
+	for (const line of harnessLines(detectHarnesses(root, home, pathEnv)))
+		console.log(line);
 	console.log(
 		"\n  Optional commit guard (off by default, per clone, bypassable):",
 		"\n    git config core.hooksPath .githooks",
@@ -673,7 +875,9 @@ function computeSync(targetRoot, sourceRoot) {
 		const base = state.seeds?.[dest];
 		let status;
 		if (tgt === null) status = "MISSING";
-		else if (srcSeed && base && srcSeed !== base) status = "SEED-UPDATED";
+		// No recorded base means this destination is new to the kit (or predates the seed):
+		// treat it as an upstream update so `pull --seeds` can install it explicitly.
+		else if (srcSeed && srcSeed !== base) status = "SEED-UPDATED";
 		else status = "CURRENT";
 		rows.push({ status, rel: dest, seed, src: srcSeed, tgt, base });
 	}
@@ -821,6 +1025,9 @@ function cmdPull({ target, sourceRoot, force, seeds, dryRun }) {
 		}
 	}
 
+	// A seed pull can replace an index; the entries it lists are derived, so rebuild them.
+	refreshRecents(root);
+
 	const next = {
 		role: "target",
 		source: state.source || sourceRoot,
@@ -893,7 +1100,7 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 		"CLAUDE.md",
 		MANIFEST,
 		TASK_INDEX,
-		CHANGELOG,
+		`${LOG_DIR}/INDEX.md`,
 		"docs/INDEX.md",
 		"scripts/agent-kit.mjs",
 		"SKILL.md",
@@ -901,6 +1108,18 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 	if (!isTemplate) required.push(PROJECT, STATE);
 	const missing = required.filter((r) => !exists(abs(base, r)));
 	add(missing.length ? "FAIL" : "PASS", "required files", missing.join(", "));
+
+	// 0b. every directory an agent may open is indexed, so it reads one index and one file
+	// instead of listing a folder into context. State stores are covered by their parent.
+	const unindexedDirs = [".agents", "docs", "scripts", ".githooks"]
+		.filter((dir) => isDir(abs(base, dir)))
+		.flatMap((dir) => [dir, ...walkDirs(abs(base, dir), base)])
+		.filter((rel) => !exists(abs(base, `${rel}/INDEX.md`)));
+	add(
+		unindexedDirs.length ? "FAIL" : "PASS",
+		"directory indexes",
+		unindexedDirs.slice(0, 4).join(", "),
+	);
 
 	// A harness skill file is a pointer: the loop lives in the root SKILL.md, and a copy in
 	// `.claude/skills/` or `.opencode/skills/` would drift the first time either is edited.
@@ -931,6 +1150,15 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 			: pointers.length
 				? pointers.join(", ")
 				: "none: AGENTS.md already points at SKILL.md",
+	);
+
+	// The token saver is a machine tool, not a repo invariant: missing is advice, not failure.
+	const rtk = rtkVersion(base);
+	add(
+		rtk ? "PASS" : "WARN",
+		"token saver",
+		rtk ||
+			"rtk gain failed — install rtk-ai.rtk (winget) or brew install rtk; setup does it",
 	);
 
 	if (exists(abs(base, ".git"))) {
@@ -1219,34 +1447,39 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 		vague.slice(0, 5).join(", "),
 	);
 
-	// 7. changelog shape: every bullet is `- \`TASK-N\`: text`, and short — a release note is a
-	// clause, not a paragraph. Length is a failure because the entry is the part a session reads.
-	const log = readIf(abs(base, CHANGELOG));
-	if (log !== null) {
-		const bullets = log.split(/\r?\n/).filter((l) => l.startsWith("- "));
-		const bad = bullets.filter((l) => !ENTRY_RE.test(l));
-		const long = bullets.filter((l) => l.length > ENTRY_LIMIT);
-		add(
-			long.length ? "FAIL" : bad.length ? "WARN" : "PASS",
-			"changelog lines",
-			long.length
-				? `${long.length} bullet(s) over ${ENTRY_LIMIT} characters: ${long[0].slice(0, 50)}…`
-				: bad.slice(0, 3).join(" | "),
-		);
-
-		// 8. completeness: an archived task with no changelog line is a change nobody can find.
-		const undocumented = expand(base, `${TASKS}/archive`)
+	// 7. completeness: an archived task with no change file is a change nobody can find.
+	const logged = new Set(
+		expand(base, LOG_DIR)
 			.filter((rel) => rel.endsWith(".md"))
-			.filter((rel) => {
-				const id = frontMatter(read(abs(base, rel))).id;
-				return id && !log.includes(`\`${id}\``);
-			});
-		add(
-			undocumented.length ? "FAIL" : "PASS",
-			"archived tasks changelogged",
-			undocumented.slice(0, 3).join(", "),
-		);
+			.map((rel) => frontMatter(read(abs(base, rel))).id)
+			.filter(Boolean),
+	);
+	const undocumented = expand(base, `${TASKS}/archive`)
+		.filter((rel) => rel.endsWith(".md"))
+		.filter((rel) => {
+			const id = frontMatter(read(abs(base, rel))).id;
+			return id && !logged.has(id);
+		});
+	add(
+		undocumented.length ? "FAIL" : "PASS",
+		"archived tasks changelogged",
+		undocumented.slice(0, 3).join(", "),
+	);
+
+	// 7b. the indexes carry the last five entries, so a session reads one list instead of a folder.
+	const staleRecents = [];
+	for (const [rel, dir, field] of RECENT_LISTS) {
+		const text = readIf(abs(base, rel));
+		const actual = text === null ? null : blockBody(text, "RECENT");
+		if (actual === null) staleRecents.push(`${rel}: no RECENT block`);
+		else if (actual !== recentLines(base, rel, dir, field))
+			staleRecents.push(`${rel}: stale`);
 	}
+	add(
+		staleRecents.length ? "FAIL" : "PASS",
+		"recent lists",
+		staleRecents.join(", "),
+	);
 
 	const fails = rows.filter((r) => r[0] === "FAIL").length;
 	const warns = rows.filter((r) => r[0] === "WARN").length;
@@ -1505,11 +1738,11 @@ function cmdTaskClose({ root, id, amend, noVerify }) {
 
 	if (!fm.summary)
 		problems.push(
-			"front-matter summary is empty (it becomes the changelog entry)",
+			"front-matter summary is empty (it becomes the change file title)",
 		);
 	if (fm.summary && fm.summary.length > ENTRY_LIMIT)
 		problems.push(
-			`front-matter summary is ${fm.summary.length} characters (limit ${ENTRY_LIMIT}: it becomes a one-line release note)`,
+			`front-matter summary is ${fm.summary.length} characters (limit ${ENTRY_LIMIT}: the change file title is one clause)`,
 		);
 	const type = (fm.type || "changed").toLowerCase();
 	if (!CATEGORIES.some(([t]) => t === type))
@@ -1521,17 +1754,6 @@ function cmdTaskClose({ root, id, amend, noVerify }) {
 		problems.push("front-matter touches is empty (declare the write set)");
 	if (/<!--\s*FILL:/.test(text))
 		problems.push("unfilled <!-- FILL: --> marker left in the task file");
-
-	// The changelog is the record, so a repo without its shape is not closable.
-	const logNow = readIf(abs(base, CHANGELOG));
-	const shaped =
-		logNow !== null &&
-		logNow.includes(UNRELEASED) &&
-		CATEGORIES.every(([, h]) => logNow.includes(`### ${h}`));
-	if (!shaped)
-		problems.push(
-			`${CHANGELOG} is missing "${UNRELEASED}" or a category heading — restore it from .agents/templates/changelog.seed.md`,
-		);
 
 	// Close runs the suite itself: the last moment the tree is still "as delivered" is the
 	// only moment worth recording, and an agent cannot forget a step it never had to take.
@@ -1616,7 +1838,7 @@ function cmdTaskClose({ root, id, amend, noVerify }) {
 			? changed.map((c) => `- \`${c}\``).join("\n")
 			: "- none detected",
 	);
-	text = text.replace(/^status:.*$/m, "status: DONE");
+	text = text.replace(/^status:.*$/m, `status: DONE\nclosed: ${today}`);
 
 	const month = today.slice(0, 7);
 	const archive = `${TASKS}/archive/${month}`;
@@ -1624,195 +1846,105 @@ function cmdTaskClose({ root, id, amend, noVerify }) {
 	write(abs(base, `${archive}/${file}`), text);
 	fs.rmSync(abs(base, rel));
 
-	const log = readIf(abs(base, CHANGELOG)) || "";
-	write(abs(base, CHANGELOG), appendEntry(log, type, `- \`${fm.id}\`: ${fm.summary}`));
+	const change = writeChange(base, {
+		id: fm.id,
+		type,
+		slug: String(file)
+			.replace(/\.md$/, "")
+			.replace(/^\d{4}-\d{2}-\d{2}-/, "")
+			.replace(/^[A-Z][A-Z0-9-]*-/, ""),
+		summary: fm.summary,
+		changed,
+	});
 
 	let index = read(abs(base, TASK_INDEX));
 	index = block(index, "ACTIVE", "_Nothing in flight._");
 	write(abs(base, TASK_INDEX), index);
+	refreshRecents(base);
 
 	console.log(`\nClosed ${fm.id}`);
 	console.log(`  archived  ${archive}/${file}`);
 	console.log(`  inventory ${changed.length} file(s)`);
-	console.log(`  changelog ${CHANGELOG} (${type}, unreleased)\n`);
+	console.log(`  change    ${change} (${type})\n`);
 	return 0;
 }
 
 // ------------------------------------------------------------- changelog
 
-/** The empty Unreleased block, exactly as the seed ships it. */
-function unreleasedBlock() {
-	return [
-		UNRELEASED,
-		"",
-		...CATEGORIES.map(([, heading]) => `### ${heading}\n_None yet._\n`),
-	]
-		.join("\n")
-		.replace(/\n+$/, "");
-}
-
-/** Add one `- \`TASK-N\`: text` line under the matching category, replacing `_None yet._`. */
-function appendEntry(log, type, entry) {
-	const heading = CATEGORIES.find(([t]) => t === type);
-	if (!heading) return log;
-	const lines = log.split(/\r?\n/);
-	const start = lines.findIndex((l) => l.trim() === UNRELEASED);
-	if (start < 0) return log;
-	let stop = lines.findIndex((l, i) => i > start && /^## /.test(l));
-	if (stop < 0) stop = lines.length;
-
-	const cat = lines.findIndex(
-		(l, i) => i > start && i < stop && l.trim() === `### ${heading[1]}`,
-	);
-	if (cat < 0) return log;
-	let catEnd = lines.findIndex((l, i) => i > cat + 1 && i < stop && /^### /.test(l));
-	if (catEnd < 0) catEnd = stop;
-
-	const body = lines
-		.slice(cat + 1, catEnd)
-		.filter((l) => l.trim() && l.trim() !== "_None yet._");
-	body.push(entry);
-	const next = [
-		...lines.slice(0, cat + 1),
-		...body,
-		"",
-		...lines.slice(catEnd),
-	];
-	return next.join("\n").replace(/\n{3,}/g, "\n\n");
-}
-
 /**
- * Files touched by the batch, collapsed the way release notes want them: a directory that
- * contributed more than one file is shown once, a lone file is shown by name.
+ * One file per change, written at close. The folder is the month it landed in, the filename
+ * is the record: `logs/MM-YYYY/YYYY-MM-DD-TASK-N-slug.md`. There is no second ledger —
+ * this file *is* the changelog entry, and `doctor` finds an archived task through its id.
  */
-function moduleList(base, ids) {
-	const plans = new Map();
-	for (const rel of expand(base, `${TASKS}/archive`)) {
-		if (!rel.endsWith(".md")) continue;
-		const fm = frontMatter(read(abs(base, rel)));
-		if (fm.id) plans.set(fm.id, rel);
-	}
-	const files = new Set();
-	for (const id of ids) {
-		const rel = plans.get(id);
-		const m = rel
-			? read(abs(base, rel)).match(
-					/<!-- FILES:START -->([\s\S]*?)<!-- FILES:END -->/,
-				)
-			: null;
-		for (const line of (m ? m[1] : "").split(/\r?\n/)) {
-			const p = line.match(/^- `(.+)`$/);
-			if (p) files.add(p[1]);
-		}
-	}
-	const dirs = new Map();
-	for (const f of files) {
-		const d = path.posix.dirname(f);
-		dirs.set(d, (dirs.get(d) || 0) + 1);
-	}
-	const out = new Set();
-	for (const f of files) {
-		const d = path.posix.dirname(f);
-		out.add(d !== "." && dirs.get(d) > 1 ? `${d}/` : f);
-	}
-	return [...out].sort();
-}
-
-function cmdRelease({ root, version, summary }) {
-	const base = path.resolve(root || process.cwd());
-	if (!version)
-		die('usage: release <version> --summary "<what this batch accomplished>"');
-	const v = version.replace(/^v/i, "");
-	if (!/^\d+(\.\d+)+$/.test(v))
-		die(`"${version}" is not a version (expected 1.2.3 or v1.2.3)`);
-	if (!summary)
-		die('release needs --summary "<one or two sentences: what shipped>"');
-
-	// Usage mistakes exit; repo state is reported, so a caller (and selftest) can act on it.
-	const log = readIf(abs(base, CHANGELOG));
-	if (log === null) {
-		console.error(`agent-kit: missing ${CHANGELOG}`);
-		return 1;
-	}
-	const lines = log.split(/\r?\n/);
-	const start = lines.findIndex((l) => l.trim() === UNRELEASED);
-	if (start < 0) {
-		console.error(`agent-kit: ${CHANGELOG} has no "${UNRELEASED}" section`);
-		return 1;
-	}
-	let stop = lines.findIndex((l, i) => i > start && /^## /.test(l));
-	if (stop < 0) stop = lines.length;
-
-	const entries = lines
-		.slice(start, stop)
-		.filter((l) => ENTRY_RE.test(l))
-		.map((l) => l.trim());
-	if (entries.length === 0) {
-		console.error(
-			`agent-kit: nothing to release — the ${UNRELEASED} section has no entries`,
-		);
-		return 1;
-	}
-
-	const ids = [...new Set(entries.join("\n").match(/`[A-Z][A-Z0-9-]*`/g))].map(
-		(s) => s.replace(/`/g, ""),
-	);
-	const modules = moduleList(base, ids);
-	const today = new Date().toISOString().slice(0, 10);
-
-	// Keep each entry under the category it was filed in.
-	const filled = CATEGORIES.flatMap(([, heading]) => {
-		const at = lines.findIndex(
-			(l, i) => i > start && i < stop && l.trim() === `### ${heading}`,
-		);
-		if (at < 0) return [];
-		const end = lines.findIndex(
-			(l, i) => i > at && i < stop && /^(##|###) /.test(l),
-		);
-		const own = lines
-			.slice(at + 1, end < 0 ? stop : end)
-			.filter((l) => ENTRY_RE.test(l))
-			.map((l) => l.trim());
-		return own.length ? [`### ${heading}`, ...own, ""] : [];
-	});
-
-	const release = [
-		`## 🚀 Release [v${v}] — ${today}`,
-		"",
-		"### 🚀 Summary",
-		summary,
-		"",
-		"---",
-		"",
-		...filled,
-	];
-	if (modules.length)
-		release.push(
+function writeChange(base, { id, type, slug, summary, changed }) {
+	const day = new Date().toISOString().slice(0, 10);
+	const month = `${day.slice(5, 7)}-${day.slice(0, 4)}`;
+	const dir = `${LOG_DIR}/${month}`;
+	const rel = `${dir}/${day}-${id}-${slug}.md`;
+	const [, label] = CATEGORIES.find(([t]) => t === type);
+	fs.mkdirSync(abs(base, dir), { recursive: true });
+	write(
+		abs(base, rel),
+		[
+			"---",
+			`id: ${id}`,
+			`type: ${type}`,
+			`date: ${day}`,
+			`summary: ${JSON.stringify(summary)}`,
 			"---",
 			"",
-			"### 📦 Touched Modules",
-			...modules.map((m) => `- \`${m}\``),
+			`# ${id} — ${summary}`,
 			"",
+			`## ${label}`,
+			...(changed.length ? changed.map((c) => `- \`${c}\``) : ["- none detected"]),
+			"",
+		].join("\n"),
+	);
+	return rel;
+}
+
+/** Markdown files under a state folder, newest first. Each entry is one index line. */
+function entriesIn(base, dir, dateField) {
+	return expand(base, dir)
+		.filter((rel) => rel.endsWith(".md") && path.basename(rel) !== "INDEX.md")
+		.map((rel) => {
+			const fm = frontMatter(read(abs(base, rel)));
+			const name = (path.basename(rel).match(/^\d{4}-\d{2}-\d{2}/) || [""])[0];
+			return {
+				rel,
+				id: fm.id,
+				summary: fm.summary,
+				date: fm[dateField] || fm.created || name,
+			};
+		})
+		.filter((e) => e.id)
+		.sort((a, b) =>
+			`${b.date}\u0000${b.rel}`.localeCompare(`${a.date}\u0000${a.rel}`),
 		);
+}
 
-	const next = [
-		...lines.slice(0, start),
-		...unreleasedBlock().split("\n"),
-		"",
-		...release,
-		...lines.slice(stop),
-	];
-	write(
-		abs(base, CHANGELOG),
-		`${next.join("\n").replace(/\n{3,}/g, "\n\n").replace(/\s*$/, "")}\n`,
-	);
+/** The body of an index's RECENT block: five links, newest first, one line each. */
+function recentLines(base, indexRel, dir, dateField) {
+	const recent = entriesIn(base, dir, dateField).slice(0, RECENT_LIMIT);
+	if (!recent.length) return "_Nothing yet._";
+	const from = path.dirname(indexRel);
+	return recent
+		.map(
+			(e) =>
+				`- \`${e.date || "undated"}\` [${e.id}](${posix(path.relative(from, e.rel))}) — ${e.summary || "(no summary)"}`,
+		)
+		.join("\n");
+}
 
-	console.log(`\nReleased v${v} — ${entries.length} task(s), ${modules.length} module(s)`);
-	console.log(`  ${CHANGELOG}`);
-	console.log(
-		`  unreleased is empty again; commit the changelog with the batch it describes.\n`,
-	);
-	return 0;
+function refreshRecents(base) {
+	for (const [rel, dir, field] of RECENT_LISTS) {
+		const text = readIf(abs(base, rel));
+		if (text === null) continue;
+		write(
+			abs(base, rel),
+			block(text, "RECENT", recentLines(base, rel, dir, field)),
+		);
+	}
 }
 
 // ---------------------------------------------------------------- guard
@@ -1967,15 +2099,21 @@ function cmdSelftest() {
 		write(abs(tmp, "src/index.ts"), "export const x = 1;\n");
 
 		console.log("\n1. setup");
+		let setupCode;
+		const setupOut = captured(() => {
+			setupCode = cmdSetup({
+				target: tmp,
+				sourceRoot: SCRIPT_ROOT,
+				sourceSpec: SCRIPT_ROOT,
+				noRtk: true,
+				home: abs(tmp, "no-home"),
+				pathEnv: "",
+			});
+		});
+		assert(setupCode === 0, "setup exits 0");
 		assert(
-			quiet(() =>
-				cmdSetup({
-					target: tmp,
-					sourceRoot: SCRIPT_ROOT,
-					sourceSpec: SCRIPT_ROOT,
-				}),
-			) === 0,
-			"setup exits 0",
+			setupOut.includes("Harnesses found: none"),
+			"setup says which harnesses it found",
 		);
 		assert(exists(abs(tmp, PROJECT)), "project.md generated");
 		assert(
@@ -2025,6 +2163,14 @@ function cmdSelftest() {
 			quiet(() => cmdDoctor({ root: tmp, strict: true })) === 0,
 			"doctor --strict exits 0 after the fill",
 		);
+		const logsIndex = abs(tmp, ".agents/logs/INDEX.md");
+		const logsIndexText = read(logsIndex);
+		fs.rmSync(logsIndex);
+		assert(
+			quiet(() => cmdDoctor({ root: tmp })) === 1,
+			"doctor fails a directory without its INDEX.md",
+		);
+		write(logsIndex, logsIndexText);
 
 		console.log("\n4. drift is detected and refused");
 		fs.appendFileSync(abs(tmp, "scripts/agent-kit.mjs"), "\n// local edit\n");
@@ -2082,6 +2228,23 @@ function cmdSelftest() {
 			quiet(() => cmdTaskGuard({ root: tmp })) === 0,
 			"the commit guard passes an in-scope staged file",
 		);
+		const activeDir = abs(tmp, `${TASKS}/active`);
+		const taskFile = abs(
+			activeDir,
+			fs.readdirSync(activeDir).find((f) => f.endsWith(".md")),
+		);
+		write(
+			taskFile,
+			read(taskFile).replace(/^summary: .*$/m, `summary: "${"x".repeat(200)}"`),
+		);
+		assert(
+			quiet(() => cmdTaskClose({ root: tmp })) === 1,
+			"a change title over 140 characters is refused",
+		);
+		write(
+			taskFile,
+			read(taskFile).replace(/^summary: .*$/m, 'summary: "fixture change"'),
+		);
 		const before = quiet(() => cmdTaskClose({ root: tmp }));
 		assert(before === 0, "task close exits 0 when the write set holds");
 		assert(
@@ -2089,32 +2252,51 @@ function cmdSelftest() {
 				fs.readdirSync(abs(tmp, `${TASKS}/archive`)).length > 0,
 			"task archived",
 		);
-		assert(
-			read(abs(tmp, CHANGELOG)).includes(
-				"### 🔵 Changed\n- `TASK-101`: fixture change",
-			),
-			"changelog entry filed under its change type, quotes stripped from the summary",
+		const changeRel = expand(tmp, LOG_DIR).find((rel) =>
+			/^\.agents\/logs\/\d{2}-\d{4}\/.+\.md$/.test(rel),
 		);
-		const logBefore = read(abs(tmp, CHANGELOG));
+		assert(
+			/^\.agents\/logs\/\d{2}-\d{4}\/\d{4}-\d{2}-\d{2}-TASK-101-[\w-]+\.md$/.test(
+				changeRel || "",
+			),
+			"the change is filed as logs/MM-YYYY/YYYY-MM-DD-TASK-ID-slug.md",
+		);
+		const changeText = read(abs(tmp, changeRel));
+		assert(
+			changeText.includes("# TASK-101 — fixture change") &&
+				changeText.includes("## 🔵 Changed") &&
+				changeText.includes("- `src/index.ts`"),
+			"the file says what happened (title) and what changed (category + inventory)",
+		);
+		const taskIndexText = read(abs(tmp, TASK_INDEX));
+		assert(
+			taskIndexText.includes("<!-- RECENT:START -->") &&
+				/\[TASK-101\]\(archive\/\d{4}-\d{2}\//.test(taskIndexText) &&
+				taskIndexText.includes("fixture change"),
+			"the task index lists the last closed tasks and links the archive",
+		);
+		const logsRecent = read(abs(tmp, `${LOG_DIR}/INDEX.md`));
+		assert(
+			/\[TASK-101\]\(\d{2}-\d{4}\/\d{4}-\d{2}-\d{2}-TASK-101-[\w-]+\.md\)/.test(
+				logsRecent,
+			) && logsRecent.includes("fixture change"),
+			"the logs index lists the last changes and links the month folder",
+		);
 		write(
-			abs(tmp, CHANGELOG),
-			logBefore.replace(
-				"### 🔵 Changed",
-				`### 🔵 Changed\n- \`TEMPLATE\`: ${"x".repeat(200)}`,
+			abs(tmp, `${LOG_DIR}/INDEX.md`),
+			logsRecent.replace(
+				/<!-- RECENT:START -->[\s\S]*?<!-- RECENT:END -->/,
+				"<!-- RECENT:START -->\n_Nothing yet._\n<!-- RECENT:END -->",
 			),
 		);
 		assert(
 			quiet(() => cmdDoctor({ root: tmp })) === 1,
-			"a release note over 140 characters fails, so the file stays short",
+			"doctor fails a stale recent list",
 		);
-		write(abs(tmp, CHANGELOG), logBefore);
-		assert(
-			!read(abs(tmp, TASK_INDEX)).includes("RECENT"),
-			"the task index no longer keeps a second copy of the changelog",
-		);
+		write(abs(tmp, `${LOG_DIR}/INDEX.md`), logsRecent);
 		assert(
 			quiet(() => cmdDoctor({ root: tmp })) === 0,
-			"doctor accepts a closed task and its changelog line",
+			"doctor accepts a closed task and its change file",
 		);
 		const handArchived = abs(
 			tmp,
@@ -2123,7 +2305,7 @@ function cmdSelftest() {
 		write(handArchived, "---\nid: TASK-999\nstatus: DONE\n---\n# hand closed\n");
 		assert(
 			quiet(() => cmdDoctor({ root: tmp })) === 1,
-			"doctor fails on an archived task with no changelog line",
+			"doctor fails on an archived task with no change file",
 		);
 		fs.rmSync(handArchived);
 		const archived =
@@ -2144,7 +2326,12 @@ function cmdSelftest() {
 		fs.cpSync(SCRIPT_ROOT, junkDir, { recursive: true });
 		assert(
 			quiet(() =>
-				cmdSetup({ target: junkDir, sourceRoot: junkDir, sourceSpec: junkDir }),
+				cmdSetup({
+					target: junkDir,
+					sourceRoot: junkDir,
+					sourceSpec: junkDir,
+					noRtk: true,
+				}),
 			) === 0,
 			"setup exits 0 on a self-copy",
 		);
@@ -2269,40 +2456,25 @@ function cmdSelftest() {
 			"the dry run wrote nothing",
 		);
 
-		console.log("\n13. release promotes the unreleased block");
-		assert(
-			quiet(() =>
-				cmdRelease({ root: tmp, version: "0.1.0", summary: "first batch" }),
-			) === 0,
-			"release exits 0 with entries waiting",
-		);
-		const notes = read(abs(tmp, CHANGELOG));
-		assert(
-			notes.includes("## 🚀 Release [v0.1.0]"),
-			"the release header carries the version",
+		console.log("\n13. the change log is a folder of dated files, not a release ledger");
+		const changes = expand(tmp, LOG_DIR).filter(
+			(r) => r.endsWith(".md") && !r.endsWith("INDEX.md"),
 		);
 		assert(
-			notes.includes("### 🚀 Summary\nfirst batch"),
-			"the summary is written above the categories",
+			changes.some((rel) =>
+				/^\.agents\/logs\/\d{2}-\d{4}\/\d{4}-\d{2}-\d{2}-TASK-101-[\w-]+\.md$/.test(
+					rel,
+				),
+			),
+			"a change sits in its month folder, named by date, task and slug",
 		);
 		assert(
-			notes.includes("### 📦 Touched Modules") &&
-				notes.includes("- `src/index.ts`"),
-			"touched modules are derived from the archived plans",
-		);
-		assert(
-			(notes.match(/_None yet\._/g) || []).length === 4,
-			"a fresh, empty Unreleased block is left behind",
+			!exists(abs(tmp, `${LOG_DIR}/changelog.md`)),
+			"there is no accumulating changelog to keep in sync",
 		);
 		assert(
 			quiet(() => cmdDoctor({ root: tmp })) === 0,
-			"doctor accepts the released file and still finds every task in it",
-		);
-		assert(
-			quiet(() =>
-				cmdRelease({ root: tmp, version: "0.2.0", summary: "nothing" }),
-			) === 1,
-			"release refuses an empty batch",
+			"doctor accepts the change log as it is",
 		);
 
 		console.log("\n14. a new directory is inventoried as files, not as one entry");
@@ -2413,6 +2585,27 @@ function cmdSelftest() {
 			!read(learnP).includes("\n- lesson 1\n"),
 			"and they are gone from the list a session reads",
 		);
+
+		console.log("\n18. harnesses are found on the machine, not only in the repo");
+		const fakeHome = abs(tmp, "fake-home");
+		fs.mkdirSync(abs(fakeHome, ".claude"), { recursive: true });
+		fs.mkdirSync(abs(fakeHome, ".codex"), { recursive: true });
+		fs.mkdirSync(abs(tmp, ".cursor"), { recursive: true });
+		const found = detectHarnesses(tmp, fakeHome, "");
+		const names = found.map((h) => h.name);
+		assert(names.includes("Claude Code"), "a HOME config dir is a signal");
+		assert(names.includes("Codex CLI"), "PATH is not the only signal");
+		assert(names.includes("Cursor"), "a repo marker is a signal");
+		assert(!names.includes("Windsurf"), "an absent harness is not reported");
+		assert(
+			harnessLines(found).join("\n").includes("Claude Code"),
+			"the report names what was found",
+		);
+		assert(
+			quiet(() => cmdHarnesses({ root: tmp, home: fakeHome, pathEnv: "" })) ===
+				0,
+			"harnesses exits 0",
+		);
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });
 		if (junkDir) fs.rmSync(junkDir, { recursive: true, force: true });
@@ -2450,7 +2643,12 @@ function main(argv) {
 				root: SCRIPT_ROOT,
 				spec: SCRIPT_ROOT,
 			};
-			return cmdSetup({ target, sourceRoot: src.root, sourceSpec: src.spec });
+			return cmdSetup({
+				target,
+				sourceRoot: src.root,
+				sourceSpec: src.spec,
+				noRtk: flag("no-rtk"),
+			});
 		}
 		case "check": {
 			const target = path.resolve(process.cwd());
@@ -2481,6 +2679,8 @@ function main(argv) {
 			});
 		case "verify":
 			return cmdVerify({ root: process.cwd(), baseline: flag("baseline") });
+		case "harnesses":
+			return cmdHarnesses({ root: process.cwd() });
 		case "task": {
 			const sub = args[1];
 			if (sub === "new")
@@ -2510,12 +2710,6 @@ function main(argv) {
 				return die("usage: learnings archive  (moves entries past the 30 cap)");
 			return cmdLearningsArchive({ root: process.cwd() });
 		}
-		case "release":
-			return cmdRelease({
-				root: process.cwd(),
-				version: positional[0],
-				summary: value("summary"),
-			});
 		case "selftest":
 			return cmdSelftest();
 		case "help":
@@ -2529,7 +2723,7 @@ function main(argv) {
 			return 0;
 		default:
 			return die(
-				`unknown command: ${cmd} (setup|check|pull|doctor|verify|task|selftest)`,
+				`unknown command: ${cmd} (setup|check|pull|doctor|verify|harnesses|task|selftest)`,
 			);
 	}
 }
