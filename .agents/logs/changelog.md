@@ -25,6 +25,7 @@ Release notes. `task close` files each task under its `type`; `release <version>
 - `TEMPLATE`: the seed `AGENTS.md` and the commit step in `SETUP.md` §5 both say it outright — the repo's configured identity is the author, never the session's, and no co-author or AI trailer — so the rule arrives with the install, not with the first violation
 - `TEMPLATE`: the changelog is explained in four lines, not sixty — `task close` and `release` do the work, so the README says what the file is and how a batch ships
 - `TEMPLATE`: installing a skill is a question, not a default — setup asks "shall I install the recommended skills?", a no is final for that repo, and agent-browser is asked separately
+- `TEMPLATE`: size is counted in characters, not lines — the module ceiling and the skill-pointer check both use a character budget, because that is what a session pays for
 
 ### 🛠️ Fixed
 _None yet._

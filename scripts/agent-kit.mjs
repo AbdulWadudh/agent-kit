@@ -917,7 +917,9 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 		.filter((rel) => /(^|\/)skills\/[^/]+\/SKILL\.md$/.test(rel));
 	const notPointer = pointers.filter((rel) => {
 		const t = read(abs(base, rel));
-		return t.split(/\r?\n/).length > 12 || !t.includes("SKILL.md");
+		// A session pays for characters, not line breaks: a pointer is frontmatter plus one
+		// line, and a copy of the loop is thousands of characters.
+		return t.length > 700 || !t.includes("SKILL.md");
 	});
 	add(
 		notPointer.length ? "FAIL" : "PASS",

@@ -5,7 +5,9 @@ delete what is not true here. This repo's `AGENTS.md` overrides this file, never
 
 1. **No comments.** No `//`, `/* */`, JSDoc. The comment you wanted is a rename or an
    extraction.
-2. **300-line ceiling.** Split by responsibility at 250.
+2. **Size ceiling: 12,000 characters** — split by responsibility at 10,000. Characters are
+   what a session pays for; a line count hides a fourfold difference between two files of the
+   same length.
 3. **Feature folders.** A split file becomes a folder named for the feature, re-exported
    through `index.ts`. Never a flat directory of loose files. Code used by two features moves
    up a level, never copied.
