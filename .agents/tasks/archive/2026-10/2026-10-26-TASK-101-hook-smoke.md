@@ -1,7 +1,7 @@
 ---
 id: TASK-101
 lane: QUICK
-status: IN_PROGRESS
+status: DONE
 created: 2026-10-26
 baseline: 2f7b5c1fa5ee6a490c21b7dd1dc86b80309436b0
 touches: [".githooks/", "scripts/agent-kit.mjs", ".agents/sync-manifest.json", ".agents/rules/_behavior.md", ".agents/templates/", ".opencode/skills/agent-kit/", "AGENTS.md", "README.md", "SETUP.md"]
@@ -13,20 +13,24 @@ summary: "prove the hook fires"
 ## Scope (frozen once approved)
 
 **Intent**
-<!-- FILL:intent — the user's request in one or two sentences, in their words. -->
+The workflow asked for five commands a user would never type. Answer it in the code: make the two that matter automatic, and make the boundary fire without anyone remembering it.
 
 **In scope**
-- <!-- FILL:in-scope -->
+- 	ask new records the baseline; 	ask close runs the suite and refuses a red result.
+- A pre-commit guard that refuses a commit outside the active task's write set.
+- Docs and the skill say who types what.
 
 **Out of scope**
-- <!-- FILL:out-of-scope — say what you are deliberately not touching. -->
+- Rewriting the lane model or the evidence format.
 
 **Assumptions taken without asking**
 - none
 
 ## Plan
 
-1. <!-- FILL:step-1 -->
+1. Fold the baseline into 	ask new and the evidence run into 	ask close.
+2. Add 	ask guard plus .githooks/pre-commit; wire core.hooksPath in setup.
+3. Assert both directions in selftest, then prove the hook through real git in this repo.
 
 **Files** — must match `touches` above.
 
@@ -49,15 +53,17 @@ table that records a non-zero exit.
 <!-- EVIDENCE:START -->
 | Action | Command | Expected | Observed | Exit |
 |---|---|---|---|---|
-| — | not run | — | — | — |
+| test | `node scripts/agent-kit.mjs selftest` | exit 0 | exit 0 | 0 |
+| lint | `node scripts/agent-kit.mjs doctor` | exit 0 | exit 0 | 0 |
 <!-- EVIDENCE:END -->
 
 ## Close-out
 
-**Outcome** — <!-- FILL:outcome — one line, plain words, factual. Becomes the changelog line. -->
+**Outcome** — the common path is two agent commands, and git refuses an out-of-scope commit on its own.
 
 **Docs updated**
-- <!-- FILL:docs-updated — or write "none needed: <reason>" and delete the bullet. -->
+- AGENTS.md, README.md, SETUP.md, the AGENTS seed, the skill
+- .agents/rules/_behavior.md rule 1
 
 **Learnings promoted**
 - none
@@ -66,4 +72,14 @@ table that records a non-zero exit.
 - none
 
 <!-- FILES:START -->
+- `.agents/rules/_behavior.md`
+- `.agents/sync-manifest.json`
+- `.agents/templates/AGENTS.seed.md`
+- `.githooks/pre-commit`
+- `.opencode/skills/agent-kit/SKILL.md`
+- `AGENTS.md`
+- `README.md`
+- `SETUP.md`
+- `scripts/agent-kit.mjs`
+- `.agents/templates/tasks-INDEX.seed.md`
 <!-- FILES:END -->

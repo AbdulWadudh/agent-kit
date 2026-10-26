@@ -21,7 +21,7 @@
     "docs/API_SKELETON.md": "docs/API_SKELETON.md",
     "docs/ENTRY_POINTS.md": "docs/ENTRY_POINTS.md",
     ".agents/rules/learnings.md": ".agents/templates/learnings.seed.md",
-    ".agents/tasks/INDEX.md": ".agents/tasks/INDEX.md",
+    ".agents/tasks/INDEX.md": ".agents/templates/tasks-INDEX.seed.md",
     ".agents/logs/changelog.md": ".agents/templates/changelog.seed.md"
   },
 

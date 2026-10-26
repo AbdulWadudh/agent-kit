@@ -1648,6 +1648,10 @@ function cmdSelftest() {
 			!exists(abs(tmp, ".agents/rules/typescript.md")),
 			"no rule file for a language the repo may not have",
 		);
+		assert(
+			read(abs(tmp, TASK_INDEX)).includes("_Nothing in flight._"),
+			"installed task index is empty state, not the template's in-flight task",
+		);
 
 		console.log("\n2. doctor fails before the fill work");
 		assert(
@@ -1717,7 +1721,7 @@ function cmdSelftest() {
 		fillTask(["src/index.ts"], "fixture change");
 		write(abs(tmp, "src/index.ts"), "export const x = 2;\n");
 		write(abs(tmp, "src/other.ts"), "export const y = 1;\n");
-		git(tmp, ["add", "-A"]);
+		git(tmp, ["add", "src/other.ts"]);
 		assert(
 			quiet(() => cmdTaskGuard({ root: tmp })) === 1,
 			"the commit guard blocks an out-of-scope staged file",
@@ -1729,7 +1733,8 @@ function cmdSelftest() {
 
 		console.log("\n7. in-scope close records evidence and archives");
 		fs.rmSync(abs(tmp, "src/other.ts"));
-		git(tmp, ["add", "-A"]);
+		git(tmp, ["reset"]);
+		git(tmp, ["add", "src/index.ts"]);
 		assert(
 			quiet(() => cmdTaskGuard({ root: tmp })) === 0,
 			"the commit guard passes an in-scope staged file",

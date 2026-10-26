@@ -29,7 +29,7 @@
 ## Active
 
 <!-- ACTIVE:START -->
-- `TASK-101` [IN_PROGRESS] QUICK — [2026-10-26-TASK-101-hook-smoke.md](active/2026-10-26-TASK-101-hook-smoke.md)
+_Nothing in flight._
 <!-- ACTIVE:END -->
 
 ## Recent (last 5)
@@ -37,6 +37,7 @@
 | Date | ID | Lane | Outcome | File |
 |---|---|---|---|---|
 <!-- RECENT:START -->
+| 2026-10-26 | `TASK-101` | QUICK | "prove the hook fires" | [2026-10-26-TASK-101-hook-smoke.md](archive/2026-10/2026-10-26-TASK-101-hook-smoke.md) |
 <!-- RECENT:END -->
 
 ## Archive
