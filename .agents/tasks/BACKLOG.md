@@ -10,8 +10,7 @@ an empty item, source or next step.
 
 | ID | Status | Item | Source | Next step |
 |---|---|---|---|---|
-
-_Nothing parked._
+| `B-04` | `later` | adopt an existing repo's agent files at setup (inventory, clean or migrate) | 2026-10-26 design session (cinevo probe) | re-open as a PLANNED task from the plan in project memory; start with `setup --inventory` |
 
 ## Statuses
 
