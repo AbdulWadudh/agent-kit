@@ -32,6 +32,9 @@ You are working in <PROJECT NAME>. Read this file once per session, then follow 
 - Invent a path, a command or an export. If it is not in `project.md` or in the tree, it does not exist.
 - Edit a generated directory (listed in `project.md`).
 - Close a task with edits it does not record.
+- Hand the user a command to run. Execute it, then report the result in one or two lines. If this
+  environment cannot execute it, say so and stop — never hand over a script, and never claim the
+  step passed.
 
 ## Core rules
 

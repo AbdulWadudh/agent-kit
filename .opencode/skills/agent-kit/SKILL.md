@@ -36,8 +36,9 @@ set up. Report the detected stack, the commands found, and anything you could no
 | truth check on the docs | `doctor --strict` |
 | mechanical repair | `doctor --fix` |
 
-The user does not type these. You do: `task new` when the work starts, `task close` when it
-ends. Everything else exists for the moment something looks wrong.
+The user talks; you run the commands and report the result. Never hand them a command to type.
+Everything above is yours to execute, including `release` — draft the version and the summary,
+ask for a yes, then run it.
 
 ## Do
 

@@ -1385,6 +1385,15 @@ function currentTask(root, id) {
 
 function cmdTaskShow({ root, id }) {
 	const base = path.resolve(root || process.cwd());
+	const dir = abs(base, `${TASKS}/active`);
+	const files = exists(dir)
+		? fs.readdirSync(dir).filter((f) => f.endsWith(".md"))
+		: [];
+	// Asking "what is in flight?" is normal. Nothing in flight is an answer, not an error.
+	if (files.length === 0 && !id) {
+		console.log("\nNothing in flight.\n");
+		return 0;
+	}
 	const file = currentTask(base, id);
 	const text = read(abs(base, `${TASKS}/active/${file}`));
 	const fm = frontMatter(text);
@@ -1758,8 +1767,9 @@ function cmdTaskGuard({ root }) {
 	console.error("Staged and not covered:");
 	for (const b of breached) console.error(`  ${b}`);
 	console.error(
-		"\nAmend the task's touches, unstage the file, or close the task first.\n",
+		"\nEither add them to the task's `touches`, unstage them (git restore --staged <file>),",
 	);
+	console.error("or close the task first.\n");
 	return 1;
 }
 
@@ -2183,6 +2193,10 @@ function cmdSelftest() {
 		assert(
 			!withDir.includes("- `src/lib/`"),
 			"the directory itself is not listed as a file",
+		);
+		assert(
+			quiet(() => cmdTaskShow({ root: tmp })) === 0,
+			"task show answers \"nothing in flight\" without failing",
 		);
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });

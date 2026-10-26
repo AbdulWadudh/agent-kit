@@ -14,7 +14,10 @@ Follow SETUP.md from that repository exactly. In short:
    docs/API_SKELETON.md and the three rule seeds from the REAL tree. Do not invent a
    path, a command or a layer.
 4. bun scripts/agent-kit.mjs doctor --strict   -- must exit 0
-5. bun scripts/agent-kit.mjs verify           -- report the baseline honestly
+5. bun scripts/agent-kit.mjs verify           -- report the suite state honestly
+
+Run every command here yourself. The user is in a chat window, not a terminal: report the
+results back, do not hand them a command to run.
 
 Then report: detected stack, the commands you found (and any you could not find),
 what you filled, the doctor table, and the next action. Do not claim a step passed

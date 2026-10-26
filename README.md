@@ -20,6 +20,8 @@ verified.** Everything here serves that, and anything that stops serving it gets
 
 ## Install
 
+Paste `INIT_PROMPT.md` into the session. The agent runs this; you do not:
+
 ```bash
 git clone --depth 1 <template-url> "$TMPDIR/agent-kit"
 bun "$TMPDIR/agent-kit/scripts/agent-kit.mjs" setup . --source <template-url>
@@ -42,13 +44,20 @@ The agent opens the task (`task new`, which records the baseline run for you), e
 the declared write set, and closes it (`task close`, which runs the suite itself and refuses a
 red result). The kit exists so that path is checkable — not so that you drive it.
 
-What is worth typing yourself:
+What to ask instead of typing:
 
-| When | Command |
+| You say | The agent runs |
 |---|---|
-| you want to see what the agent claims | `task show` |
-| you want the truth check, not the agent's summary | `doctor --strict` (`--json` in CI) |
-| you are about to accept a template upgrade | `check`, then `pull --dry-run` |
+| "what's in flight?" | `task show` |
+| "is this repo actually healthy?" | `doctor --strict` and reports the failing row |
+| "what changed since the template?" | `check`, then `pull --dry-run` |
+| "ship it" | `release <version> --summary "..."` — it drafts both, you approve |
+
+The only commands in this document that are yours to run are the ones inside a chat message.
+If the agent asks you to open a terminal, that is a defect in its instructions, not a step in
+the workflow. If its environment cannot execute commands at all, it must say so and stop: an
+agent that cannot run the gates cannot claim the work is verified, and telling you to paste a
+script moves the problem instead of solving it.
 
 And when an agent commits outside its declared write set, the optional pre-commit guard
 reports it:

@@ -11,6 +11,7 @@ _None yet._
 
 ### 🔵 Changed
 - `TEMPLATE`: the changelog is release notes: `task close` files each entry under its change type, `release` promotes the batch
+- `TEMPLATE`: chat-only operation is a rule, not a hope — the agent runs every command, `task show` answers "nothing in flight", and an unexecutable environment must say so instead of handing over a script
 
 ### 🛠️ Fixed
 _None yet._
