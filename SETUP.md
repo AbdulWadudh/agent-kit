@@ -121,7 +121,7 @@ are not a reason to keep editing.
 | write-set collisions | two active tasks declare overlapping `touches` |
 | rules are checkable | a rule file contains advice ("be careful", "try to", "consider") instead of a rule |
 | archived tasks changelogged | a task is in `archive/` but has no entry in `.agents/logs/changelog.md` |
-| changelog lines | a bullet is not `- \`TASK-N\`: text` (WARN: someone hand-wrote one) |
+| changelog lines | a bullet is over 140 characters (FAIL: a release note is one clause), or is not `- \`TASK-N\`: text` (WARN: someone hand-wrote one) |
 | commit guard | WARN, not FAIL: the optional pre-commit hook is not wired in this clone |
 | commit identity | a commit message carries AI attribution (FAIL); a commit author is not the configured identity (WARN) |
 

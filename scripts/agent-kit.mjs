@@ -54,6 +54,7 @@ const CATEGORIES = [
 	["removed", "⚠️ Deprecated / Removed"],
 ];
 const ENTRY_RE = /^- `[A-Z][A-Z0-9-]*`: \S/;
+const ENTRY_LIMIT = 140;
 
 const TEXT_EXT = new Set([
 	".md",
@@ -1208,17 +1209,19 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 		vague.slice(0, 5).join(", "),
 	);
 
-	// 7. changelog shape: every bullet is `- \`TASK-N\`: text`, so the notes stay machine-built
+	// 7. changelog shape: every bullet is `- \`TASK-N\`: text`, and short — a release note is a
+	// clause, not a paragraph. Length is a failure because the entry is the part a session reads.
 	const log = readIf(abs(base, CHANGELOG));
 	if (log !== null) {
-		const bad = log
-			.split(/\r?\n/)
-			.filter((l) => l.startsWith("- "))
-			.filter((l) => !ENTRY_RE.test(l));
+		const bullets = log.split(/\r?\n/).filter((l) => l.startsWith("- "));
+		const bad = bullets.filter((l) => !ENTRY_RE.test(l));
+		const long = bullets.filter((l) => l.length > ENTRY_LIMIT);
 		add(
-			bad.length ? "WARN" : "PASS",
+			long.length ? "FAIL" : bad.length ? "WARN" : "PASS",
 			"changelog lines",
-			bad.slice(0, 3).join(" | "),
+			long.length
+				? `${long.length} bullet(s) over ${ENTRY_LIMIT} characters: ${long[0].slice(0, 50)}…`
+				: bad.slice(0, 3).join(" | "),
 		);
 
 		// 8. completeness: an archived task with no changelog line is a change nobody can find.
@@ -1493,6 +1496,10 @@ function cmdTaskClose({ root, id, amend, noVerify }) {
 	if (!fm.summary)
 		problems.push(
 			"front-matter summary is empty (it becomes the changelog entry)",
+		);
+	if (fm.summary && fm.summary.length > ENTRY_LIMIT)
+		problems.push(
+			`front-matter summary is ${fm.summary.length} characters (limit ${ENTRY_LIMIT}: it becomes a one-line release note)`,
 		);
 	const type = (fm.type || "changed").toLowerCase();
 	if (!CATEGORIES.some(([t]) => t === type))
@@ -2033,6 +2040,19 @@ function cmdSelftest() {
 			),
 			"changelog entry filed under its change type, quotes stripped from the summary",
 		);
+		const logBefore = read(abs(tmp, CHANGELOG));
+		write(
+			abs(tmp, CHANGELOG),
+			logBefore.replace(
+				"### 🔵 Changed",
+				`### 🔵 Changed\n- \`TEMPLATE\`: ${"x".repeat(200)}`,
+			),
+		);
+		assert(
+			quiet(() => cmdDoctor({ root: tmp })) === 1,
+			"a release note over 140 characters fails, so the file stays short",
+		);
+		write(abs(tmp, CHANGELOG), logBefore);
 		assert(
 			!read(abs(tmp, TASK_INDEX)).includes("RECENT"),
 			"the task index no longer keeps a second copy of the changelog",
