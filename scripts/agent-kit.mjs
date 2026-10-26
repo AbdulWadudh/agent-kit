@@ -894,7 +894,7 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 		CHANGELOG,
 		"docs/INDEX.md",
 		"scripts/agent-kit.mjs",
-		".opencode/skills/agent-kit/SKILL.md",
+		"SKILL.md",
 	];
 	if (!isTemplate) required.push(PROJECT, STATE);
 	const missing = required.filter((r) => !exists(abs(base, r)));
@@ -972,9 +972,9 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 	const scanned = [
 		"AGENTS.md",
 		"CLAUDE.md",
+		"SKILL.md",
 		"docs",
 		".agents",
-		".opencode/skills",
 	]
 		.flatMap((e) => expand(base, e))
 		.filter((rel) => {
@@ -1860,7 +1860,7 @@ function cmdSelftest() {
 		);
 		assert(exists(abs(tmp, ".agents/template.json")), "provenance recorded");
 		assert(
-			exists(abs(tmp, ".opencode/skills/agent-kit/SKILL.md")),
+			exists(abs(tmp, "SKILL.md")),
 			"the project skill is installed",
 		);
 		assert(

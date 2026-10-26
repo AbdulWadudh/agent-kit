@@ -14,7 +14,8 @@ verified.** Everything here serves that, and anything that stops serving it gets
   gates, an evidence table, and a close-out that derives the changed files from git.
 - `.agents/rules/` — a router plus short rule files. One home per rule; indexes cite.
 - `docs/` — the knowledge seed: architecture map, API skeleton, entry points.
-- `.opencode/skills/agent-kit/` — a project skill: the trigger and the do/do-not boundary.
+- `SKILL.md` at the repo root — the skill: the trigger and the do/do-not boundary. Other
+  harnesses get a pointer in their own format, never a copy.
 - `examples/minimal/` — what a filled repo looks like, for a fictional project.
 - `scripts/agent-kit.mjs` — the only executable surface. Zero dependencies. Bun or Node.
 
@@ -47,10 +48,9 @@ template exactly — it wins if it disagrees with this message:
 2. Fill AGENTS.md, .agents/project.md, docs/ARCH_MAP.md, docs/ENTRY_POINTS.md and
    docs/API_SKELETON.md from the real tree. Ask, do not invent: propose candidates for
    rules 1-4 from my answers and the code, get a yes, then write them.
-3. Install the skill for every harness I named. Its one home is
-   .opencode/skills/agent-kit/SKILL.md; elsewhere write a thin pointer in the format that
-   harness actually loads — not a copy. If a harness has no skill mechanism, put the
-   trigger in the file it does read.
+3. Install the skill for every harness I named. Its one home is SKILL.md at the repo
+   root; in each harness's own skill folder write a thin pointer in that harness's format —
+   not a copy. If a harness has no skill mechanism, put the trigger in the file it reads.
 4. Record the off-limits answers in AGENTS.md (Ask first and rules 1-4). Wire the guard if
    I said yes. Then run bun scripts/agent-kit.mjs doctor --strict until it exits 0.
 5. Run bun scripts/agent-kit.mjs verify and report the baseline honestly.
@@ -190,18 +190,23 @@ deliberately tripping each gate — twelve scenarios, from a red baseline to a s
 
 ## The skill
 
-`.opencode/skills/agent-kit/SKILL.md` is shipped with the kit: a project skill that triggers
-on "set this repo up" and states the boundary — what to do, what never to do. It is a
-pointer, not a second copy of the rules: `AGENTS.md` and `SETUP.md` remain the contract, and
-the skill says so in its first paragraph.
+`SKILL.md` at the repo root is shipped with the kit: a project skill that triggers on "set
+this repo up" and states the boundary — what to do, what never to do. It is a pointer, not a
+second copy of the rules: `AGENTS.md` and `SETUP.md` remain the contract, and the skill says
+so in its first paragraph.
+
+Most harnesses only load a skill from their own folder, so the root file is the source, not
+the trigger. The setup prompt writes a thin pointer into each harness's own skill folder —
+`.opencode/skills/`, `.claude/skills/`, whatever it reads — in that harness's format. One
+file to edit; nothing to drift.
 
 No plugin: a plugin is code that runs on every turn, and this needs instructions at the
 moment the work starts. `examples/minimal/` shows a filled repo, for when you want to see the
 target instead of reading about it.
 
-The skill is repo-local: it triggers while you work in a repo that has it. To have it trigger
-in every repo, copy the directory into your own global skills folder once — that copy belongs
-to your machine, not to the kit, and `pull` will never touch it.
+The skill is repo-local: it triggers while you work in a repo that has a pointer to it. To
+have it trigger in every repo, add a pointer in your global skills folder yourself — that
+file belongs to your machine, not to the kit, and `pull` will never touch it.
 
 ## Staying current
 

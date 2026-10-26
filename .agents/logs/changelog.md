@@ -13,12 +13,14 @@ promotes that block into a release and starts a fresh one. Never hand-compose an
 - `TEMPLATE`: the changelog is release notes: `task close` files each entry under its change type, `release` promotes the batch
 - `TEMPLATE`: chat-only operation is a rule, not a hope — the agent runs every command, `task show` answers "nothing in flight", and an unexecutable environment must say so instead of handing over a script
 - `TEMPLATE`: `setup`'s next-step list says to ask the owner for rules 1-4 instead of inventing them; the checklist replaces a terminal wizard
+- `TEMPLATE`: the skill is harness-neutral at root `SKILL.md`; `doctor` requires it, and the setup prompt writes a pointer per named harness instead of shipping one harness's folder
 
 ### 🛠️ Fixed
 _None yet._
 
 ### ⚠️ Deprecated / Removed
 - `TEMPLATE`: `INIT_PROMPT.md` — the README prompt is the single paste site now, and its manual-copy fallback moved into `SETUP.md` §0
+- `TEMPLATE`: the `.opencode/` folder — the skill no longer ships inside one harness's directory
 
 ---
 

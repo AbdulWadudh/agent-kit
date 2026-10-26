@@ -5,7 +5,7 @@
     "scripts/agent-kit.mjs",
     ".github/workflows/agent-kit.yml",
     ".githooks",
-    ".opencode/skills/agent-kit",
+    "SKILL.md",
     ".agents/sync-manifest.json",
     ".agents/templates",
     ".agents/rules/INDEX.md",

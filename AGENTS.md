@@ -75,7 +75,7 @@ SETUP.md                      the install contract
   templates/                  the seeds, plus rule-file examples and the task template
 scripts/agent-kit.mjs         setup | check | pull | doctor | verify | task | selftest
 .githooks/pre-commit          optional per-clone guard: refuses an out-of-scope commit
-.opencode/skills/agent-kit/   project skill: the trigger and the do/do-not boundary
+SKILL.md                      the skill: the trigger and the boundary
 examples/minimal/             what a filled repo looks like (not installed)
 docs/                         the knowledge seed a target repo authors from
 ```
