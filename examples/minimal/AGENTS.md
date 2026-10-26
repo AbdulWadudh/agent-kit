@@ -43,6 +43,9 @@ session, then follow it.
    change) needs a task file in `.agents/tasks/active/`, with the plan approved before the first edit.
 8. **Subagents.** Every subagent prompt names the files to read and the deliverable. It never
    restates the plan.
+9. **Shell output.** Prefix commands with `rtk` (`rtk git status`, `rtk npm test`); `rtk bypass
+   <cmd>` when the full output is the evidence. Name the active task ID with any savings you
+   report — the detail is in `SKILL.md` §Shell output.
 
 ## Done means
 
@@ -60,9 +63,9 @@ session, then follow it.
 | Command | Use |
 |---|---|
 | `doctor` | truth checks over docs, declarations and tasks; `--strict` also fails on unfilled markers; `--fix` repairs encoding only |
+| `harnesses` | list the coding agents installed on this machine (HOME, PATH, repo) — the repo may show none; a report, not a gate |
 | `task new <slug> --lane quick\|planned` | open a task and record the baseline run |
 | `task show` | print the active task's scope, plan and evidence |
-| `task close` | run the suite, scope-check against git, record the inventory, archive, file the changelog entry |
-| `release <version> --summary "<what shipped>"` | promote Unreleased into release notes |
+| `task close` | run the suite, scope-check against git, record the inventory, archive, write the change file |
 | `verify` | mid-flight check; writes the evidence table and prints the delta |
 | `check` / `pull --dry-run` / `pull` | drift against the template; `pull` never overwrites a locally modified file without `--force` |

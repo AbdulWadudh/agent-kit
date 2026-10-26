@@ -3,6 +3,19 @@
 This repository is a **template for coding agents**, not an application. Read this file,
 then do the one thing you were asked to do.
 
+## Load on demand
+
+The tree is indexed so a session pays only for what it opens.
+
+1. Open the index of the directory you are about to touch — `.agents/INDEX.md`,
+   `docs/INDEX.md`, `scripts/INDEX.md` — then one row of it.
+2. Read a file only when its index row matches the task. Follow a pointer only for the fact you
+   need at the other end.
+3. Never load an archive or a month folder in bulk. `task show` reads task state; a change is
+   looked up by date or task id.
+4. If a file repeats another file's fact, the copy is the bug. Keep the home, replace the copy
+   with a pointer.
+
 ## If you were asked to set this up in another repo
 
 Do not improvise a file layout. Run the kit:
@@ -41,8 +54,9 @@ makes a gate unfailable is the defect the suite exists to catch.
 
 ## Boundary protocol
 
-**Always** — keep changes inside the files the task declares; run `selftest` and `doctor`
-before and after; cite a rule's home instead of restating it.
+**Always** — keep changes inside the files the task declares; run shell output through `rtk`
+(`rtk bypass <cmd>` when the full text is evidence); run `selftest` and `doctor` before and
+after; cite a rule's home instead of restating it.
 
 **Ask first** — a new file category, a new command, a change to the manifest's
 `machinery`/`seeds`/`owned` split, or anything that makes a gate softer.
@@ -67,15 +81,17 @@ file; ship a seed whose example paths would be read as real.
 AGENTS.md                     this file (the template's own entry point)
 SETUP.md                      the install contract
 .agents/
+  INDEX.md                    the map of .agents; read before browsing
   sync-manifest.json          machinery / seeds / owned / prune
   project.md                  generated per repo: stack + commands (single source)
-  rules/                      INDEX (router) + _behavior + one file per domain
-  tasks/                      INDEX, active/, archive/, .counter
-  logs/changelog.md           release notes: Unreleased + one block per release
-  templates/                  the seeds, plus rule-file examples and the task template
-scripts/agent-kit.mjs         setup | check | pull | doctor | verify | task | selftest
-.githooks/pre-commit          optional per-clone guard: refuses an out-of-scope commit
+  rules/                      INDEX (which file, when) + _behavior + one per domain
+  tasks/                      INDEX (lanes, gates) + active/, archive/, .counter
+  logs/                       INDEX (model + last five) -> MM-YYYY/: one file per change
+  templates/                  INDEX -> the seeds and copyable rule examples
+scripts/                      INDEX + agent-kit.mjs: setup | check | pull | doctor | verify | harnesses | task | selftest
+.githooks/                    INDEX + pre-commit: optional per-clone guard
+.github/workflows/            INDEX + agent-kit.yml: the same gates on push
 SKILL.md                      the work loop: classify, open, gate, verify, close
-examples/minimal/             what a filled repo looks like (not installed)
-docs/                         the knowledge seed a target repo authors from
+examples/                     INDEX -> minimal/: what a filled repo looks like (not installed)
+docs/                         INDEX: the knowledge seed a target repo authors from
 ```

@@ -33,16 +33,35 @@ What it does, in order:
 
 1. Reads the target's manifests and writes `.agents/project.md` — languages, package manager,
    `install`/`build`/`typecheck`/`lint`/`test`, entry points, generated directories.
-2. Copies the machinery (the script, the workflow, the manifest, the seeds, the rule router).
+2. Copies the machinery (the script, the workflow, the manifest, the directory indexes, the seeds, the rule router).
 3. Copies each seed to its authored path **only if the path is absent**.
-4. Writes `.agents/template.json`: source, version, date, and a hash baseline per file.
-5. Prints the fill list.
+4. Installs `rtk` (the token saver) when it is missing, unless `--no-rtk` is passed.
+5. Detects the coding agents installed on this machine — HOME config folders, `PATH`, and repo
+   markers — and prints `Harnesses found: ...`. A repo with no harness config can still be
+   driven by several agents; the machine is the source.
+6. Writes `.agents/template.json`: source, version, date, and a hash baseline per file.
+7. Prints the fill list.
 
-Expected output: `N copied, M kept, template v1`, a per-file table, then the four fill steps.
+Expected output: `N copied, M kept, template v1`, a per-file table including `PRESENT` or
+`INSTALLED` for `rtk`, a `Harnesses found:` line, then the four fill steps.
 
 Guard rails: it never overwrites an existing file, and it refuses a directory whose
 `template.json` says `"role": "template"` unless that directory is also the source (the
 manual-copy fallback in §0).
+
+### Token saver — `rtk`
+
+`rtk` filters shell output before the agent reads it: same command, same exit code, less
+context spent. It is a machine tool, not a repo dependency, and `setup` patches no harness.
+The skill calls it explicitly (`rtk git status`, `rtk npm test`), so nothing changes until a
+command asks for it.
+
+- Windows: `winget install --id rtk-ai.rtk -e --accept-source-agreements --accept-package-agreements`
+- macOS / Linux: `brew install rtk`, or the official `install.sh` when Homebrew is absent
+- Verify: `rtk gain` must print the savings dashboard, not "command not found"
+- Wrong package: `rtk --version` working while `rtk gain` fails is the other project named
+  `rtk` (Rust Type Kit). `cargo uninstall rtk`, then install `rtk-ai.rtk`.
+- Skip: `setup . --no-rtk`. `doctor` reports the gap as a `token saver` warning, not a failure.
 
 ## 2. Fill
 
@@ -92,6 +111,21 @@ Install with the harness's own mechanism (its skill folder, or its plugin comman
 as a pointer, never a copy: `doctor`'s `skill pointers` row fails a copy of an installed
 skill, because the first edit to either side would make the two disagree.
 
+### Harnesses — ask the machine
+
+A repo can show no harness files and still be driven by four agents; looking only at the tree
+misses them. `setup` ends with `Harnesses found: ...`, and `agent-kit harnesses` prints the
+same list with the evidence: known HOME config folders, binaries on `PATH`, and harness
+markers in the repo.
+
+Say the list in the report. Wire `SKILL.md` for each harness with a repo skill folder — the
+command prints those paths (Claude Code and OpenCode today). For the rest, the kit's entry
+point is `AGENTS.md`; where a harness reads a different file, put the trigger there. A
+pointer, never a copy: `doctor`'s `skill pointers` row fails a copy.
+
+The list is a report, not a check. `doctor` cannot see the machine's harnesses, and a repo
+with none of them is not broken.
+
 Then say what MCP servers the harness already has, and use those before writing the
 equivalent by hand. `doctor` cannot see MCP; that is a report line, not a check.
 
@@ -110,7 +144,9 @@ are not a reason to keep editing.
 | Check | Fails when |
 |---|---|
 | required files | a kit file is missing (including `SKILL.md`) |
+| directory indexes | a directory under `.agents/`, `docs/`, `scripts/` or `.githooks/` has no `INDEX.md` |
 | skill pointers | a harness skill file is a copy of the loop instead of a pointer to `SKILL.md` |
+| token saver | WARN, not FAIL: `rtk gain` failed, so shell output is not being compressed |
 | manifest integrity | an `owned` path is inside a `machinery` directory or is also a seed |
 | encoding | a file is not UTF-8, has a BOM, or shows mojibake (`--fix` repairs the mechanical part) |
 | unfilled markers | a `FILL` marker or uppercase placeholder survived (`--strict` only) |
@@ -120,10 +156,13 @@ are not a reason to keep editing.
 | active tasks indexed | a task file in `active/` is not in the task index |
 | write-set collisions | two active tasks declare overlapping `touches` |
 | rules are checkable | a rule file contains advice ("be careful", "try to", "consider") instead of a rule |
-| archived tasks changelogged | a task is in `archive/` but has no entry in `.agents/logs/changelog.md` |
-| changelog lines | a bullet is over 140 characters (FAIL: a release note is one clause), or is not `- \`TASK-N\`: text` (WARN: someone hand-wrote one) |
+| archived tasks changelogged | a task is in `archive/` but has no file under `.agents/logs/MM-YYYY/` |
+| recent lists | a task or logs index is missing its `RECENT` block, or the last five entries are stale |
 | commit guard | WARN, not FAIL: the optional pre-commit hook is not wired in this clone |
 | commit identity | a commit message carries AI attribution (FAIL); a commit author is not the configured identity (WARN) |
+
+`harnesses` is not in this table: it reads the machine, so CI cannot reproduce it. Its output
+is a report to the owner, not a gate.
 
 `--json` prints the same rows as `{ ok, fails, warns, rows }` for a CI comment or a gate.
 
@@ -165,6 +204,7 @@ as a WARN with that command, not a failure.
 Tell the owner, in plain words:
 
 - what stack was detected and which commands were found (or which are missing);
+- which harnesses were found, and which of them now point at `SKILL.md`;
 - which files were filled and which placeholders you had to leave and why;
 - the `doctor --strict` result;
 - the next action: open a task with `agent-kit task new <slug> --lane planned`.

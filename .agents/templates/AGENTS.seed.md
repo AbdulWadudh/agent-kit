@@ -17,6 +17,7 @@ You are working in <PROJECT NAME>. Read this file once per session, then follow 
 3. `.agents/tasks/INDEX.md` — resume the active task, or open a new one.
 4. `.agents/rules/INDEX.md` — load only the rule files matching what you will touch.
 5. `docs/INDEX.md` — find where the logic lives before searching the tree.
+6. Any other directory you open has an `INDEX.md`: read that first, then the one file it names.
 
 ## Boundary protocol
 
@@ -46,10 +47,11 @@ You are working in <PROJECT NAME>. Read this file once per session, then follow 
      Examples: component variants, theme tokens, data-flow boundaries,
      destructive-action confirms, tenancy or auth invariants. -->
 
-5. **Context discipline.** Search narrowly. Read at most three source files at a time.
+5. **Context discipline.** Every directory the kit owns carries an `INDEX.md`: read the index, then the one file it points at — never list a folder into context. Search narrowly; read at most three source files at a time. History (`.agents/tasks/archive/`, `.agents/logs/MM-YYYY/`) is read only when the user asks; the indexes list the five newest entries for you.
 6. **One home per fact.** A rule lives in exactly one file; everywhere else cites it.
 7. **Planning.** Anything beyond the QUICK lane (three files or fewer, reversible, no contract change) needs a task file in `.agents/tasks/active/`, with the plan approved before the first edit.
 8. **Subagents.** Every subagent prompt names the files to read and the deliverable. It never restates the plan.
+9. **Shell output.** Prefix commands with `rtk` (`rtk git status`, `rtk npm test`); `rtk bypass <cmd>` when the full output is the evidence. Name the active task ID with any savings you report — the detail is in `SKILL.md` §Shell output.
 
 ## Done means
 
@@ -65,10 +67,10 @@ You are working in <PROJECT NAME>. Read this file once per session, then follow 
 | Command | Use |
 |---|---|
 | `doctor` | truth checks over docs, declarations and tasks; `--strict` also fails on unfilled markers; `--fix` repairs encoding only; `--json` for CI |
+| `harnesses` | list the coding agents installed on this machine (HOME, PATH, repo) — the repo may show none; a report, not a gate |
 | `task new <slug> --lane quick\|planned` | open a task **and record the baseline run** (`--no-baseline` to skip) |
 | `task show` | print the active task's scope, plan and evidence — the thing G1/G2 asks a human to read |
-| `task close` | run the suite, scope-check against git, record the inventory, archive, and file the changelog entry under the task's `type`; `--amend "<why>"` accepts a declared breach and writes the reason into the plan; `--no-verify` only when the suite cannot run here |
-| `release <version> --summary "<what shipped>"` | promote the Unreleased block into release notes and start a fresh one |
+| `task close` | run the suite, scope-check against git, record the inventory, archive, and write the change file under `.agents/logs/MM-YYYY/`; `--amend "<why>"` accepts a declared breach and writes the reason into the plan; `--no-verify` only when the suite cannot run here |
 | `verify` | mid-flight check; writes the evidence table and prints the delta against the baseline |
 | `task guard` | the pre-commit hook: refuses a commit outside the declared write set. Silent when no task is open. **Opt-in per clone** via `git config core.hooksPath .githooks` |
 | `learnings archive` | move entries past the 30 cap into `.agents/learnings/archive/`; the live list is the part a session reads |

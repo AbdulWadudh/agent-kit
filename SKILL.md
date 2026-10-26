@@ -14,15 +14,45 @@ this file, they win.
 Read `AGENTS.md`, then `.agents/project.md`. Run `task show` — resume what is in flight before
 opening anything new. Load only the rule files that match the files you will touch.
 
+Every directory the kit owns has an `INDEX.md`. Open the index of the next directory you need,
+then the one file it names; do not list a folder into context.
+
 ## Skills and tools, before you plan
 
 Check what is installed. A skill that covers the task is part of the plan, not a preference:
 name it, follow it, and never do from memory what it already solves. Nothing fits — say so.
 Same order for MCP servers and tools: the configured one first, hand-written code second.
 
+`agent-kit harnesses` lists the coding agents installed on this machine — HOME config, PATH,
+repo markers. The repo may show none of them. Say the list when you set up or report on a
+repo, and wire `SKILL.md` for each harness that has a skill folder; the command prints those
+paths. It is a report, not a gate.
+
 Keep them current when the owner asks: reinstall from the skill's own source, listed in
 `.agents/rules/_behavior.md` §12. Where `agent-browser` is installed it drives a real browser:
 it never sends, posts, buys or logs in unless the task says to.
+
+## Shell output — run it through rtk
+
+`rtk` filters a command's output before you read it: same command, same exit code, less
+context spent. Prefix the shell commands whose output you inspect:
+
+| Instead of | Run |
+|---|---|
+| `git status`, `git diff`, `git log` | `rtk git status`, `rtk git diff`, `rtk git log` |
+| `rg`, `find`, `ls`, `cat` | `rtk grep`, `rtk find`, `rtk ls`, `rtk read` |
+| `npm test`, `cargo test`, `pytest` | `rtk npm test`, `rtk cargo test`, `rtk pytest` |
+
+- `rtk bypass <cmd>` when the full text is the evidence: a stack trace you must read line by
+  line, machine-readable output (`--porcelain`, `--json`), or a command the task must quote.
+- File reads the edit needs go through the editor's Read tool, not `rtk read`: the filter
+  trades bodies for signatures, which is wrong when you are editing the body.
+- `verify` and `task close` run the declared commands themselves, unfiltered, so exit codes are
+  untouched.
+
+`rtk` history is machine-wide and has no task label. The task file is the reference: quote the
+active task ID with any savings figure — `TASK-118 — rtk saved 82% across 14 commands` — and
+the change file written at close carries the same ID. `rtk gain` is the source.
 
 ## 2. Classify
 
@@ -58,14 +88,15 @@ Report what changed and the evidence, in the user's words. Wait for a yes, then 
 ## 8. Close
 
 `task close` runs the suite, refuses a red result, checks the diff against `touches`,
-inventories the files, archives the plan and files the changelog entry. `--amend "<why>"`
-accepts a declared breach and writes the reason into the plan — only with the user's reason,
-never as a way past a red suite.
+inventories the files, archives the plan and writes the change file
+(`.agents/logs/MM-YYYY/`). `--amend "<why>"` accepts a declared breach and writes the
+reason into the plan — only with the user's reason, never as a way past a red suite.
 
 ## 9. Report
 
-One short message: what changed, what proved it, what is still open. Name the task ID. Then
-stop — no follow-up suggestions unless asked.
+One short message: what changed, what proved it, what is still open. Name the task ID. If rtk
+ran, put its figure under the same ID (`TASK-118 — rtk 82% over 14 commands`). Then stop — no
+follow-up suggestions unless asked.
 
 ## When the loop bends
 
@@ -80,7 +111,5 @@ stop — no follow-up suggestions unless asked.
 
 - Installing or upgrading the kit, or a skill the owner has not approved. That is `SETUP.md`,
   once, and a chat decision.
-- The release version, and the one-sentence summary. Draft both, get a yes, then run
-  `release`.
 - Editing machinery (`scripts/`, `.agents/templates/`, the manifest) to make a gate pass.
   `pull --force` takes it back, and the gate was the point.
