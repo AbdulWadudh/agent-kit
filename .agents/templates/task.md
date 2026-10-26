@@ -25,11 +25,17 @@ summary: ""
 **Assumptions taken without asking**
 - none
 
+An assumption carries the evidence it stands on (`path:line`, a command's result, or the
+owner's words); with no evidence, write the still-open question here instead.
+
 ## Plan
 
 1. <!-- FILL:step-1 -->
 
 **Files** — must match `touches` above.
+
+**Evidence** — the `path:line`, command or owner quote each step rests on. A step resting on
+none says `Assumption:` and the check that will settle it.
 
 **Test plan** — the command, the expected result, and for a new check, its expected failure
 on the unfixed tree. A probe never seen failing is unproven.

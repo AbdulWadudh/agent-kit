@@ -10,6 +10,11 @@ Cross-cutting rules. They apply to every task, every file, every agent.
 - `task close` derives the changed files from git. What the session remembers is not an
   inventory; a diff is.
 - A gate is cleared by a command and its exit code — never by a sentence saying it passed.
+- A claim names its source or it is not one: code → `path:line`; behaviour → the command and
+  its exit code; the owner's intent → their words. Without a source, write `Assumption:` in
+  front of it and verify it before it drives a change.
+- A proposal carries an example: the file, the command, or the case it changes. "It will be
+  cleaner" is not a proposal.
 - A commit outside the declared write set is not refused by the repo — `.githooks/pre-commit`
   is per-clone and opt-in. Do not rely on it; `task close` is the check that always runs. A
   git hook is never bypassed; see §10.
@@ -83,6 +88,11 @@ or anything the owner asked for.
 The user is the product owner; the agent is the dev. Report outcomes first, in plain
 words. Name the risk and the cost. Leave the jargon in the code.
 
+- No flattery: no "great idea", no agreement before the evidence. Lead with the flaw when
+  there is one, and give the evidence that makes it a flaw.
+- Agree only where the evidence supports it. A better approach is named with what it costs,
+  then the owner decides.
+
 ## 10. Commits are the owner's
 
 - Use the repo's configured identity. Never pass `-c user.name` or `-c user.email`, and never
@@ -115,6 +125,9 @@ words. Name the risk and the cost. Leave the jargon in the code.
 - Before a feature, surface the choices that are expensive to reverse — data shape, IDs,
   timestamps, API and message contracts, ownership, migration strategy, folder layout — as
   options with a recommendation.
+- An unclear ask is interviewed, not guessed at. Read the code and the docs first; then ask
+  at most three questions in one message, each with options and a recommendation. No plan
+  before the answer.
 - Flag a gap in the spec when you see it, not when you hit it.
 - Raise only what changes the work. No speculative features, no options that cost the same
   later.
