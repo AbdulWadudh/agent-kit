@@ -47,9 +47,10 @@ template exactly — it wins if it disagrees with this message:
 2. Fill AGENTS.md, .agents/project.md, docs/ARCH_MAP.md, docs/ENTRY_POINTS.md and
    docs/API_SKELETON.md from the real tree. Ask, do not invent: propose candidates for
    rules 1-4 from my answers and the code, get a yes, then write them.
-3. Install the skill for every harness I named. Its one home is SKILL.md at the repo
-   root; in each harness's own skill folder write a thin pointer in that harness's format —
-   not a copy. If a harness has no skill mechanism, put the trigger in the file it reads.
+3. Install the skill for every harness I named. Take the frontmatter (name and description)
+   from SKILL.md, put it in that harness's skill folder, and make the body one line:
+   "Read SKILL.md at the repository root." A pointer, never a copy. If a harness has no
+   skill mechanism, put the trigger in the file it does read. List the files you wrote.
 4. Record the off-limits answers in AGENTS.md (Ask first and rules 1-4). Wire the guard if
    I said yes. Then run bun scripts/agent-kit.mjs doctor --strict until it exits 0.
 5. Run bun scripts/agent-kit.mjs verify and report the baseline honestly.

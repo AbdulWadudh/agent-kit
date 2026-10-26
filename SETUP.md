@@ -79,6 +79,7 @@ are not a reason to keep editing.
 | Check | Fails when |
 |---|---|
 | required files | a kit file is missing (including `SKILL.md`) |
+| skill pointers | a harness skill file is a copy of the loop instead of a pointer to `SKILL.md` |
 | manifest integrity | an `owned` path is inside a `machinery` directory or is also a seed |
 | encoding | a file is not UTF-8, has a BOM, or shows mojibake (`--fix` repairs the mechanical part) |
 | unfilled markers | a `FILL` marker or uppercase placeholder survived (`--strict` only) |

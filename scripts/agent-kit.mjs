@@ -900,6 +900,35 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 	const missing = required.filter((r) => !exists(abs(base, r)));
 	add(missing.length ? "FAIL" : "PASS", "required files", missing.join(", "));
 
+	// A harness skill file is a pointer: the loop lives in the root SKILL.md, and a copy in
+	// `.claude/skills/` or `.opencode/skills/` would drift the first time either is edited.
+	const harnessDirs = fs
+		.readdirSync(base, { withFileTypes: true })
+		.filter(
+			(e) =>
+				e.isDirectory() && e.name.startsWith(".") && !SKIP_DIRS.has(e.name),
+		)
+		.map((e) => e.name)
+		// Only a harness with a skills/ folder can hold a SKILL.md; walking a build cache
+		// like .next would cost more than this check is worth.
+		.filter((d) => isDir(abs(base, `${d}/skills`)));
+	const pointers = harnessDirs
+		.flatMap((d) => walk(abs(base, d), base))
+		.filter((rel) => /(^|\/)skills\/[^/]+\/SKILL\.md$/.test(rel));
+	const notPointer = pointers.filter((rel) => {
+		const t = read(abs(base, rel));
+		return t.split(/\r?\n/).length > 12 || !t.includes("SKILL.md");
+	});
+	add(
+		notPointer.length ? "FAIL" : "PASS",
+		"skill pointers",
+		notPointer.length
+			? `${notPointer.join(", ")} — a copy, not a pointer to SKILL.md`
+			: pointers.length
+				? pointers.join(", ")
+				: "none: AGENTS.md already points at SKILL.md",
+	);
+
 	if (exists(abs(base, ".git"))) {
 		const wired = git(base, ["config", "core.hooksPath"]) === ".githooks";
 		add(
@@ -2199,6 +2228,21 @@ function cmdSelftest() {
 		assert(
 			quiet(() => cmdTaskShow({ root: tmp })) === 0,
 			"task show answers \"nothing in flight\" without failing",
+		);
+
+		console.log("\n15. a harness skill file points at the root skill");
+		write(
+			abs(tmp, ".claude/skills/agent-kit/SKILL.md"),
+			"---\nname: agent-kit\ndescription: pointer\n---\n\nRead `SKILL.md` at the repository root.\n",
+		);
+		assert(
+			quiet(() => cmdDoctor({ root: tmp })) === 0,
+			"a short pointer passes",
+		);
+		write(abs(tmp, ".claude/skills/agent-kit/SKILL.md"), read(abs(tmp, "SKILL.md")));
+		assert(
+			quiet(() => cmdDoctor({ root: tmp })) === 1,
+			"a copy of the loop fails, so it cannot drift",
 		);
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });
