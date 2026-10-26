@@ -13,12 +13,16 @@ verification gate cite it; none of them restates it.
 
 ## Commands
 
-| Action | Command |
-|---|---|
-| test | `node scripts/agent-kit.mjs selftest` |
-| lint | `node scripts/agent-kit.mjs doctor` |
+`always` runs on every `verify`; `milestone` runs on the baseline, `verify --full` and
+`task close`. Mark a slow command `milestone` so the inner loop stays short.
 
-`bun` runs the same file unchanged. No build step: the script is the artifact.
+| Action | Command | When |
+|---|---|---|
+| test | `node scripts/agent-kit.mjs selftest` | always |
+| lint | `node scripts/agent-kit.mjs doctor` | always |
+
+`bun` runs the same file unchanged. No build step: the script is the artifact. Both rows are
+fast enough for every run, so neither is `milestone` here.
 
 ## Entry points
 

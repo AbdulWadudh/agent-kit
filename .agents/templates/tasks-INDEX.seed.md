@@ -8,12 +8,17 @@ the one task it names; not the folders.
 
 ## Routing
 
-1. **Check Active** below. If a task is in flight, open it and resume from its last recorded
-   step. Do not start a second one.
-2. **Otherwise open a task:** `agent-kit task new <slug> --lane quick|planned`.
-3. **Looking for what is next?** Read `BACKLOG.md` — parked candidates, not tasks. A row
+1. **Start with `agent-kit start`.** It prints the branch, the commands and their tiers, what
+   is in flight, the gate, the last evidence, and one next action — reading it replaces
+   guessing where the session stopped.
+2. **Check Active** below. If a task is in progress, open it and resume from its last recorded
+   step. Do not start a second one. A `BLOCKED` task does not hold the slot: its question waits
+   in the file until `agent-kit task resume` (the owner has answered), and only then is it the
+   session's work again.
+3. **Otherwise open a task:** `agent-kit task new <slug> --lane quick|planned`.
+4. **Looking for what is next?** Read `BACKLOG.md` — parked candidates, not tasks. A row
    becomes work only when the owner picks it, and then it is deleted.
-4. **Never work from memory.** The task file is the state; if a fact is not in it, it did not
+5. **Never work from memory.** The task file is the state; if a fact is not in it, it did not
    happen.
 
 ## Lanes
@@ -22,7 +27,7 @@ the one task it names; not the folders.
 |---|---|---|
 | **Eligible when** | three files or fewer, one domain, reversible with `git revert`, no contract change | everything else |
 | **G1 — plan** | record intent in the task and proceed | **halt** for approval before the first edit |
-| **G2 — result** | `task close` runs the suite and closes | **halt** for approval after the suite, before close |
+| **G2 — result** | `task close` runs the full suite and closes | **halt** for approval after the suite, before close |
 | **Typical** | typo, doc fix, one-file bug, a test | feature, refactor, schema, interface change |
 
 ## Gates

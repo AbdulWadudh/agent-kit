@@ -13,11 +13,14 @@
  *   check [--json]                         drift table vs the template; never writes
  *   pull [--dry-run|--force|--seeds]       apply the sync, then doctor
  *   doctor [--strict] [--fix] [--json]     truth checks over the repo's own docs
- *   verify [--baseline]                    run the declared commands, record the evidence
+ *   start                                  session brief: task, gate, evidence, next; never writes
+ *   verify [--full|--baseline]             run the always-tier commands; --full adds milestone rows
  *   harnesses                              list the coding agents on this machine (HOME, PATH, repo)
  *   task new <slug> [--lane quick|planned] open a task and record the baseline run
- *   task show [--id TASK-N]                the active task's scope, plan and evidence
- *   task close [--amend "<why>"]           run the suite, scope-check, record, archive, index
+ *   task show [--id TASK-N]                the active task's scope, plan, evidence and staleness
+ *   task block "<question>"                stop at an impasse; the owner's question waits on disk
+ *   task resume                            continue a blocked task
+ *   task close [--amend "<why>"] [--pr]     full suite, scope-check, record, archive, index, message
  *   task guard [--message <file>]          hook gate: scope (pre-commit), message (commit-msg)
  *   learnings archive                      move entries past the 30 cap into .agents/learnings/
  *   selftest                               prove every gate can fail, in a temp repo
@@ -57,6 +60,9 @@ const CATEGORIES = [
 const ENTRY_LIMIT = 140;
 // A loop is the same red set over the same code: past this many identical runs, a new plan.
 const LOOP_LIMIT = 3;
+// `always` runs on every verify; `milestone` only on the baseline, `verify --full` and close.
+// A missing cell means `always`, so a table written before tiers existed keeps its meaning.
+const TIERS = new Set(["always", "milestone"]);
 
 // The indexes carry the last few entries, so a session reads a list instead of a folder.
 // [index, folder, date field]
@@ -301,9 +307,13 @@ function sectionRows(text) {
 	if (!m) return [];
 	return m[1]
 		.split(/\r?\n/)
-		.map((l) => l.match(/^\|\s*([a-z]+)\s*\|\s*`?([^`|]+?)`?\s*\|/))
+		.map((l) =>
+			l.match(
+				/^\|\s*([a-z]+)\s*\|\s*`?([^`|]+?)`?\s*\|\s*([a-z-]*)\s*\|?\s*$/,
+			),
+		)
 		.filter(Boolean)
-		.map((mm) => [mm[1], mm[2].trim()]);
+		.map((mm) => [mm[1], mm[2].trim(), (mm[3] || "always").toLowerCase()]);
 }
 
 function table(rows) {
@@ -518,11 +528,22 @@ function projectMd(stack, today) {
 	lines.push(`| Languages | ${stack.languages.join(", ") || "undetected"} |`);
 	lines.push(`| Package manager | ${stack.pm || "n/a"} |`);
 	lines.push(`| Manifests | ${stack.manifests.join(", ") || "none found"} |`);
-	lines.push("", "## Commands", "", "| Action | Command |", "|---|---|");
+	lines.push(
+		"",
+		"## Commands",
+		"",
+		"`always` runs on every `verify`; `milestone` runs on the baseline, `verify --full` and",
+		"`task close`. Mark a slow command `milestone` so the inner loop stays short.",
+		"",
+		"| Action | Command | When |",
+		"|---|---|---|",
+	);
 	const order = ["install", "build", "typecheck", "lint", "test"];
 	for (const action of order) {
 		if (stack.commands[action])
-			lines.push(`| ${action} | ${stack.commands[action]} |`);
+			lines.push(
+				`| ${action} | ${stack.commands[action]} | ${action === "build" ? "milestone" : "always"} |`,
+			);
 	}
 	if (Object.keys(stack.commands).length === 0)
 		lines.push("| build | <!-- FILL:build-command --> |");
@@ -1353,9 +1374,11 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 
 	// 4. declared commands exist
 	const cmdProblems = [];
-	for (const [action, command] of sectionRows(
+	for (const [action, command, when] of sectionRows(
 		readIf(abs(base, PROJECT)) || "",
 	)) {
+		if (!TIERS.has(when))
+			cmdProblems.push(`${action}: when "${when}" is not always|milestone`);
 		const m = command.match(/\brun\s+([\w:.-]+)/);
 		if (m) {
 			const pkg = json(abs(base, "package.json"));
@@ -1415,6 +1438,22 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 		unknown.length ? "WARN" : "PASS",
 		"task statuses",
 		unknown.map((u) => `${u.f} (${u.s || "missing"})`).join(", "),
+	);
+
+	const blockProblems = [];
+	for (const task of activeTasks(base)) {
+		const blocked = blockedState(task.text);
+		if (task.fm.status === "BLOCKED" && !blocked)
+			blockProblems.push(`${task.file}: BLOCKED with no question`);
+		if (task.fm.status !== "BLOCKED" && blocked)
+			blockProblems.push(
+				`${task.file}: block marker but status ${task.fm.status || "missing"}`,
+			);
+	}
+	add(
+		blockProblems.length ? "FAIL" : "PASS",
+		"blocked tasks",
+		blockProblems.join(", "),
 	);
 
 	// 5b. parked work is a candidate, not a second task list: the vocabulary and identity are
@@ -1597,7 +1636,8 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 // ---------------------------------------------------------------- verify
 
 /** Rows of a `| Action | Command | ... | Exit |` block, newest block only. */
-function evidenceRows(text) {
+/** Evidence rows, both shapes: five cells from older tasks, six with the Scope column. */
+function evidenceDetail(text) {
 	const m = text.match(
 		/<!-- EVIDENCE:START -->([\s\S]*?)<!-- EVIDENCE:END -->/,
 	);
@@ -1611,8 +1651,16 @@ function evidenceRows(text) {
 				.slice(1, -1)
 				.map((c) => c.trim()),
 		)
-		.filter((c) => c.length >= 5)
-		.map((c) => ({ action: c[0], exit: Number(c[4]) }));
+		.filter((c) => c.length >= 5 && c[0] && c[0] !== "—")
+		.map((c) =>
+			c.length >= 6
+				? { action: c[0], command: c[1], scope: c[2], exit: Number(c[5]) }
+				: { action: c[0], command: c[1], scope: "full", exit: Number(c[4]) },
+		);
+}
+
+function evidenceRows(text) {
+	return evidenceDetail(text).map(({ action, exit }) => ({ action, exit }));
 }
 
 function hashText(s) {
@@ -1636,6 +1684,35 @@ function loopState(text) {
 	} catch {
 		return null;
 	}
+}
+
+/**
+ * Is the recorded evidence still about the current code? The last verify stores its write-set
+ * hash; a mismatch means the tree moved after the green run.
+ */
+function evidenceState(base, text, fm) {
+	const rows = evidenceDetail(text);
+	const loop = loopState(text);
+	if (!rows.length) return { state: "never", rows };
+	if (!loop || !loop.diff) return { state: "unknown", rows };
+	return {
+		state: loop.diff === productHash(base, fm) ? "current" : "stale",
+		rows,
+	};
+}
+
+/** The owner question `task block` wrote, or null. */
+function blockedState(text) {
+	const m = text.match(/<!-- BLOCKED:START -->([\s\S]*?)<!-- BLOCKED:END -->/);
+	if (!m) return null;
+	const line = m[1]
+		.split(/\r?\n/)
+		.map((l) => l.trim())
+		.find((l) => l.startsWith("**BLOCKED"));
+	const question = line
+		? line.replace(/^\*\*BLOCKED[^*]*\*\*\s*—?\s*/, "").trim()
+		: m[1].trim();
+	return { question: question || "(no question recorded)" };
 }
 
 /** Hash of the changed files inside the write set: the same hash means the same code. */
@@ -1674,25 +1751,48 @@ function productHash(base, fm) {
 	return h.digest("hex").slice(0, 16);
 }
 
-function cmdVerify({ root, baseline }) {
+/** Replace the rows this run produced; keep a milestone row's last full run visible. */
+function mergeEvidence(order, prior, run) {
+	const map = new Map(prior.map((r) => [r.action, r]));
+	for (const r of run) map.set(r.action, r);
+	const rows = [];
+	const seen = new Set();
+	for (const action of order) {
+		const row = map.get(action);
+		if (row) {
+			rows.push(row);
+			seen.add(action);
+		}
+	}
+	for (const row of map.values()) if (!seen.has(row.action)) rows.push(row);
+	return rows;
+}
+
+function cmdVerify({ root, baseline, full }) {
 	const base = path.resolve(root || process.cwd());
 	const declared = sectionRows(readIf(abs(base, PROJECT)) || "");
-	const runnable = declared.filter(([a]) =>
+	const all = declared.filter(([a]) =>
 		["build", "typecheck", "lint", "test"].includes(a),
 	);
-	if (runnable.length === 0) {
+	const fullRun = !!(full || baseline);
+	const runnable = fullRun ? all : all.filter(([, , when]) => when === "always");
+	if (all.length === 0) {
 		console.log(
 			"SKIPPED — no build/typecheck/lint/test command declared in .agents/project.md",
 		);
 		return 0;
 	}
-	const activeDir = abs(base, `${TASKS}/active`);
-	const active = exists(activeDir)
-		? fs.readdirSync(activeDir).filter((f) => f.endsWith(".md"))
-		: [];
-	const target = active.length === 1 ? abs(activeDir, active[0]) : null;
+	if (runnable.length === 0) {
+		console.log(
+			`SKIPPED — every declared command is milestone-tier; \`verify --full\` runs ${all.length}.`,
+		);
+		return 0;
+	}
+	const tasks = activeTasks(base);
+	const inProgress = tasks.filter((t) => t.fm.status === "IN_PROGRESS");
+	const target = inProgress.length === 1 ? inProgress[0].path : null;
 	const taskText = target ? read(target) : "";
-	const before = target ? evidenceRows(taskText) : [];
+	const before = target ? evidenceDetail(taskText) : [];
 	const taskFm = taskText ? frontMatter(taskText) : {};
 	const planHash = taskText ? hashText(planText(taskText)) : "";
 	const diffHash = target ? productHash(base, taskFm) : "";
@@ -1726,19 +1826,15 @@ function cmdVerify({ root, baseline }) {
 		if (tail) console.log(tail);
 		const ok = r.code === 0;
 		if (!ok) failed++;
-		evidence.push(
-			`| ${action} | \`${command}\` | exit 0 | exit ${r.code} | ${r.code} |`,
-		);
+		evidence.push({
+			action,
+			command,
+			scope: fullRun ? "full" : "quick",
+			exit: r.code,
+		});
 	}
 
-	const now = evidence
-		.map((l) =>
-			l
-				.split("|")
-				.slice(1, -1)
-				.map((c) => c.trim()),
-		)
-		.map((c) => ({ action: c[0], exit: Number(c[4]) }));
+	const now = evidence.map(({ action, exit }) => ({ action, exit }));
 	if (before.length) {
 		const prior = new Map(before.map((r) => [r.action, r.exit]));
 		const regressed = now
@@ -1774,28 +1870,41 @@ function cmdVerify({ root, baseline }) {
 			attempts = failKey ? (same ? (priorLoop.n || 0) + 1 : 1) : 0;
 			marker = `\n<!-- LOOP ${JSON.stringify({ n: attempts, fail: failKey, diff: diffHash, plan: planHash })} -->`;
 		}
-		const body = [
-			"| Action | Command | Expected | Observed | Exit |",
-			"|---|---|---|---|---|",
-			...evidence,
-		].join("\n") + marker;
+		const rows = baseline
+			? evidence
+			: mergeEvidence(all.map(([action]) => action), before, evidence);
+		const body =
+			[
+				"| Action | Command | Scope | Expected | Observed | Exit |",
+				"|---|---|---|---|---|---|",
+				...rows.map(
+					(row) =>
+						`| ${row.action} | \`${row.command}\` | ${row.scope} | exit 0 | exit ${row.exit} | ${row.exit} |`,
+				),
+			].join("\n") + marker;
 		write(target, block(read(target), name, body));
 		console.log(
-			`\nRecorded in ${TASKS}/active/${active[0]} (${name.toLowerCase()})`,
+			`\nRecorded in ${TASKS}/active/${path.basename(target)} (${name.toLowerCase()})`,
 		);
 		if (attempts >= LOOP_LIMIT) {
 			console.log(
 				`Loop: ${attempts}/${LOOP_LIMIT} — the next identical run is refused until the Plan changes.`,
 			);
 		}
-	} else if (active.length > 1) {
+	} else if (tasks.length) {
 		console.log(
-			"\nNot recorded: more than one active task. Paste the rows into the right one.",
+			`\nNot recorded: ${inProgress.length > 1 ? "more than one task is in progress" : "no task is in progress — run `task resume` first"}.`,
+		);
+	}
+
+	if (!fullRun && all.length > runnable.length) {
+		console.log(
+			`\nQuick suite: ${all.length - runnable.length} milestone command(s) held for the baseline, \`verify --full\` or close.`,
 		);
 	}
 
 	console.log(
-		`\n${failed === 0 ? "PASS" : "FAIL"} — ${evidence.length - failed}/${evidence.length} command(s) exited 0\n`,
+		`\n${failed === 0 ? "PASS" : "FAIL"} (${fullRun ? "full" : "quick"}) — ${evidence.length - failed}/${evidence.length} command(s) exited 0\n`,
 	);
 	return failed === 0 ? 0 : 1;
 }
@@ -1819,15 +1928,54 @@ function nextId(root) {
 	return n + 1;
 }
 
+/** Every active file with its parsed state. The status decides the slot, not the file count. */
+function activeTasks(root) {
+	const dir = abs(root, `${TASKS}/active`);
+	if (!exists(dir)) return [];
+	return fs
+		.readdirSync(dir)
+		.filter((f) => f.endsWith(".md"))
+		.map((f) => {
+			const p = abs(dir, f);
+			const text = read(p);
+			return { file: f, path: p, text, fm: frontMatter(text) };
+		});
+}
+
+/** The Active block is derived from active/, so a status change cannot rot it. */
+function refreshActive(base) {
+	const rank = { IN_PROGRESS: 0, REVIEW: 1, BLOCKED: 2, QUEUED: 3 };
+	const rows = activeTasks(base)
+		.sort(
+			(a, b) =>
+				(rank[a.fm.status] ?? 9) - (rank[b.fm.status] ?? 9) ||
+				a.file.localeCompare(b.file),
+		)
+		.map(
+			({ file, fm }) =>
+				`- \`${fm.id || "?"}\` [${fm.status || "?"}] ${fm.lane || "?"} — [${file}](active/${file})`,
+		);
+	write(
+		abs(base, TASK_INDEX),
+		block(
+			read(abs(base, TASK_INDEX)),
+			"ACTIVE",
+			rows.join("\n") || "_Nothing in flight._",
+		),
+	);
+}
+
 function cmdTaskNew({ root, slug, lane, force, noBaseline }) {
 	const base = path.resolve(root || process.cwd());
 	if (!slug) die("usage: task new <slug> [--lane quick|planned]");
 	const activeDir = abs(base, `${TASKS}/active`);
-	const active = exists(activeDir)
-		? fs.readdirSync(activeDir).filter((f) => f.endsWith(".md"))
-		: [];
-	if (active.length && !force)
-		die(`a task is already active (${active[0]}). Close it, or pass --force.`);
+	const inProgress = activeTasks(base).filter(
+		(t) => t.fm.status === "IN_PROGRESS",
+	);
+	if (inProgress.length && !force)
+		die(
+			`a task is already in progress (${inProgress[0].file}). Close it, block it, or pass --force.`,
+		);
 	if (!exists(abs(base, TASK_TEMPLATE))) die(`missing ${TASK_TEMPLATE}`);
 
 	const today = new Date().toISOString().slice(0, 10);
@@ -1842,15 +1990,7 @@ function cmdTaskNew({ root, slug, lane, force, noBaseline }) {
 		.replaceAll("{{BASELINE}}", baseline);
 	write(abs(activeDir, file), body);
 
-	const index = read(abs(base, TASK_INDEX));
-	write(
-		abs(base, TASK_INDEX),
-		block(
-			index,
-			"ACTIVE",
-			`- \`${id}\` [IN_PROGRESS] ${(lane || "planned").toUpperCase()} — [${file}](active/${file})`,
-		),
-	);
+	refreshActive(base);
 
 	console.log(`\nOpened ${id} -> ${TASKS}/active/${file}`);
 	console.log(
@@ -1861,51 +2001,77 @@ function cmdTaskNew({ root, slug, lane, force, noBaseline }) {
 		return 0;
 	}
 	console.log("Baseline run, so a red command is reported rather than blamed on this task:\n");
-	cmdVerify({ root: base, baseline: true });
+	cmdVerify({ root: base, baseline: true, full: true });
 	return 0;
 }
 
 function currentTask(root, id) {
-	const dir = abs(root, `${TASKS}/active`);
-	const files = exists(dir)
-		? fs.readdirSync(dir).filter((f) => f.endsWith(".md"))
-		: [];
-	const hit = id ? files.filter((f) => f.includes(id)) : files;
+	const tasks = activeTasks(root);
+	const hit = id
+		? tasks.filter((t) => t.fm.id === id || t.file.includes(id))
+		: tasks.filter((t) => t.fm.status === "IN_PROGRESS");
 	if (hit.length !== 1)
 		die(
 			hit.length === 0
-				? "no active task"
-				: `ambiguous: ${hit.join(", ")}; pass --id`,
+				? id
+					? `no active task matches ${id}`
+					: "no task is in progress"
+				: `ambiguous: ${hit.map((t) => t.file).join(", ")}; pass --id`,
 		);
-	return hit[0];
+	return hit[0].file;
 }
 
 function cmdTaskShow({ root, id }) {
 	const base = path.resolve(root || process.cwd());
-	const dir = abs(base, `${TASKS}/active`);
-	const files = exists(dir)
-		? fs.readdirSync(dir).filter((f) => f.endsWith(".md"))
-		: [];
+	const tasks = activeTasks(base);
 	// Asking "what is in flight?" is normal. Nothing in flight is an answer, not an error.
-	if (files.length === 0 && !id) {
+	if (tasks.length === 0 && !id) {
 		console.log("\nNothing in flight.\n");
 		return 0;
 	}
-	const file = currentTask(base, id);
-	const text = read(abs(base, `${TASKS}/active/${file}`));
-	const fm = frontMatter(text);
+	const inProgress = tasks.filter((t) => t.fm.status === "IN_PROGRESS");
+	const task = id
+		? tasks.find((t) => t.fm.id === id || t.file.includes(id))
+		: inProgress.length === 1
+			? inProgress[0]
+			: tasks.length === 1
+				? tasks[0]
+				: null;
+	if (!task)
+		die(
+			id
+				? `no active task matches ${id}`
+				: `ambiguous: ${tasks.map((t) => t.file).join(", ")}; pass --id`,
+		);
+	const text = task.text;
+	const fm = task.fm;
 	console.log(
 		`\n${fm.id}  ${fm.lane || "?"}  ${fm.status || "?"}  ${fm.summary || "(no summary)"}`,
 	);
-	console.log(`  ${TASKS}/active/${file}`);
+	console.log(`  ${TASKS}/active/${task.file}`);
 	const plan = text.match(/## Scope[\s\S]*?(?=\n## Verification)/);
 	console.log(plan ? `\n${plan[0].trim()}\n` : "\n(no scope/plan section)\n");
-	const rows = evidenceRows(text);
+	const rows = evidenceDetail(text);
 	console.log(
 		rows.length
-			? `Verification: ${rows.map((r) => `${r.action}=${Number.isFinite(r.exit) ? r.exit : "?"}`).join(" ")}`
+			? `Verification: ${rows.map((r) => `${r.action}=${Number.isFinite(r.exit) ? r.exit : "?"} (${r.scope})`).join(" ")}`
 			: "Verification: not run",
 	);
+	const milestone = sectionRows(readIf(abs(base, PROJECT)) || "").filter(
+		([, , when]) => when === "milestone",
+	);
+	if (milestone.length && !rows.some((r) => r.scope === "full"))
+		console.log(
+			`Full suite: not run — ${milestone.length} milestone command(s) wait for \`verify --full\` or close`,
+		);
+	const es = evidenceState(base, text, fm);
+	if (es.state === "stale")
+		console.log(
+			"Evidence: STALE — files changed since the last verify; run verify again",
+		);
+	else if (es.state === "current") console.log("Evidence: current");
+	else if (es.state === "unknown")
+		console.log("Evidence: unknown (no loop record)");
 	const loop = loopState(text);
 	if (loop && loop.fail) {
 		console.log(
@@ -1916,6 +2082,8 @@ function cmdTaskShow({ root, id }) {
 	} else {
 		console.log(`Loop: 0/${LOOP_LIMIT}`);
 	}
+	const blocked = blockedState(text);
+	if (blocked) console.log(`Blocked: ${blocked.question}`);
 	console.log(
 		fm.lane === "PLANNED"
 			? "Gate: PLANNED needs approval before the first edit, and again before close.\n"
@@ -1924,7 +2092,160 @@ function cmdTaskShow({ root, id }) {
 	return 0;
 }
 
-function cmdTaskClose({ root, id, amend, noVerify }) {
+function cmdTaskBlock({ root, id, question }) {
+	const base = path.resolve(root || process.cwd());
+	if (!question) die('usage: task block "<question for the owner>"');
+	const file = currentTask(base, id);
+	const p = abs(base, `${TASKS}/active/${file}`);
+	let text = read(p);
+	const fm = frontMatter(text);
+	if (fm.status === "BLOCKED")
+		die(`${fm.id} is already blocked; use \`task resume\``);
+	if (fm.status !== "IN_PROGRESS")
+		die(
+			`only an in-progress task can be blocked (${fm.id} is ${fm.status || "missing"})`,
+		);
+	if (!/^# /m.test(text)) die("task file has no heading to place the block under");
+	const today = new Date().toISOString().slice(0, 10);
+	const note = [
+		"<!-- BLOCKED:START -->",
+		`**BLOCKED ${today}** — ${question}`,
+		"Resume with `agent-kit task resume` once the owner answers.",
+		"<!-- BLOCKED:END -->",
+	].join("\n");
+	text = text
+		.replace(/^(# .*\r?\n)/m, `$1\n${note}\n`)
+		.replace(/^status:.*$/m, "status: BLOCKED");
+	write(p, text);
+	refreshActive(base);
+	console.log(`\nBlocked ${fm.id} — the owner must answer:`);
+	console.log(`  ${question}`);
+	console.log("  Later: `agent-kit task resume`\n");
+	return 0;
+}
+
+function cmdTaskResume({ root, id }) {
+	const base = path.resolve(root || process.cwd());
+	const tasks = activeTasks(base);
+	const hit = id
+		? tasks.filter((t) => t.fm.id === id || t.file.includes(id))
+		: tasks.filter((t) => t.fm.status === "BLOCKED");
+	if (hit.length !== 1)
+		die(
+			hit.length === 0
+				? id
+					? `no active task matches ${id}`
+					: "no blocked task"
+				: `ambiguous: ${hit.map((t) => t.file).join(", ")}; pass --id`,
+		);
+	const task = hit[0];
+	if (!blockedState(task.text)) die(`${task.fm.id} carries no block marker`);
+	const other = tasks.find(
+		(t) => t.file !== task.file && t.fm.status === "IN_PROGRESS",
+	);
+	if (other)
+		die(`${other.fm.id} is already in progress; close or block it first`);
+	write(
+		task.path,
+		task.text
+			.replace(/<!-- BLOCKED:START -->[\s\S]*?<!-- BLOCKED:END -->\r?\n?/, "")
+			.replace(/^status:.*$/m, "status: IN_PROGRESS"),
+	);
+	refreshActive(base);
+	console.log(`\nResumed ${task.fm.id}\n`);
+	return 0;
+}
+
+function cmdStart({ root } = {}) {
+	const base = path.resolve(root || process.cwd());
+	const branch = (
+		git(base, ["rev-parse", "--abbrev-ref", "HEAD"]) || ""
+	).trim();
+	const dirty = (git(base, ["status", "--porcelain"]) || "")
+		.split(/\r?\n/)
+		.filter(Boolean).length;
+	const cmds = sectionRows(readIf(abs(base, PROJECT)) || "");
+	const tasks = activeTasks(base);
+
+	console.log("\nagent-kit start\n");
+	console.log(
+		`Repo    ${path.basename(base)}${branch ? ` · ${branch}` : ""} · ${dirty} uncommitted file(s)`,
+	);
+	console.log(
+		`Suite   ${cmds.length ? cmds.map(([a, c, w]) => `${a}: ${c} (${w})`).join(" · ") : "none declared"}`,
+	);
+	if (tasks.length === 0) {
+		console.log("\nTask    none in flight");
+		console.log(
+			"\nNext    open one: agent-kit task new <slug> --lane quick|planned\n",
+		);
+		return 0;
+	}
+	console.log(`\nActive  ${tasks.length} task(s)`);
+	for (const t of tasks)
+		console.log(
+			`  [${t.fm.status || "?"}] ${t.fm.id || "?"} — ${t.fm.summary || "(no summary)"}`,
+		);
+
+	const inProgress = tasks.filter((t) => t.fm.status === "IN_PROGRESS");
+	const target =
+		inProgress.length === 1
+			? inProgress[0]
+			: tasks.find((t) => t.fm.status === "BLOCKED") || null;
+	if (!target) {
+		console.log(
+			"\nNext    more than one task is in progress; close one or pass --id\n",
+		);
+		return 0;
+	}
+	const fm = target.fm;
+	const blocked = blockedState(target.text);
+	console.log(
+		`\nTask    ${fm.id}  ${fm.lane || "?"}  ${fm.status || "?"}  ${fm.summary || "(no summary)"}`,
+	);
+	console.log(
+		`Plan    ${list(fm.touches).length} file(s) in touches · depends on ${list(fm.depends_on).join(", ") || "none"}`,
+	);
+	console.log(
+		fm.lane === "PLANNED"
+			? "Gate    PLANNED — G1 before the first edit; G2 before close"
+			: "Gate    QUICK — verify, then close",
+	);
+	const rows = evidenceDetail(target.text);
+	if (rows.length)
+		console.log(
+			`Evidence  ${rows.map((r) => `${r.action}=${Number.isFinite(r.exit) ? r.exit : "?"} (${r.scope})`).join(" · ")}`,
+		);
+	else console.log("Evidence  not run");
+	const es = evidenceState(base, target.text, fm);
+	if (es.state === "stale")
+		console.log("Stale   yes — files changed since the last verify");
+	const loop = loopState(target.text);
+	console.log(
+		`Loop    ${loop && loop.fail ? `${loop.n}/${LOOP_LIMIT} — same failing set: ${loop.fail}` : `0/${LOOP_LIMIT}`}`,
+	);
+	if (blocked) console.log(`Blocked ${blocked.question}`);
+
+	const red = rows.filter((r) => Number.isFinite(r.exit) && r.exit !== 0);
+	const milestone = cmds.filter(([, , when]) => when === "milestone");
+	const fullRun = rows.some((r) => r.scope === "full");
+	let next;
+	if (fm.status === "BLOCKED")
+		next = `waiting on the owner: ${blocked ? blocked.question : "(no question recorded)"}`;
+	else if (loop && loop.fail && loop.n >= LOOP_LIMIT)
+		next = "the Plan must change before the next verify (loop guard)";
+	else if (!rows.length) next = "verify — no run recorded since the task opened";
+	else if (es.state === "stale")
+		next = "verify — the task's files changed since the last run";
+	else if (red.length) next = `fix ${red.map((r) => r.action).join(", ")}, then verify`;
+	else if (milestone.length && !fullRun)
+		next = "verify --full — the milestone commands have not run";
+	else next = "task close — the suite is green";
+	console.log(`\nNext    ${next}\n`);
+	return 0;
+}
+
+function cmdTaskClose({ root, id, amend, noVerify, pr }) {
 	const base = path.resolve(root || process.cwd());
 	const file = currentTask(base, id);
 	const rel = `${TASKS}/active/${file}`;
@@ -1932,6 +2253,13 @@ function cmdTaskClose({ root, id, amend, noVerify }) {
 	const fm = frontMatter(text);
 	const today = new Date().toISOString().slice(0, 10);
 	const problems = [];
+
+	if (fm.status === "BLOCKED") {
+		console.error(
+			`\nCannot close ${file}: it is BLOCKED — resume it first (\`task resume\`).\n`,
+		);
+		return 1;
+	}
 
 	if (!fm.summary)
 		problems.push(
@@ -1955,8 +2283,10 @@ function cmdTaskClose({ root, id, amend, noVerify }) {
 	// Close runs the suite itself: the last moment the tree is still "as delivered" is the
 	// only moment worth recording, and an agent cannot forget a step it never had to take.
 	if (!problems.length && !noVerify) {
-		console.log("Verification (close runs it; use `verify` for a mid-flight check):");
-		if (cmdVerify({ root: base }) !== 0)
+		console.log(
+			"Verification (close runs the full suite; `verify` is the mid-flight quick check):",
+		);
+		if (cmdVerify({ root: base, full: true }) !== 0)
 			problems.push(
 				"verification failed — the EVIDENCE table in the task file holds the exit codes",
 			);
@@ -2054,15 +2384,50 @@ function cmdTaskClose({ root, id, amend, noVerify }) {
 		changed,
 	});
 
-	let index = read(abs(base, TASK_INDEX));
-	index = block(index, "ACTIVE", "_Nothing in flight._");
-	write(abs(base, TASK_INDEX), index);
+	refreshActive(base);
 	refreshRecents(base);
 
 	console.log(`\nClosed ${fm.id}`);
 	console.log(`  archived  ${archive}/${file}`);
 	console.log(`  inventory ${changed.length} file(s)`);
-	console.log(`  change    ${change} (${type})\n`);
+	console.log(`  change    ${change} (${type})`);
+
+	const archived = read(abs(base, `${archive}/${file}`));
+	const outcome = (archived.match(/\*\*Outcome\*\*\s*—\s*([^\n]+)/) || [])[1];
+	const notes =
+		outcome && !/<!--/.test(outcome) ? outcome.trim() : fm.summary;
+	const commitType =
+		{ added: "feat", changed: "feat", fixed: "fix", removed: "refactor" }[
+			type
+		] || "chore";
+	console.log("\nCommit message:\n");
+	console.log(`${commitType} (${fm.id}): ${fm.summary}`);
+	console.log("");
+	console.log(`${notes} (${fm.id})\n`);
+
+	if (pr) {
+		const rows = evidenceDetail(archived);
+		const prBody = [
+			"## Summary",
+			`${fm.summary} (${fm.id})`,
+			"",
+			"## Changes",
+			...(changed.length
+				? changed.map((c) => `- \`${c}\``)
+				: ["- none detected"]),
+			"",
+			"## Verification",
+			"| Action | Scope | Exit |",
+			"|---|---|---|",
+			...(rows.length
+				? rows.map((r) => `| ${r.action} | ${r.scope} | ${r.exit} |`)
+				: ["| — | — | — |"]),
+			"",
+			"## Notes",
+			notes,
+		].join("\n");
+		console.log(`PR body:\n\n${prBody}\n`);
+	}
 	return 0;
 }
 
@@ -2211,18 +2576,17 @@ function guardCommitMessage(base, file) {
 function cmdTaskGuard({ root, message }) {
 	const base = path.resolve(root || process.cwd());
 	if (message) return guardCommitMessage(base, message);
-	const dir = abs(base, `${TASKS}/active`);
-	const active = exists(dir)
-		? fs.readdirSync(dir).filter((f) => f.endsWith(".md"))
-		: [];
-	if (active.length === 0) return 0;
-	if (active.length > 1) {
+	const inProgress = activeTasks(base).filter(
+		(t) => t.fm.status === "IN_PROGRESS",
+	);
+	if (inProgress.length === 0) return 0;
+	if (inProgress.length > 1) {
 		console.error(
-			`agent-kit: ${active.length} tasks are active. Close one before committing.`,
+			`agent-kit: ${inProgress.length} tasks are in progress. Close one before committing.`,
 		);
 		return 1;
 	}
-	const touches = list(frontMatter(read(abs(dir, active[0]))).touches);
+	const touches = list(inProgress[0].fm.touches);
 	const staged = (git(base, ["diff", "--staged", "--name-only"]) || "")
 		.split(/\r?\n/)
 		.filter(Boolean)
@@ -2231,7 +2595,9 @@ function cmdTaskGuard({ root, message }) {
 		(c) => !touches.some((t) => covers(t, c)),
 	);
 	if (breached.length === 0) return 0;
-	console.error(`\nagent-kit: refusing this commit. ${active[0]} declares touches:`);
+	console.error(
+		`\nagent-kit: refusing this commit. ${inProgress[0].file} declares touches:`,
+	);
 	console.error(`  ${touches.join(", ") || "(none)"}`);
 	console.error("Staged and not covered:");
 	for (const b of breached) console.error(`  ${b}`);
@@ -2320,12 +2686,15 @@ function cmdSelftest() {
 			console.error = err;
 		}
 	};
-	/** Fill the one active task the way a session would: write set, summary, no markers. */
+	/** Fill the in-progress task the way a session would: write set, summary, no markers. */
 	const fillTask = (touches, summary) => {
 		const dir = abs(tmp, `${TASKS}/active`);
+		const files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
 		const p = abs(
 			dir,
-			fs.readdirSync(dir).find((f) => f.endsWith(".md")),
+			files.find((f) =>
+				/^status: IN_PROGRESS$/m.test(read(abs(dir, f))),
+			) || files[0],
 		);
 		write(
 			p,
@@ -3091,6 +3460,244 @@ function cmdSelftest() {
 			quiet(() => cmdTaskClose({ root: tmp })) === 0,
 			"close proceeds once the suite is green",
 		);
+
+		console.log("\n23. the milestone tier keeps the slow build out of the inner loop");
+		git(tmp, ["add", "-A"]);
+		git(tmp, [
+			"-c",
+			"user.email=t@t",
+			"-c",
+			"user.name=t",
+			"commit",
+			"-qm",
+			"settle before tiers",
+		]);
+		quiet(() => cmdTaskNew({ root: tmp, slug: "command-tiers", lane: "quick" }));
+		const tierTask = fillTask(["src/tier.txt"], "prove the command tiers");
+		write(abs(tmp, "src/tier.txt"), "one\n");
+		const tierProject = read(abs(tmp, PROJECT));
+		assert(
+			/\| build \| npm run build \| milestone \|/.test(tierProject),
+			"setup marks the build milestone and the test always",
+		);
+		const tierText = () => read(tierTask);
+		assert(
+			/^\| build \|.*\| full \|/m.test(tierText()),
+			"the baseline is a full run, so the milestone command is recorded",
+		);
+		assert(
+			doctorRow("declared commands").status === "PASS",
+			"doctor accepts the tiers setup wrote",
+		);
+		write(
+			abs(tmp, PROJECT),
+			tierProject.replace(
+				"| build | npm run build | milestone |",
+				"| build | npm run build | sometimes |",
+			),
+		);
+		const badTier = doctorRow("declared commands");
+		assert(
+			badTier.status === "FAIL" && badTier.detail.includes("sometimes"),
+			"doctor fails a When value outside always|milestone",
+		);
+		write(abs(tmp, PROJECT), tierProject);
+		write(
+			abs(tmp, PROJECT),
+			tierProject.replace(
+				"| build | npm run build | milestone |",
+				'| build | node -e "process.exit(1)" | milestone |',
+			),
+		);
+		const quick = spoken(() => cmdVerify({ root: tmp }));
+		assert(quick.code === 0, "a red build does not fail the quick suite");
+		assert(
+			quick.out.includes("milestone command(s) held"),
+			"verify says which commands it held back",
+		);
+		assert(
+			!/^\| build \|.*\| 1 \|$/m.test(tierText()),
+			"the quick run records no build failure",
+		);
+		assert(
+			quiet(() => cmdVerify({ root: tmp, full: true })) === 1,
+			"verify --full runs the milestone row and fails on it",
+		);
+		assert(
+			/^\| build \|.*\| full \| exit 0 \| exit 1 \| 1 \|$/m.test(tierText()),
+			"--full records the build failure with its scope",
+		);
+		const tierRefused = spoken(() => cmdTaskClose({ root: tmp }));
+		assert(
+			tierRefused.code === 1 && tierRefused.out.includes("verification failed"),
+			"close refuses while the milestone command is red",
+		);
+		write(abs(tmp, PROJECT), tierProject);
+		assert(
+			quiet(() => cmdTaskClose({ root: tmp })) === 0,
+			"close runs the full suite itself and closes once it is green",
+		);
+
+		console.log(
+			"\n24. evidence goes stale when the files move under it, and close hands over the message",
+		);
+		git(tmp, ["add", "-A"]);
+		git(tmp, [
+			"-c",
+			"user.email=t@t",
+			"-c",
+			"user.name=t",
+			"commit",
+			"-qm",
+			"settle before stale",
+		]);
+		quiet(() => cmdTaskNew({ root: tmp, slug: "stale-evidence", lane: "quick" }));
+		const staleTask = fillTask(["src/stale.txt"], "prove stale evidence");
+		write(abs(tmp, "src/stale.txt"), "one\n");
+		assert(
+			quiet(() => cmdVerify({ root: tmp })) === 0,
+			"the first run is green",
+		);
+		assert(
+			captured(() => cmdTaskShow({ root: tmp })).includes("Evidence: current"),
+			"show calls the run current",
+		);
+		write(abs(tmp, "src/stale.txt"), "two\n");
+		assert(
+			captured(() => cmdTaskShow({ root: tmp })).includes("Evidence: STALE"),
+			"an edit after the run makes the evidence stale",
+		);
+		assert(
+			captured(() => cmdStart({ root: tmp })).includes("Stale   yes"),
+			"start flags the stale run",
+		);
+		assert(
+			quiet(() => cmdVerify({ root: tmp })) === 0,
+			"a fresh run is green again",
+		);
+		const prClose = spoken(() => cmdTaskClose({ root: tmp, pr: true }));
+		assert(prClose.code === 0, "close succeeds");
+		assert(
+			prClose.out.includes("Commit message:"),
+			"close prints the commit message to use",
+		);
+		assert(
+			/^feat \(TASK-\d+\): prove stale evidence$/m.test(prClose.out),
+			"the subject is typed and names the task",
+		);
+		assert(
+			prClose.out.includes("## Summary") &&
+				prClose.out.includes("## Verification"),
+			"--pr prints a PR body with the evidence",
+		);
+
+		console.log("\n25. a blocked task frees the slot and waits on disk");
+		git(tmp, ["add", "-A"]);
+		git(tmp, [
+			"-c",
+			"user.email=t@t",
+			"-c",
+			"user.name=t",
+			"commit",
+			"-qm",
+			"settle before block",
+		]);
+		quiet(() =>
+			cmdTaskNew({
+				root: tmp,
+				slug: "blocked-a",
+				lane: "quick",
+				noBaseline: true,
+			}),
+		);
+		const taskA = fillTask(["src/a.txt"], "prove a blocked task");
+		const taskAId = frontMatter(read(taskA)).id;
+		assert(
+			spoken(() =>
+				cmdTaskBlock({ root: tmp, id: taskAId, question: "pick A or B" }),
+			).code === 0,
+			"a task can block with a question",
+		);
+		assert(
+			/^status: BLOCKED$/m.test(read(taskA)),
+			"the status records the impasse",
+		);
+		assert(
+			read(abs(tmp, TASK_INDEX)).includes(`\`${taskAId}\` [BLOCKED]`),
+			"the index lists the blocked task",
+		);
+		const blockedText = read(taskA);
+		write(
+			taskA,
+			blockedText.replace(
+				/<!-- BLOCKED:START -->[\s\S]*?<!-- BLOCKED:END -->\r?\n?/,
+				"",
+			),
+		);
+		assert(
+			doctorRow("blocked tasks").status === "FAIL",
+			"doctor fails a blocked status with no question",
+		);
+		write(taskA, blockedText);
+		assert(
+			captured(() => cmdStart({ root: tmp })).includes("pick A or B"),
+			"start surfaces the owner's question",
+		);
+		assert(
+			captured(() => cmdTaskShow({ root: tmp, id: taskAId })).includes(
+				"Blocked: pick A or B",
+			),
+			"show prints the question",
+		);
+		assert(
+			spoken(() => cmdTaskClose({ root: tmp, id: taskAId })).code === 1,
+			"a blocked task cannot close",
+		);
+		quiet(() =>
+			cmdTaskNew({
+				root: tmp,
+				slug: "blocked-b",
+				lane: "quick",
+				noBaseline: true,
+			}),
+		);
+		const taskB = fillTask(["src/b.txt"], "prove the slot frees");
+		write(
+			taskA,
+			read(taskA).replace(/^status: BLOCKED$/m, "status: IN_PROGRESS"),
+		);
+		assert(
+			doctorRow("blocked tasks").status === "FAIL",
+			"doctor fails a block marker whose status disagrees",
+		);
+		write(
+			taskA,
+			read(taskA).replace(/^status: IN_PROGRESS$/m, "status: BLOCKED"),
+		);
+		assert(
+			doctorRow("blocked tasks").status === "PASS",
+			"doctor accepts the marker and the status together",
+		);
+		assert(
+			spoken(() =>
+				cmdTaskBlock({ root: tmp, question: "which comes first?" }),
+			).code === 0,
+			"the second task can block too",
+		);
+		assert(
+			spoken(() => cmdTaskResume({ root: tmp, id: taskAId })).code === 0,
+			"resume names the blocked task and continues",
+		);
+		assert(
+			/^status: IN_PROGRESS$/m.test(read(taskA)) &&
+				!read(taskA).includes("BLOCKED:START"),
+			"resume restores the status and removes the marker",
+		);
+		assert(
+			frontMatter(read(taskB)).status === "BLOCKED" &&
+				doctorRow("blocked tasks").status === "PASS",
+			"the other task stays blocked and the pair is consistent",
+		);
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });
 		if (junkDir) fs.rmSync(junkDir, { recursive: true, force: true });
@@ -3162,8 +3769,14 @@ function main(argv) {
 				fix: flag("fix"),
 				jsonOut: flag("json"),
 			});
+		case "start":
+			return cmdStart({ root: process.cwd() });
 		case "verify":
-			return cmdVerify({ root: process.cwd(), baseline: flag("baseline") });
+			return cmdVerify({
+				root: process.cwd(),
+				baseline: flag("baseline"),
+				full: flag("full"),
+			});
 		case "harnesses":
 			return cmdHarnesses({ root: process.cwd() });
 		case "task": {
@@ -3178,12 +3791,21 @@ function main(argv) {
 				});
 			if (sub === "show")
 				return cmdTaskShow({ root: process.cwd(), id: value("id") });
+			if (sub === "block")
+				return cmdTaskBlock({
+					root: process.cwd(),
+					id: value("id"),
+					question: positional.slice(1).join(" "),
+				});
+			if (sub === "resume")
+				return cmdTaskResume({ root: process.cwd(), id: value("id") });
 			if (sub === "close")
 				return cmdTaskClose({
 					root: process.cwd(),
 					id: value("id"),
 					amend: value("amend"),
 					noVerify: flag("no-verify"),
+					pr: flag("pr"),
 				});
 			if (sub === "guard")
 				return cmdTaskGuard({
@@ -3191,7 +3813,7 @@ function main(argv) {
 					message: value("message"),
 				});
 			return die(
-				'usage: task new <slug> | task show | task close [--id TASK-N] [--amend "<why>"] | task guard [--message <file>]',
+				'usage: task new <slug> | task show | task block "<question>" | task resume | task close [--id TASK-N] [--amend "<why>"] [--pr] | task guard [--message <file>]',
 			);
 		}
 		case "learnings": {
@@ -3206,13 +3828,13 @@ function main(argv) {
 			console.log(
 				read(path.join(SCRIPT_ROOT, "scripts/agent-kit.mjs"))
 					.split("\n")
-					.slice(1, 24)
+					.slice(1, 27)
 					.join("\n"),
 			);
 			return 0;
 		default:
 			return die(
-				`unknown command: ${cmd} (setup|check|pull|doctor|verify|harnesses|task|selftest)`,
+				`unknown command: ${cmd} (setup|check|pull|doctor|start|verify|harnesses|task|learnings|selftest)`,
 			);
 	}
 }

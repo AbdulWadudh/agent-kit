@@ -20,5 +20,6 @@ bullets are the files git reported.
 ## Recent
 
 <!-- RECENT:START -->
+- `2026-10-26` [TASK-103](10-2026/2026-10-26-TASK-103-session-ergonomics.md) — one command for session state, tiered verify, blocked tasks, close artifacts
 - `2026-10-26` [TASK-101](10-2026/2026-10-26-TASK-101-hook-smoke.md) — The workflow runs itself
 <!-- RECENT:END -->

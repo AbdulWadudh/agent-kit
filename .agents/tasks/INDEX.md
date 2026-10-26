@@ -52,6 +52,7 @@ _Nothing in flight._
 ## Recent
 
 <!-- RECENT:START -->
+- `2026-10-26` [TASK-103](archive/2026-10/2026-10-26-TASK-103-session-ergonomics.md) — one command for session state, tiered verify, blocked tasks, close artifacts
 - `2026-10-26` [TASK-101](archive/2026-10/2026-10-26-TASK-101-hook-smoke.md) — prove the hook fires
 <!-- RECENT:END -->
 

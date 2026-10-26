@@ -23,7 +23,8 @@ You are working in <PROJECT NAME>. Read this file once per session, then follow 
 
 **Always**
 - Read before writing. Keep every edit inside the task's declared `touches`.
-- Run `agent-kit verify` before and after edits. Evidence goes in the task file; memory does not count.
+- Run `agent-kit verify` before and after edits; it is the quick suite. The full one runs at the
+  baseline and at `task close`. Evidence goes in the task file; memory does not count.
 - Take the smallest complete change: reuse what exists, delete before adding, no speculative abstraction.
 
 **Ask first**
@@ -55,7 +56,9 @@ You are working in <PROJECT NAME>. Read this file once per session, then follow 
 
 ## Done means
 
-`agent-kit verify` exits 0, the task's evidence table holds real exit codes, `.agents/tasks/INDEX.md` is current, and `agent-kit doctor` reports no failures. Then `agent-kit task close`.
+The quick suite and the full one are green (the full one is `verify --full`, which `task close`
+runs itself), the task's evidence table holds real exit codes, `.agents/tasks/INDEX.md` is
+current, and `agent-kit doctor` reports no failures. Then `agent-kit task close`.
 
 ---
 
@@ -68,10 +71,13 @@ You are working in <PROJECT NAME>. Read this file once per session, then follow 
 |---|---|
 | `doctor` | truth checks over docs, declarations and tasks; `--strict` also fails on unfilled markers; `--fix` repairs encoding only; `--json` for CI |
 | `harnesses` | list the coding agents installed on this machine (HOME, PATH, repo) — the repo may show none; a report, not a gate |
-| `task new <slug> --lane quick\|planned` | open a task **and record the baseline run** (`--no-baseline` to skip) |
+| `start` | read-only session brief: branch, declared commands and their tiers, active tasks, the gate, last evidence, loop and stale state, and one next action |
+| `task new <slug> --lane quick\|planned` | open a task **and record the baseline run**, a full one (`--no-baseline` to skip) |
 | `task show` | print the active task's scope, plan and evidence — the thing G1/G2 asks a human to read |
-| `task close` | run the suite, scope-check against git, record the inventory, archive, and write the change file under `.agents/logs/MM-YYYY/`; `--amend "<why>"` accepts a declared breach and writes the reason into the plan; `--no-verify` only when the suite cannot run here |
-| `verify` | mid-flight check; writes the evidence table and prints the delta against the baseline; at three identical red runs it refuses until the Plan changes |
+| `task block "<question>"` | park the in-progress task on an owner decision; it stops holding the slot and the question waits in the file |
+| `task resume [<id>]` | continue a blocked task; pass the id when more than one is waiting |
+| `task close` | run the **full** suite, scope-check against git, record the inventory, archive, write the change file under `.agents/logs/MM-YYYY/`, and print a ready commit message; `--pr` adds a PR body; `--amend "<why>"` accepts a declared breach and writes the reason into the plan; `--no-verify` only when the suite cannot run here |
+| `verify` | the inner loop: runs the `always` rows and writes the evidence table; `--full` adds the `milestone` rows, which the baseline and `task close` already run; at three identical red runs it refuses until the Plan changes |
 | `task guard [--message <file>]` | the hooks: `pre-commit` refuses a commit outside the declared write set (silent when no task is open); `commit-msg` warns — never blocks — on a subject that is not `type (TASK-ID): summary` or a body with no summary. **Opt-in per clone** via `git config core.hooksPath .githooks` |
 | `learnings archive` | move entries past the 30 cap into `.agents/learnings/archive/`; the live list is the part a session reads |
 | `check` / `pull --dry-run` / `pull` | drift against the template; `pull` never overwrites a locally modified file without `--force` |

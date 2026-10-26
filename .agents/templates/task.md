@@ -50,13 +50,14 @@ failure present here is reported, not worked over.
 
 ## Verification
 
-`agent-kit verify` writes this table. Do not hand-write exit codes. `task close` refuses a
-table that records a non-zero exit.
+`agent-kit verify` writes this table. Do not hand-write exit codes. A quick run records the
+`always` rows; `verify --full` and close add the `milestone` rows, so each row carries its
+scope. `task close` refuses a table that records a non-zero exit.
 
 <!-- EVIDENCE:START -->
-| Action | Command | Expected | Observed | Exit |
-|---|---|---|---|---|
-| — | not run | — | — | — |
+| Action | Command | Scope | Expected | Observed | Exit |
+|---|---|---|---|---|---|
+| — | not run | — | — | — | — |
 <!-- EVIDENCE:END -->
 
 ## Close-out
