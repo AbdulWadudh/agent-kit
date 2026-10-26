@@ -12,10 +12,11 @@ You are working in <PROJECT NAME>. Read this file once per session, then follow 
 
 ## Start here, in order
 
-1. `.agents/project.md` — stack, commands, entry points, generated directories. Cite it; never restate it.
-2. `.agents/tasks/INDEX.md` — resume the active task, or open a new one.
-3. `.agents/rules/INDEX.md` — load only the rule files matching what you will touch.
-4. `docs/INDEX.md` — find where the logic lives before searching the tree.
+1. `SKILL.md` — the work loop: classify, open, gate, verify, close, report. Follow its order.
+2. `.agents/project.md` — stack, commands, entry points, generated directories. Cite it; never restate it.
+3. `.agents/tasks/INDEX.md` — resume the active task, or open a new one.
+4. `.agents/rules/INDEX.md` — load only the rule files matching what you will touch.
+5. `docs/INDEX.md` — find where the logic lives before searching the tree.
 
 ## Boundary protocol
 
@@ -74,6 +75,5 @@ The owner is not expected to type any of this. The agent runs `task new` and `ta
 per-clone extra that warns earlier; it is off unless someone opts in, because it is git config
 and a shared repo must not rewrite a teammate's git behaviour on install.
 
-Harnesses that load project skills can also pick this up from `SKILL.md` at the repo root;
-everything it says is already in this file. That path is the skill's one home: a harness with
-its own skill directory gets a pointer in its own format, never a copy that drifts.
+`SKILL.md` is the work loop; this file is the contract it runs under. A harness with its own
+skill folder gets a pointer to that one file, never a copy that drifts.

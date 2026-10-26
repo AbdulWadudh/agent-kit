@@ -1,78 +1,75 @@
 ---
 name: agent-kit
-description: Install agent-kit into a repository, or drive the agent-kit workflow inside one — setup, the two task lanes (QUICK and PLANNED), the verification/evidence gates, and template drift. Use when the user says "set this repo up for agents", "install the template", "set it up with agent-kit", asks what the gates check, or when the repo already contains .agents/sync-manifest.json.
+description: The work loop in an agent-kit repo — classify, open a task, pass the plan gate, edit inside the declared write set, prove it with real exit codes, pass the result gate, close, report. Use when the user asks for a change, fix, or investigation in a repo with .agents/sync-manifest.json, or asks what is in flight.
 ---
 
-# agent-kit
+# agent-kit — the work loop
 
-The contract is `SETUP.md` (install) and `AGENTS.md` (working here). This skill is the
-trigger and the boundary. If they disagree with it, they win and this file is the bug.
+One request in, one verified task out. This file is the order. `AGENTS.md` holds the
+boundaries and this repo's facts; `SETUP.md` holds the one-time install. If they disagree with
+this file, they win.
 
-## Setting up a repository
+## 1. Start of session
 
-Run from the target repo root. Bun or Node, same file.
+Read `AGENTS.md`, then `.agents/project.md`. Run `task show` — resume what is in flight before
+opening anything new. Load only the rule files that match the files you will touch.
 
-```bash
-git clone --depth 1 <template-url> "$TMPDIR/agent-kit"
-bun "$TMPDIR/agent-kit/scripts/agent-kit.mjs" setup . --source <template-url>
-bun scripts/agent-kit.mjs doctor --strict
-```
+## 2. Classify
 
-Then do the only part that needs judgement, in this order: `AGENTS.md` markers and rules
-1-4, `.agents/project.md` domain notes, then `docs/ARCH_MAP.md`, `docs/ENTRY_POINTS.md`,
-`docs/API_SKELETON.md` from the real tree. Rules 1-4 and the domain notes are the owner's
-knowledge: propose candidates from the tree and get a yes rather than inventing an invariant.
-`doctor --strict` exiting 0 is the definition of set up. Report the detected stack, the
-commands found, and anything you could not find.
+QUICK: at most three files, reversible, no public interface, schema, dependency or data
+change. Everything else is PLANNED. When unsure, take PLANNED — the cost is a short plan, not
+a rewrite.
 
-## Working in a repo that already has it
+## 3. Open
 
-| Need | Command |
-|---|---|
-| what is in flight | `task show` |
-| open work | `task new <slug> --lane quick\|planned` — records the baseline run itself |
-| mid-flight proof | `verify` (close runs it anyway) |
-| close | `task close` — runs the suite, refuses red, inventories, files the changelog entry |
-| ship a batch | `release <version> --summary "<what shipped>"` — promotes Unreleased into release notes |
-| drift vs template | `check`, `pull --dry-run`, `pull` |
-| truth check on the docs | `doctor --strict` |
-| mechanical repair | `doctor --fix` |
+`task new <slug> --lane quick|planned`. It records the baseline run itself. Before the first
+edit, fill the task's intent, scope and `touches` — the exact paths you will write.
 
-The user talks; you run the commands and report the result. Never hand them a command to type.
-Everything above is yours to execute, including `release` — draft the version and the summary,
-ask for a yes, then run it.
+## 4. G1 — plan approval (PLANNED only)
 
-## Do
+Put the plan in chat: the files, the steps, the risks, and the command that will prove it.
+Wait for a yes. No edits before it.
 
-- Read `AGENTS.md`, then `.agents/project.md`, before touching anything.
-- Declare `touches` in the task **before** the first edit, and keep every edit inside it.
-  `task close` checks it against the diff; a wired pre-commit hook is an earlier warning, not
-  the check itself.
-- Two runs, two exit codes: the baseline at `task new`, the evidence at `task close`. Read
-  both before claiming a fix — a red that was already red is not progress.
-- Halt at G1 (plan approval) and G2 (result approval) in the PLANNED lane.
-- Ask before a dependency, a schema change, a public interface change, or a deletion.
-- Cite a rule's home (`docs/`, `.agents/rules/`, `project.md`) instead of restating it.
+## 5. Work
 
-## Do not
+The smallest complete change, inside `touches`. Reuse what exists; delete before adding. Need
+a file you did not declare? Say why, amend `touches` first. Never widen silently.
 
-- Do not run `setup` in the template repo itself, and do not hand-copy its files into a
-  target. The hash baseline is what makes `check`/`pull` work.
-- Do not edit machinery (`scripts/`, `.agents/sync-manifest.json`, `.agents/templates/`,
-  `.agents/rules/INDEX.md`, `.agents/rules/_behavior.md`) to make a gate pass. That is
-  `DRIFT`, and `pull --force` will take it back.
-- Do not widen `touches` silently. `task close --amend "<reason>"` is the recorded way, and
-  the reason lands in the archived plan.
-- Do not claim a gate passed without its exit code. `task close` refuses an evidence table
-  with a non-zero exit.
-- Do not write a rule that reading a diff cannot check; `doctor` fails on vague advice.
-- Do not hand-write a changelog entry, an evidence table or a file inventory. The kit derives
-  all three.
-- Do not paste the plan into a subagent prompt. Give it the files, the deliverable and the
-  stopping condition.
+## 6. Prove it
 
-## Done means
+`verify` mid-flight; `task close` runs it again. Real exit codes go in the evidence table.
+Compare against the baseline: a red that was already red is not progress, and a green you did
+not cause is not a fix.
 
-`verify` exits 0, the task's evidence table holds real exit codes, `doctor` reports no
-failures, and `task close` accepted the write set. Then report the outcome in the user's
-words — what changed, what it cost, and what is still open.
+## 7. G2 — result approval (PLANNED only)
+
+Report what changed and the evidence, in the user's words. Wait for a yes, then close.
+
+## 8. Close
+
+`task close` runs the suite, refuses a red result, checks the diff against `touches`,
+inventories the files, archives the plan and files the changelog entry. `--amend "<why>"`
+accepts a declared breach and writes the reason into the plan — only with the user's reason,
+never as a way past a red suite.
+
+## 9. Report
+
+One short message: what changed, what proved it, what is still open. Name the task ID. Then
+stop — no follow-up suggestions unless asked.
+
+## When the loop bends
+
+- **Suite already red at open.** Record it, say so, keep the baseline. Do not "fix" it in this
+  task unless that is the task.
+- **The user changes the ask mid-flight.** Rewrite the scope section, keep the old text, and
+  take a fresh G1 if it is PLANNED.
+- **You cannot run the suite.** Say so and stop. Never close on an empty evidence table.
+- **The change outgrows QUICK.** Stop, reopen it as PLANNED, take the gate.
+
+## Not yours
+
+- Installing or upgrading the kit. That is `SETUP.md` and the README prompt, once.
+- The release version, and the one-sentence summary. Draft both, get a yes, then run
+  `release`.
+- Editing machinery (`scripts/`, `.agents/templates/`, the manifest) to make a gate pass.
+  `pull --force` takes it back, and the gate was the point.

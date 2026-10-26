@@ -14,6 +14,7 @@ promotes that block into a release and starts a fresh one. Never hand-compose an
 - `TEMPLATE`: chat-only operation is a rule, not a hope — the agent runs every command, `task show` answers "nothing in flight", and an unexecutable environment must say so instead of handing over a script
 - `TEMPLATE`: `setup`'s next-step list says to ask the owner for rules 1-4 instead of inventing them; the checklist replaces a terminal wizard
 - `TEMPLATE`: the skill is harness-neutral at root `SKILL.md`; `doctor` requires it, and the setup prompt writes a pointer per named harness instead of shipping one harness's folder
+- `TEMPLATE`: `SKILL.md` is now the work loop — classify, open, G1, work, verify, G2, close, report, with the failure branches — not an install guide; `AGENTS.md` lists it as step 1, so it is read even without skill support
 
 ### 🛠️ Fixed
 _None yet._

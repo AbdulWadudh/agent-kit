@@ -14,8 +14,7 @@ verified.** Everything here serves that, and anything that stops serving it gets
   gates, an evidence table, and a close-out that derives the changed files from git.
 - `.agents/rules/` — a router plus short rule files. One home per rule; indexes cite.
 - `docs/` — the knowledge seed: architecture map, API skeleton, entry points.
-- `SKILL.md` at the repo root — the skill: the trigger and the do/do-not boundary. Other
-  harnesses get a pointer in their own format, never a copy.
+- `SKILL.md` — the work loop: classify, open, gate, verify, close, report.
 - `examples/minimal/` — what a filled repo looks like, for a fictional project.
 - `scripts/agent-kit.mjs` — the only executable surface. Zero dependencies. Bun or Node.
 
@@ -190,23 +189,22 @@ deliberately tripping each gate — twelve scenarios, from a red baseline to a s
 
 ## The skill
 
-`SKILL.md` at the repo root is shipped with the kit: a project skill that triggers on "set
-this repo up" and states the boundary — what to do, what never to do. It is a pointer, not a
-second copy of the rules: `AGENTS.md` and `SETUP.md` remain the contract, and the skill says
-so in its first paragraph.
+`SKILL.md` is the work loop, and it is the only place that order lives: classify the request,
+open a task, stop for the plan gate, edit inside the declared write set, prove it with real
+exit codes, stop for the result gate, close, report. Pressure is where agents skip steps, so
+the failure branches live there too — red suite, scope that grows, a suite you cannot run.
 
-Most harnesses only load a skill from their own folder, so the root file is the source, not
-the trigger. The setup prompt writes a thin pointer into each harness's own skill folder —
-`.opencode/skills/`, `.claude/skills/`, whatever it reads — in that harness's format. One
-file to edit; nothing to drift.
+It is procedure, not knowledge. The repo's facts stay in `.agents/project.md`, its rules in
+`.agents/rules/`, its install in `SETUP.md`. The skill cites them; it never restates them.
+
+So install is not the skill's job — it happens once, before any of this exists, from the
+README prompt. That is also why one file is enough for every harness: `AGENTS.md` lists it as
+step 1 of "start here", so an agent reads the loop even where no skill mechanism exists. A
+harness with its own skill folder gets a four-line pointer, not a copy.
 
 No plugin: a plugin is code that runs on every turn, and this needs instructions at the
 moment the work starts. `examples/minimal/` shows a filled repo, for when you want to see the
 target instead of reading about it.
-
-The skill is repo-local: it triggers while you work in a repo that has a pointer to it. To
-have it trigger in every repo, add a pointer in your global skills folder yourself — that
-file belongs to your machine, not to the kit, and `pull` will never touch it.
 
 ## Staying current
 
