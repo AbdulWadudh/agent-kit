@@ -207,9 +207,9 @@ schema change. Choosing per task is what keeps the gates honest.
 
 | Command | Question |
 |---|---|
-| `verify` | do the declared build, typecheck, lint and test commands exit 0 — with the codes recorded? |
+| `verify` | do the declared build, typecheck, lint and test commands exit 0 — with the codes recorded; is this the fourth identical red run? |
 | `task close` | did the diff stay inside the declared write set, is the evidence green, and is the outcome written down? |
-| `doctor` | do the docs name real paths, is every kit directory indexed, do the commands exist, are the task and logs lists current, is rtk installed, is the encoding clean, is every rule checkable and indexed? |
+| `doctor` | do the docs name real paths, is every kit directory indexed, do the commands exist, are the task and logs lists current, is rtk installed, is the encoding clean, is every rule checkable and indexed, is the backlog triaged? |
 | `check` | has the template moved since install, and did you edit machinery you should not have? |
 
 Every one of them can fail. `selftest` asserts that by building a throwaway repo and

@@ -188,6 +188,10 @@ Expected: the task id, then one line per declared command and `PASS — n/n comm
 A failure here is the repo's problem, not the kit's: report it, do not work over it.
 `--no-baseline` skips the run; it also throws away the only way to tell an old red from a new one.
 
+`verify` also counts attempts: a red run with the same failing set over the same declared files
+is the same attempt repeated. At three, it refuses — and `task close` with it — until the Plan
+section changes. `task show` prints `Loop: n/3`.
+
 Commit the fill work **before** opening the first task. `task new` records the current `HEAD`
 as the baseline, and `task close` derives the changed-file inventory from it — a repo with no
 commit at all has no baseline to diff against.

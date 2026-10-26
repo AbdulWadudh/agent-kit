@@ -71,7 +71,7 @@ You are working in <PROJECT NAME>. Read this file once per session, then follow 
 | `task new <slug> --lane quick\|planned` | open a task **and record the baseline run** (`--no-baseline` to skip) |
 | `task show` | print the active task's scope, plan and evidence — the thing G1/G2 asks a human to read |
 | `task close` | run the suite, scope-check against git, record the inventory, archive, and write the change file under `.agents/logs/MM-YYYY/`; `--amend "<why>"` accepts a declared breach and writes the reason into the plan; `--no-verify` only when the suite cannot run here |
-| `verify` | mid-flight check; writes the evidence table and prints the delta against the baseline |
+| `verify` | mid-flight check; writes the evidence table and prints the delta against the baseline; at three identical red runs it refuses until the Plan changes |
 | `task guard [--message <file>]` | the hooks: `pre-commit` refuses a commit outside the declared write set (silent when no task is open); `commit-msg` warns — never blocks — on a subject that is not `type (TASK-ID): summary` or a body with no summary. **Opt-in per clone** via `git config core.hooksPath .githooks` |
 | `learnings archive` | move entries past the 30 cap into `.agents/learnings/archive/`; the live list is the part a session reads |
 | `check` / `pull --dry-run` / `pull` | drift against the template; `pull` never overwrites a locally modified file without `--force` |

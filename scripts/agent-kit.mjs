@@ -55,6 +55,8 @@ const CATEGORIES = [
 	["removed", "⚠️ Deprecated / Removed"],
 ];
 const ENTRY_LIMIT = 140;
+// A loop is the same red set over the same code: past this many identical runs, a new plan.
+const LOOP_LIMIT = 3;
 
 // The indexes carry the last few entries, so a session reads a list instead of a folder.
 // [index, folder, date field]
@@ -1613,6 +1615,65 @@ function evidenceRows(text) {
 		.map((c) => ({ action: c[0], exit: Number(c[4]) }));
 }
 
+function hashText(s) {
+	return crypto.createHash("sha256").update(s).digest("hex").slice(0, 16);
+}
+
+/** The authored intent: Scope and Plan, stopping before the generated baseline/evidence. */
+function planText(text) {
+	const m = text.match(
+		/##\s+Scope[\s\S]*?(?=\n##\s+(?:Baseline|Verification))/,
+	);
+	return m ? m[0].trim() : "";
+}
+
+/** `n` identical red runs, the failing set, and the hashes that say nothing moved. */
+function loopState(text) {
+	const m = text.match(/<!--\s*LOOP\s+(\{[^\n]*\})\s*-->/);
+	if (!m) return null;
+	try {
+		return JSON.parse(m[1]);
+	} catch {
+		return null;
+	}
+}
+
+/** Hash of the changed files inside the write set: the same hash means the same code. */
+function productHash(base, fm) {
+	const changed = [];
+	if (fm.baseline && fm.baseline !== "none") {
+		const committed = git(base, [
+			"diff",
+			"--name-only",
+			`${fm.baseline}..HEAD`,
+		]);
+		if (committed) changed.push(...committed.split(/\r?\n/).filter(Boolean));
+	}
+	const dirty = (git(base, ["status", "--porcelain"]) || "")
+		.split(/\r?\n/)
+		.map((l) => l.slice(3).trim().split(" -> ").pop())
+		.filter(Boolean)
+		.flatMap((d) => (d.endsWith("/") ? expand(base, d) : [d]));
+	changed.push(...dirty);
+	const touches = list(fm.touches);
+	const files = [...new Set(changed)]
+		.filter(
+			(c) =>
+				!c.startsWith(`${TASKS}/`) &&
+				!c.startsWith(`${LOG_DIR}/`) &&
+				(touches.length === 0 || touches.some((t) => covers(t, c))),
+		)
+		.sort();
+	const h = crypto.createHash("sha256");
+	for (const f of files) {
+		const p = abs(base, f);
+		h.update(f).update("\0");
+		h.update(exists(p) && !isDir(p) ? normalize(fs.readFileSync(p)) : "(missing)");
+		h.update("\0");
+	}
+	return h.digest("hex").slice(0, 16);
+}
+
 function cmdVerify({ root, baseline }) {
 	const base = path.resolve(root || process.cwd());
 	const declared = sectionRows(readIf(abs(base, PROJECT)) || "");
@@ -1630,7 +1691,31 @@ function cmdVerify({ root, baseline }) {
 		? fs.readdirSync(activeDir).filter((f) => f.endsWith(".md"))
 		: [];
 	const target = active.length === 1 ? abs(activeDir, active[0]) : null;
-	const before = target ? evidenceRows(read(target)) : [];
+	const taskText = target ? read(target) : "";
+	const before = target ? evidenceRows(taskText) : [];
+	const taskFm = taskText ? frontMatter(taskText) : {};
+	const planHash = taskText ? hashText(planText(taskText)) : "";
+	const diffHash = target ? productHash(base, taskFm) : "";
+	const priorLoop = taskText ? loopState(taskText) : null;
+
+	// A loop is not another attempt: the same red set over the same diff needs a new plan.
+	if (
+		target &&
+		!baseline &&
+		priorLoop &&
+		priorLoop.n >= LOOP_LIMIT &&
+		priorLoop.plan === planHash &&
+		priorLoop.diff === diffHash
+	) {
+		console.log(
+			`\nLoop guard: ${LOOP_LIMIT} red runs in a row with the same failing set and no change to the task's files.`,
+		);
+		console.log(
+			"  The next attempt needs a new plan, not another run. Edit the Plan section with what",
+		);
+		console.log("  will be different, then verify again.\n");
+		return 1;
+	}
 
 	const evidence = [];
 	let failed = 0;
@@ -1673,15 +1758,36 @@ function cmdVerify({ root, baseline }) {
 
 	if (target) {
 		const name = baseline ? "BASELINE" : "EVIDENCE";
+		let marker = "";
+		let attempts = 0;
+		if (!baseline) {
+			const failKey = now
+				.filter((r) => r.exit !== 0)
+				.map((r) => r.action)
+				.sort()
+				.join(",");
+			const same =
+				priorLoop &&
+				priorLoop.plan === planHash &&
+				priorLoop.diff === diffHash &&
+				priorLoop.fail === failKey;
+			attempts = failKey ? (same ? (priorLoop.n || 0) + 1 : 1) : 0;
+			marker = `\n<!-- LOOP ${JSON.stringify({ n: attempts, fail: failKey, diff: diffHash, plan: planHash })} -->`;
+		}
 		const body = [
 			"| Action | Command | Expected | Observed | Exit |",
 			"|---|---|---|---|---|",
 			...evidence,
-		].join("\n");
+		].join("\n") + marker;
 		write(target, block(read(target), name, body));
 		console.log(
 			`\nRecorded in ${TASKS}/active/${active[0]} (${name.toLowerCase()})`,
 		);
+		if (attempts >= LOOP_LIMIT) {
+			console.log(
+				`Loop: ${attempts}/${LOOP_LIMIT} — the next identical run is refused until the Plan changes.`,
+			);
+		}
 	} else if (active.length > 1) {
 		console.log(
 			"\nNot recorded: more than one active task. Paste the rows into the right one.",
@@ -1800,6 +1906,16 @@ function cmdTaskShow({ root, id }) {
 			? `Verification: ${rows.map((r) => `${r.action}=${Number.isFinite(r.exit) ? r.exit : "?"}`).join(" ")}`
 			: "Verification: not run",
 	);
+	const loop = loopState(text);
+	if (loop && loop.fail) {
+		console.log(
+			loop.n >= LOOP_LIMIT
+				? `Loop: ${loop.n}/${LOOP_LIMIT} — verify refuses an identical run until the Plan changes`
+				: `Loop: ${loop.n}/${LOOP_LIMIT} — same failing set, same files`,
+		);
+	} else {
+		console.log(`Loop: 0/${LOOP_LIMIT}`);
+	}
 	console.log(
 		fm.lane === "PLANNED"
 			? "Gate: PLANNED needs approval before the first edit, and again before close.\n"
@@ -2884,6 +3000,97 @@ function cmdSelftest() {
 			"an older install without the seed is not failed",
 		);
 		write(backlogP, read(abs(SCRIPT_ROOT, ".agents/templates/backlog.seed.md")));
+
+		console.log("\n22. the same red run over the same files stops at three");
+		// Scenario 21 restored the backlog; commit the accumulated state so this task's diff
+		// is only its own.
+		git(tmp, ["add", "-A"]);
+		git(tmp, [
+			"-c",
+			"user.email=t@t",
+			"-c",
+			"user.name=t",
+			"commit",
+			"-qm",
+			"settle before loop",
+		]);
+		quiet(() =>
+			cmdTaskNew({
+				root: tmp,
+				slug: "loop-guard",
+				lane: "quick",
+				noBaseline: true,
+			}),
+		);
+		const loopTask = fillTask(["src/loop.txt"], "prove the loop guard");
+		write(abs(tmp, "src/loop.txt"), "one\n");
+		const greenProject = read(abs(tmp, PROJECT));
+		write(
+			abs(tmp, PROJECT),
+			greenProject.replace(
+				/\| test \| .* \|/,
+				'| test | node -e "process.exit(1)" |',
+			),
+		);
+		const loopOf = () => {
+			const m = read(loopTask).match(/<!--\s*LOOP\s+(\{[^\n]*\})\s*-->/);
+			return m ? JSON.parse(m[1]) : null;
+		};
+		const counts = [];
+		for (let i = 0; i < 3; i++) {
+			assert(
+				quiet(() => cmdVerify({ root: tmp })) === 1,
+				`red run ${i + 1} exits 1`,
+			);
+			counts.push(loopOf() && loopOf().n);
+		}
+		assert(
+			counts.join(",") === "1,2,3",
+			"the attempt count climbs while nothing changes",
+		);
+		assert(
+			captured(() => cmdTaskShow({ root: tmp })).includes("Loop: 3/3"),
+			"task show reports the loop state",
+		);
+		const spoken = (fn) => {
+			const out = [];
+			const log = console.log;
+			const err = console.error;
+			console.log = (s) => out.push(String(s));
+			console.error = (s) => out.push(String(s));
+			try {
+				return { code: fn(), out: out.join("\n") };
+			} finally {
+				console.log = log;
+				console.error = err;
+			}
+		};
+		const refused = spoken(() => cmdTaskClose({ root: tmp }));
+		assert(
+			refused.code === 1 && refused.out.includes("Loop guard"),
+			"close refuses the fourth identical attempt",
+		);
+		assert(loopOf().n === 3, "the refusal records no new attempt");
+		write(
+			loopTask,
+			read(loopTask).replace(
+				"\n## Baseline",
+				"\n**Next attempt** — isolate the fixture before rerunning.\n\n## Baseline",
+			),
+		);
+		assert(
+			quiet(() => cmdVerify({ root: tmp })) === 1 && loopOf().n === 1,
+			"a new plan earns one fresh attempt",
+		);
+		write(abs(tmp, PROJECT), greenProject);
+		assert(
+			quiet(() => cmdVerify({ root: tmp })) === 0 && loopOf().n === 0,
+			"a green run clears the count",
+		);
+		assert(
+			quiet(() => cmdTaskClose({ root: tmp })) === 0,
+			"close proceeds once the suite is green",
+		);
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });
 		if (junkDir) fs.rmSync(junkDir, { recursive: true, force: true });

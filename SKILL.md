@@ -84,7 +84,9 @@ a file you did not declare? Say why, amend `touches` first. Never widen silently
 
 `verify` mid-flight; `task close` runs it again. Real exit codes go in the evidence table.
 Compare against the baseline: a red that was already red is not progress, and a green you did
-not cause is not a fix.
+not cause is not a fix. Three identical red runs over the same files make `verify` refuse —
+and `task close` with it — until the Plan says what the next attempt changes; `task show`
+prints `Loop: n/3`.
 
 ## 7. G2 — result approval (PLANNED only)
 
