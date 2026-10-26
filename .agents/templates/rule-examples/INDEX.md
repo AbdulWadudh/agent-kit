@@ -16,5 +16,5 @@ example you are copying, not the folder.
 | `database.md` | schema and migrations | the repo owns a database |
 | `docs-lookup.md` | version and API lookups | documentation outranks memory |
 
-After copying one: edit it to this repo's facts, then add a row to `.agents/rules/INDEX.md`
-with the condition for reading it. A file with no row is a rule nobody loads.
+After copying one, edit it to this repo's facts. The steps that make it a loaded rule — the
+row, the trigger, the check — are in `../INDEX.md`.

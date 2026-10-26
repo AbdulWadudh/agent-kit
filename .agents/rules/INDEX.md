@@ -14,12 +14,14 @@ when" column matches the files you will touch. Load only what matches.
 
 The domain files here are the two every repo needs. Add one more per domain you actually
 have — `typescript`, `database`, `payments`, `auth`, `mobile` — by copying the matching
-example from `.agents/templates/rule-examples/` and editing it. A domain with no file is a
+example from `.agents/templates/rule-examples/` and editing it. The steps for adding,
+changing or removing a rule are in `.agents/templates/INDEX.md`. A domain with no file is a
 domain with no rule.
 
 Two invariants `doctor` enforces:
 
-- **A row without a file fails.** Every row above must resolve, so this table cannot rot silently.
+- **The table and the folder agree.** A row without a file fails, and a file without a row
+  fails, so neither side can rot silently.
 - **A rule reading a diff cannot check fails.** "Handle X sensibly" is advice; "no `any` in a
   diff" is a rule. The check is a phrase list, so it is a floor, not a proof.
 

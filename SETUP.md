@@ -156,6 +156,7 @@ are not a reason to keep editing.
 | active tasks indexed | a task file in `active/` is not in the task index |
 | write-set collisions | two active tasks declare overlapping `touches` |
 | rules are checkable | a rule file contains advice ("be careful", "try to", "consider") instead of a rule |
+| rules indexed | a file in `.agents/rules/` has no row in its `INDEX.md`, or a row names a missing file |
 | archived tasks changelogged | a task is in `archive/` but has no file under `.agents/logs/MM-YYYY/` |
 | recent lists | a task or logs index is missing its `RECENT` block, or the last five entries are stale |
 | commit guard | WARN, not FAIL: the optional `pre-commit` and `commit-msg` hooks are not wired in this clone |

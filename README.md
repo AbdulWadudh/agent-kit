@@ -204,7 +204,7 @@ schema change. Choosing per task is what keeps the gates honest.
 |---|---|
 | `verify` | do the declared build, typecheck, lint and test commands exit 0 — with the codes recorded? |
 | `task close` | did the diff stay inside the declared write set, is the evidence green, and is the outcome written down? |
-| `doctor` | do the docs name real paths, is every kit directory indexed, do the commands exist, are the task and logs lists current, is rtk installed, is the encoding clean, is every rule checkable? |
+| `doctor` | do the docs name real paths, is every kit directory indexed, do the commands exist, are the task and logs lists current, is rtk installed, is the encoding clean, is every rule checkable and indexed? |
 | `check` | has the template moved since install, and did you edit machinery you should not have? |
 
 Every one of them can fail. `selftest` asserts that by building a throwaway repo and
@@ -234,6 +234,17 @@ and can reach live sites and accounts. The sources and the exact question to ask
 No plugin: a plugin is code that runs on every turn, and this needs instructions at the
 moment the work starts. `examples/minimal/` shows a filled repo, for when you want to see the
 target instead of reading about it.
+
+## Adding a rule, or extending the kit
+
+State the rule in chat; the agent writes it in the file that owns the domain, adds its trigger
+to `.agents/rules/INDEX.md`, and checks it. The steps — including how a rule is moved or
+deleted — are in `.agents/templates/INDEX.md`. A rule that stays in the conversation is gone
+at the next session.
+
+Extending the kit itself — a new command, seed, check or rule example — follows the
+"What goes where" table in `AGENTS.md`. The gates are the contract: `selftest` has to show a
+new check failing before it can be trusted.
 
 ## Staying current
 

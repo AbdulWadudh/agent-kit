@@ -52,6 +52,22 @@ node scripts/agent-kit.mjs doctor
 `selftest` builds a throwaway repo and asserts that every gate can fail. A change that
 makes a gate unfailable is the defect the suite exists to catch.
 
+### What goes where
+
+A rule — new, edited, moved or deleted — follows `.agents/templates/INDEX.md`. Everything
+else lands here:
+
+| The change is | Home | Also update |
+|---|---|---|
+| a rule for every task, in every repo | `.agents/rules/_behavior.md` | its row in `.agents/rules/INDEX.md` |
+| a new hallucination guard | `.agents/rules/anti-patterns.md` | its row in `.agents/rules/INDEX.md` |
+| a rule example for a domain | `.agents/templates/rule-examples/<domain>.md` | `rule-examples/INDEX.md` |
+| a file every installed repo starts with | `.agents/templates/<name>.seed.md` | manifest `seeds`, `.agents/templates/INDEX.md`, `SETUP.md` |
+| a command or a check | `scripts/agent-kit.mjs` | header and usage, the kit table in `AGENTS.seed.md`, `SETUP.md` if setup runs it, a `selftest` scenario, `README.md` if the owner runs it |
+| a directory the kit owns | the directory | `.agents/sync-manifest.json` (`machinery` or `owned`), its `INDEX.md` |
+
+A new gate is added, never softened: `selftest` must show it failing on the unfixed tree.
+
 ## Boundary protocol
 
 **Always** — keep changes inside the files the task declares; run shell output through `rtk`

@@ -115,6 +115,9 @@ follow-up suggestions unless asked.
   task unless that is the task.
 - **The user changes the ask mid-flight.** Rewrite the scope section, keep the old text, and
   take a fresh G1 if it is PLANNED.
+- **The owner states a rule.** It is a task: find the home, write it so a diff can be judged,
+  add its row in `.agents/rules/INDEX.md`, and check it. The steps are in
+  `.agents/templates/INDEX.md`; a rule that stays in chat does not exist.
 - **You cannot run the suite.** Say so and stop. Never close on an empty evidence table.
 - **The change outgrows QUICK.** Stop, reopen it as PLANNED, take the gate.
 

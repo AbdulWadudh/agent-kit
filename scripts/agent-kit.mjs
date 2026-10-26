@@ -1451,6 +1451,37 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 		vague.slice(0, 5).join(", "),
 	);
 
+	// 6c. the router and the folder agree: a row with no file, or a file with no row, fails.
+	const rulesDir = abs(base, ".agents/rules");
+	const ruleFiles = new Set(
+		isDir(rulesDir)
+			? fs
+					.readdirSync(rulesDir)
+					.filter((f) => f.endsWith(".md") && f !== "INDEX.md")
+			: [],
+	);
+	const ruleRows = new Set(
+		(readIf(abs(rulesDir, "INDEX.md")) || "")
+			.split(/\r?\n/)
+			.filter((l) => l.startsWith("|"))
+			.map((l) => (l.split("|")[2] || "").match(/`([^`]+\.md)`/))
+			.filter(Boolean)
+			.map((m) => path.basename(m[1])),
+	);
+	const ruleBreaks = [
+		...[...ruleRows]
+			.filter((f) => !ruleFiles.has(f))
+			.map((f) => `${f} (no file)`),
+		...[...ruleFiles]
+			.filter((f) => !ruleRows.has(f))
+			.map((f) => `${f} (no row)`),
+	];
+	add(
+		ruleBreaks.length ? "FAIL" : "PASS",
+		"rules indexed",
+		ruleBreaks.slice(0, 5).join(", "),
+	);
+
 	// 7. completeness: an archived task with no change file is a change nobody can find.
 	const logged = new Set(
 		expand(base, LOG_DIR)
@@ -2719,6 +2750,35 @@ function cmdSelftest() {
 			"a subject with no type or task warns and lets the commit through",
 		);
 		fs.rmSync(msgDir, { recursive: true, force: true });
+
+		console.log("\n20. the rules router and the folder agree");
+		// Scenario 16 leaves a red doctor on purpose, so assert the row, not the exit code.
+		const rulesRow = () => {
+			const out = captured(() => cmdDoctor({ root: tmp, jsonOut: true }));
+			return JSON.parse(out).rows.find((r) => r.name === "rules indexed");
+		};
+		const extraRule = abs(tmp, ".agents/rules/extra.md");
+		write(extraRule, "# extra\n\n- a rule for a domain nobody indexed.\n");
+		const noRow = rulesRow();
+		assert(
+			noRow.status === "FAIL" && noRow.detail.includes("extra.md (no row)"),
+			"doctor fails a rule file with no row",
+		);
+		fs.rmSync(extraRule);
+		const antiRule = abs(tmp, ".agents/rules/anti-patterns.md");
+		const antiText = read(antiRule);
+		fs.rmSync(antiRule);
+		const noFile = rulesRow();
+		assert(
+			noFile.status === "FAIL" &&
+				noFile.detail.includes("anti-patterns.md (no file)"),
+			"doctor fails a row with no file",
+		);
+		write(antiRule, antiText);
+		assert(
+			rulesRow().status === "PASS",
+			"doctor accepts the router and the folder once they agree",
+		);
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });
 		if (junkDir) fs.rmSync(junkDir, { recursive: true, force: true });
