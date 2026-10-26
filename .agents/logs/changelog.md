@@ -8,3 +8,4 @@ here. Newest last, so the last three lines are the recent-state signal `AGENTS.m
 ## Index
 
 - **2026-10-26** — `TASK-100` — bootstrapped the agent-kit template (setup, doctor, sync, task gates) — no plan, template init
+- **2026-10-26** — `TEMPLATE` — added task show, verify --baseline, pull --dry-run, doctor --fix/--json, rule lint, close --amend, the project skill and a filled example — no plan, template history

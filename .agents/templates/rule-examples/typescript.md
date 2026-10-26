@@ -1,7 +1,8 @@
-# TypeScript and Code Style
+# Rule file example — TypeScript and code style
 
-Replace or delete this file if the repo is not TypeScript. The shape is the point: a short
-list of rules that can be checked by reading a diff.
+Not installed. Copy this to `.agents/rules/typescript.md` when the repo is TypeScript, then
+replace the rules with the ones that are true here. A rule you cannot check by reading a
+diff does not belong in the file.
 
 1. **No `any`.** Use a real type, a generic, or `unknown` plus a narrowing step. A cast that
    silences the compiler is a rule violation, not a fix.

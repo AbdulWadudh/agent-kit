@@ -73,7 +73,9 @@ INIT_PROMPT.md                the text a human pastes into a new repo
   rules/                      INDEX (router) + _behavior + one file per domain
   tasks/                      INDEX, active/, archive/, .counter
   logs/changelog.md           thin index, one line per closed task
-  templates/                  the seeds, plus the task template
+  templates/                  the seeds, plus rule-file examples and the task template
 scripts/agent-kit.mjs         setup | check | pull | doctor | verify | task | selftest
+.opencode/skills/agent-kit/   project skill: the trigger and the do/do-not boundary
+examples/minimal/             what a filled repo looks like (not installed)
 docs/                         the knowledge seed a target repo authors from
 ```

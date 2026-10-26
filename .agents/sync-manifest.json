@@ -4,10 +4,12 @@
   "machinery": [
     "scripts/agent-kit.mjs",
     ".github/workflows/agent-kit.yml",
+    ".opencode/skills/agent-kit",
     ".agents/sync-manifest.json",
     ".agents/templates",
     ".agents/rules/INDEX.md",
-    ".agents/rules/_behavior.md"
+    ".agents/rules/_behavior.md",
+    ".agents/rules/anti-patterns.md"
   ],
 
   "seeds": {
@@ -17,9 +19,6 @@
     "docs/ARCH_MAP.md": "docs/ARCH_MAP.md",
     "docs/API_SKELETON.md": "docs/API_SKELETON.md",
     "docs/ENTRY_POINTS.md": "docs/ENTRY_POINTS.md",
-    ".agents/rules/typescript.md": ".agents/rules/typescript.md",
-    ".agents/rules/database.md": ".agents/rules/database.md",
-    ".agents/rules/anti-patterns.md": ".agents/rules/anti-patterns.md",
     ".agents/rules/learnings.md": ".agents/templates/learnings.seed.md",
     ".agents/tasks/INDEX.md": ".agents/tasks/INDEX.md",
     ".agents/logs/changelog.md": ".agents/templates/changelog.seed.md"

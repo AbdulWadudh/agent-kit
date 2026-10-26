@@ -8,12 +8,13 @@
  *
  * Commands
  *   setup [target] [--source <path|url>]   scaffold a repo; never overwrites an authored file
- *   check                                  drift table vs the template; never writes
- *   pull [--force] [--seeds]               apply the sync, then doctor
- *   doctor [--strict]                      truth checks over the repo's own docs
- *   verify                                 run the declared commands, record the evidence
+ *   check [--json]                         drift table vs the template; never writes
+ *   pull [--dry-run|--force|--seeds]       apply the sync, then doctor
+ *   doctor [--strict] [--fix] [--json]     truth checks over the repo's own docs
+ *   verify [--baseline]                    run the declared commands, record the evidence
  *   task new <slug> [--lane quick|planned] open a task
- *   task close [--id TASK-N]               scope-check, record, archive, index
+ *   task show [--id TASK-N]                the active task's scope, plan and evidence
+ *   task close [--amend "<why>"]           scope-check, record, archive, index
  *   selftest                               prove every gate can fail, in a temp repo
  *
  * Design rule: one canonical home per fact. Commands live in .agents/project.md
@@ -278,26 +279,30 @@ function detectStack(root) {
       .filter(Boolean)
       .map((e) => posix(e));
     out.entry.push(...entry);
+    if (pkg.workspaces) {
+      out.notes.push('Monorepo: the command table describes the root. Per-package work may need `--filter`/`-w`; confirm before trusting it.');
+    }
+    if (!test) out.notes.push('No test script found. If tests exist, add the real command to the table by hand.');
   }
 
   const py = ['pyproject.toml', 'requirements.txt', 'setup.py'].filter((f) => exists(abs(root, f)));
   if (py.length) {
     out.languages.push('Python');
     out.manifests.push(...py);
-    out.commands.install = out.commands.install || 'python -m pip install -r requirements.txt';
+    out.commands.install ||= 'python -m pip install -r requirements.txt';
     const hasTests = exists(abs(root, 'tests')) || exists(abs(root, 'test'));
-    if (hasTests) out.commands.test = 'python -m pytest -q';
+    if (hasTests) out.commands.test ||= 'python -m pytest -q';
     const pyText = readIf(abs(root, 'pyproject.toml')) || '';
-    if (/ruff/.test(pyText)) out.commands.lint = 'python -m ruff check .';
-    if (/mypy/.test(pyText)) out.commands.typecheck = 'python -m mypy .';
+    if (/ruff/.test(pyText)) out.commands.lint ||= 'python -m ruff check .';
+    if (/mypy/.test(pyText)) out.commands.typecheck ||= 'python -m mypy .';
   }
 
   if (exists(abs(root, 'go.mod'))) {
     out.languages.push('Go');
     out.manifests.push('go.mod');
     out.commands.install ||= 'go mod download';
-    out.commands.build = 'go build ./...';
-    out.commands.test = 'go test ./...';
+    out.commands.build ||= 'go build ./...';
+    out.commands.test ||= 'go test ./...';
     out.commands.lint ||= 'go vet ./...';
   }
 
@@ -351,6 +356,10 @@ function projectMd(stack, today) {
   lines.push(...(stack.entry.length ? stack.entry.map((e) => `- ${e}`) : ['<!-- FILL:entry-points -->']));
   lines.push('', '## Never edit (generated)', '');
   lines.push(stack.generated.length ? stack.generated.map((g) => `- ${g}/`).join('\n') : '- none detected');
+  if (stack.notes.length) {
+    lines.push('', '## Detection notes', '', 'Guesses the detector is not sure about. Confirm or delete each one.');
+    lines.push(...stack.notes.map((n) => `- ${n}`));
+  }
   lines.push('', '## Domain notes', '');
   lines.push('<!-- FILL:domain-notes — 3-6 bullets an agent cannot infer from the code:');
   lines.push('     ownership boundaries, external services, invariants that must not break. -->');
@@ -500,7 +509,7 @@ function computeSync(targetRoot, sourceRoot) {
   return { manifest, state, rows };
 }
 
-function cmdCheck({ target, sourceRoot }) {
+function cmdCheck({ target, sourceRoot, jsonOut }) {
   const root = path.resolve(target || process.cwd());
   if (!sourceRoot) {
     console.log('Not set up: no .agents/template.json source recorded. Run "agent-kit setup . --source <path|url>".');
@@ -511,9 +520,13 @@ function cmdCheck({ target, sourceRoot }) {
     return 0;
   }
   const { rows } = computeSync(root, sourceRoot);
+  const bad = rows.filter((r) => !['CURRENT'].includes(r.status));
+  if (jsonOut) {
+    console.log(JSON.stringify({ ok: bad.length === 0, root, rows: rows.map(({ status, rel, detail }) => ({ status, rel, detail: detail || '' })) }, null, 2));
+    return bad.length === 0 ? 0 : 1;
+  }
   console.log(`\nDrift check: ${root}`);
   table(rows.map((r) => [r.status, r.rel, r.detail || '']));
-  const bad = rows.filter((r) => !['CURRENT'].includes(r.status));
   console.log(
     bad.length === 0
       ? '\nIN SYNC\n'
@@ -522,11 +535,33 @@ function cmdCheck({ target, sourceRoot }) {
   return bad.length === 0 ? 0 : 1;
 }
 
-function cmdPull({ target, sourceRoot, force, seeds }) {
+function cmdPull({ target, sourceRoot, force, seeds, dryRun }) {
   const root = path.resolve(target || process.cwd());
   if (!sourceRoot) die('not set up: no provenance in .agents/template.json. Run setup --source <path|url> first.');
   const { manifest, state, rows } = computeSync(root, sourceRoot);
   if (rows.some((r) => r.status === 'AHEAD')) die('installed version is ahead of the template; refusing to rewind (reconcile by hand)');
+
+  if (dryRun) {
+    const planned = rows.filter((r) => ['UPGRADE', 'MISSING', 'DRIFT', 'PRUNE', 'SEED-UPDATED'].includes(r.status));
+    console.log(`\nDry run: ${planned.length} row(s) would change. Nothing was written.\n`);
+    for (const r of planned) {
+      const skip = r.status === 'DRIFT' && !force ? ' (skipped: locally modified, needs --force)' : '';
+      const skipSeed = r.status === 'SEED-UPDATED' && !seeds ? ' (skipped: needs --seeds)' : '';
+      console.log(`${r.status.padEnd(12)} ${r.rel}${skip}${skipSeed}`);
+      if (r.status === 'PRUNE') continue;
+      const from = abs(sourceRoot, r.seed || r.rel);
+      const to = abs(root, r.rel);
+      if (!exists(to)) {
+        console.log(`             would create, ${readIf(from) === null ? 'no source' : `${read(from).split(/\r?\n/).length} lines`}`);
+        continue;
+      }
+      const d = run(`git --no-pager diff --no-index --unified=1 -- "${to}" "${from}"`, root);
+      const lines = d.out.trim().split(/\r?\n/).filter(Boolean);
+      console.log(lines.length ? lines.slice(0, 24).map((l) => `             ${l}`).join('\n') : '             would change (binary or no textual diff)');
+    }
+    console.log('');
+    return 0;
+  }
 
   const applied = [];
   for (const r of rows) {
@@ -587,14 +622,41 @@ function cmdPull({ target, sourceRoot, force, seeds }) {
 
 // ---------------------------------------------------------------- doctor
 
-function cmdDoctor({ root, strict }) {
+function cmdDoctor({ root, strict, fix, jsonOut }) {
   const base = path.resolve(root || process.cwd());
   const state = json(abs(base, STATE), {});
   const isTemplate = state.role === 'template';
   const rows = [];
   const add = (status, name, detail = '') => rows.push([status, name, detail]);
 
-  const required = ['AGENTS.md', 'CLAUDE.md', MANIFEST, TASK_INDEX, CHANGELOG, 'docs/INDEX.md', 'scripts/agent-kit.mjs'];
+  // --fix: mechanical repairs only. Anything needing judgement stays a failure.
+  const fixed = [];
+  if (fix) {
+    for (const dir of ['.agents', 'docs', 'scripts', '.github', '.opencode']) {
+      for (const rel of expand(base, dir)) {
+        if (!TEXT_EXT.has(path.extname(rel))) continue;
+        const p = abs(base, rel);
+        const buf = fs.readFileSync(p);
+        const s = buf.toString('utf8').replace(/^\uFEFF/, '');
+        const t = s.replace(/\r\n/g, '\n').replace(/[ \t]+$/gm, '').replace(/\s*$/, '\n');
+        if (t !== s) {
+          fs.writeFileSync(p, t, 'utf8');
+          fixed.push(rel);
+        }
+      }
+    }
+  }
+
+  const required = [
+    'AGENTS.md',
+    'CLAUDE.md',
+    MANIFEST,
+    TASK_INDEX,
+    CHANGELOG,
+    'docs/INDEX.md',
+    'scripts/agent-kit.mjs',
+    '.opencode/skills/agent-kit/SKILL.md',
+  ];
   if (!isTemplate) required.push(PROJECT, STATE);
   const missing = required.filter((r) => !exists(abs(base, r)));
   add(missing.length ? 'FAIL' : 'PASS', 'required files', missing.join(', '));
@@ -612,7 +674,7 @@ function cmdDoctor({ root, strict }) {
 
   // 1. encoding
   const badEncoding = [];
-  for (const dir of ['.agents', 'docs', 'scripts', '.github']) {
+  for (const dir of ['.agents', 'docs', 'scripts', '.github', '.opencode']) {
     for (const rel of expand(base, dir)) {
       if (!TEXT_EXT.has(path.extname(rel))) continue;
       const p = abs(base, rel);
@@ -628,10 +690,11 @@ function cmdDoctor({ root, strict }) {
     }
   }
   add(badEncoding.length ? 'FAIL' : 'PASS', 'encoding', badEncoding.slice(0, 5).join(', '));
+  if (fix) add('PASS', 'auto-fixed', fixed.length ? `${fixed.length} file(s): BOM/CRLF/trailing whitespace` : 'nothing mechanical to repair');
 
   // 2. placeholders (seeds legitimately carry them)
   const unfilled = [];
-  const scanned = ['AGENTS.md', 'docs', '.agents'].flatMap((e) => expand(base, e)).filter((rel) => {
+  const scanned = ['AGENTS.md', 'CLAUDE.md', 'docs', '.agents', '.opencode/skills'].flatMap((e) => expand(base, e)).filter((rel) => {
     if (!rel.endsWith('.md')) return false;
     if (rel.startsWith('.agents/templates/')) return false;
     if (rel.startsWith('.agents/tasks/archive/')) return false;
@@ -722,6 +785,19 @@ function cmdDoctor({ root, strict }) {
     add(n > 30 ? 'WARN' : 'PASS', 'learnings size', `${n} entries (cap 30)`);
   }
 
+  // 6b. a rule that cannot be checked by reading a diff is advice, not a rule.
+  const vague = [];
+  for (const rel of expand(base, '.agents/rules').filter((r) => r.endsWith('.md'))) {
+    if (rel.endsWith('learnings.md')) continue;
+    fenceFree(read(abs(base, rel)))
+      .split(/\r?\n/)
+      .forEach((line, i) => {
+        const m = line.match(/\b(be careful|try to|make sure|consider (?:using|adding)|should probably|as needed|use your judgement|where possible)\b/i);
+        if (m) vague.push(`${rel}:${i + 1} "${m[0]}"`);
+      });
+  }
+  add(vague.length ? 'FAIL' : 'PASS', 'rules are checkable', vague.slice(0, 5).join(', '));
+
   // 7. changelog shape
   const log = readIf(abs(base, CHANGELOG));
   if (log !== null) {
@@ -732,17 +808,33 @@ function cmdDoctor({ root, strict }) {
     add(bad.length ? 'WARN' : 'PASS', 'changelog lines', bad.slice(0, 3).join(' | '));
   }
 
-  console.log(`\nDoctor${strict ? ' (strict)' : ''}: ${base}`);
-  table(rows);
   const fails = rows.filter((r) => r[0] === 'FAIL').length;
   const warns = rows.filter((r) => r[0] === 'WARN').length;
+  if (jsonOut) {
+    console.log(JSON.stringify({ ok: fails === 0, strict: !!strict, fails, warns, rows: rows.map(([status, name, detail]) => ({ status, name, detail: detail || '' })) }, null, 2));
+    return fails === 0 ? 0 : 1;
+  }
+  console.log(`\nDoctor${strict ? ' (strict)' : ''}: ${base}`);
+  table(rows);
   console.log(`\n${fails === 0 ? 'PASS' : 'FAIL'} — ${fails} failure(s), ${warns} warning(s)\n`);
   return fails === 0 ? 0 : 1;
 }
 
 // ---------------------------------------------------------------- verify
 
-function cmdVerify({ root }) {
+/** Rows of a `| Action | Command | ... | Exit |` block, newest block only. */
+function evidenceRows(text) {
+  const m = text.match(/<!-- EVIDENCE:START -->([\s\S]*?)<!-- EVIDENCE:END -->/);
+  if (!m) return [];
+  return m[1]
+    .split(/\r?\n/)
+    .filter((l) => /^\|/.test(l) && !/^\|\s*-+/.test(l) && !/Action/.test(l))
+    .map((l) => l.split('|').slice(1, -1).map((c) => c.trim()))
+    .filter((c) => c.length >= 5)
+    .map((c) => ({ action: c[0], exit: Number(c[4]) }));
+}
+
+function cmdVerify({ root, baseline }) {
   const base = path.resolve(root || process.cwd());
   const declared = sectionRows(readIf(abs(base, PROJECT)) || '');
   const runnable = declared.filter(([a]) => ['build', 'typecheck', 'lint', 'test'].includes(a));
@@ -750,6 +842,11 @@ function cmdVerify({ root }) {
     console.log('SKIPPED — no build/typecheck/lint/test command declared in .agents/project.md');
     return 0;
   }
+  const activeDir = abs(base, `${TASKS}/active`);
+  const active = exists(activeDir) ? fs.readdirSync(activeDir).filter((f) => f.endsWith('.md')) : [];
+  const target = active.length === 1 ? abs(activeDir, active[0]) : null;
+  const before = target ? evidenceRows(read(target)) : [];
+
   const evidence = [];
   let failed = 0;
   for (const [action, command] of runnable) {
@@ -762,13 +859,21 @@ function cmdVerify({ root }) {
     evidence.push(`| ${action} | \`${command}\` | exit 0 | exit ${r.code} | ${r.code} |`);
   }
 
-  const activeDir = abs(base, `${TASKS}/active`);
-  const active = exists(activeDir) ? fs.readdirSync(activeDir).filter((f) => f.endsWith('.md')) : [];
-  if (active.length === 1) {
-    const file = abs(activeDir, active[0]);
+  const now = evidence.map((l) => l.split('|').slice(1, -1).map((c) => c.trim())).map((c) => ({ action: c[0], exit: Number(c[4]) }));
+  if (before.length) {
+    const prior = new Map(before.map((r) => [r.action, r.exit]));
+    const regressed = now.filter((r) => r.exit !== 0 && prior.get(r.action) === 0).map((r) => r.action);
+    const fixed = now.filter((r) => r.exit === 0 && prior.get(r.action) !== 0 && prior.has(r.action)).map((r) => r.action);
+    if (regressed.length || fixed.length) {
+      console.log(`\nAgainst the previous run: ${regressed.length ? `regressed: ${regressed.join(', ')}` : 'nothing regressed'}${fixed.length ? `; fixed: ${fixed.join(', ')}` : ''}`);
+    }
+  }
+
+  if (target) {
+    const name = baseline ? 'BASELINE' : 'EVIDENCE';
     const body = ['| Action | Command | Expected | Observed | Exit |', '|---|---|---|---|---|', ...evidence].join('\n');
-    write(file, block(read(file), 'EVIDENCE', body));
-    console.log(`\nRecorded in ${TASKS}/active/${active[0]}`);
+    write(target, block(read(target), name, body));
+    console.log(`\nRecorded in ${TASKS}/active/${active[0]} (${name.toLowerCase()})`);
   } else if (active.length > 1) {
     console.log('\nNot recorded: more than one active task. Paste the rows into the right one.');
   }
@@ -826,7 +931,22 @@ function currentTask(root, id) {
   return hit[0];
 }
 
-function cmdTaskClose({ root, id }) {
+function cmdTaskShow({ root, id }) {
+  const base = path.resolve(root || process.cwd());
+  const file = currentTask(base, id);
+  const text = read(abs(base, `${TASKS}/active/${file}`));
+  const fm = frontMatter(text);
+  console.log(`\n${fm.id}  ${fm.lane || '?'}  ${fm.status || '?'}  ${fm.summary || '(no summary)'}`);
+  console.log(`  ${TASKS}/active/${file}`);
+  const plan = text.match(/## Scope[\s\S]*?(?=\n## Verification)/);
+  console.log(plan ? `\n${plan[0].trim()}\n` : '\n(no scope/plan section)\n');
+  const rows = evidenceRows(text);
+  console.log(rows.length ? `Verification: ${rows.map((r) => `${r.action}=${Number.isFinite(r.exit) ? r.exit : '?'}`).join(' ')}` : 'Verification: not run');
+  console.log(fm.lane === 'PLANNED' ? 'Gate: PLANNED needs approval before the first edit, and again before close.\n' : 'Gate: QUICK — verify, then close.\n');
+  return 0;
+}
+
+function cmdTaskClose({ root, id, amend }) {
   const base = path.resolve(root || process.cwd());
   const file = currentTask(base, id);
   const rel = `${TASKS}/active/${file}`;
@@ -859,13 +979,30 @@ function cmdTaskClose({ root, id }) {
   );
 
   const outOfScope = touches.length ? changed.filter((c) => !touches.some((t) => covers(t, c))) : [];
-  if (outOfScope.length) problems.push(`scope breach — not covered by touches: ${outOfScope.join(', ')}`);
+  if (outOfScope.length && !amend) {
+    problems.push(`scope breach — not covered by touches: ${outOfScope.join(', ')} (pass --amend "<reason>" to accept it)`);
+  }
+
+  // Evidence gate: the recorded runs are the only proof, so they must all be green.
+  const recorded = evidenceRows(text);
+  const red = recorded.filter((r) => Number.isFinite(r.exit) && r.exit !== 0);
+  if (red.length) problems.push(`verification recorded as failing: ${red.map((r) => r.action).join(', ')} — fix it, or close with the failure written down by hand`);
 
   if (problems.length) {
     console.error(`\nCannot close ${file}:`);
     for (const p of problems) console.error(`  - ${p}`);
     console.error('');
     return 1;
+  }
+
+  if (outOfScope.length) {
+    const amended = [...touches, ...outOfScope];
+    text = text.replace(/^touches:.*$/m, `touches: [${amended.map((t) => `"${t}"`).join(', ')}]`);
+    text = text.replace(
+      '<!-- FILES:START -->',
+      `**Scope amended at close** — ${amend}: ${outOfScope.map((c) => `\`${c}\``).join(', ')}\n\n<!-- FILES:START -->`
+    );
+    console.log(`\nScope amended: ${outOfScope.join(', ')}`);
   }
 
   text = block(text, 'FILES', changed.length ? changed.map((c) => `- \`${c}\``).join('\n') : '- none detected');
@@ -907,6 +1044,17 @@ function cmdSelftest() {
     if (!ok) failures.push(label);
     console.log(`  ${ok ? 'ok  ' : 'FAIL'}  ${label}`);
   };
+  const captured = (fn) => {
+    const buf = [];
+    const log = console.log;
+    console.log = (s) => buf.push(String(s));
+    try {
+      fn();
+    } finally {
+      console.log = log;
+    }
+    return buf.join('\n');
+  };
   const quiet = (fn) => {
     const log = console.log;
     const err = console.error;
@@ -919,6 +1067,19 @@ function cmdSelftest() {
       console.error = err;
     }
   };
+  /** Fill the one active task the way a session would: write set, summary, no markers. */
+  const fillTask = (touches, summary) => {
+    const dir = abs(tmp, `${TASKS}/active`);
+    const p = abs(dir, fs.readdirSync(dir).find((f) => f.endsWith('.md')));
+    write(
+      p,
+      read(p)
+        .replace(/touches: \[\]/, `touches: [${touches.map((t) => `"${t}"`).join(', ')}]`)
+        .replace(/summary: ""/, `summary: "${summary}"`)
+        .replace(/<!--\s*FILL:[\s\S]*?-->/g, 'filled by selftest')
+    );
+    return p;
+  };
 
   try {
     write(abs(tmp, 'package.json'), JSON.stringify({ name: 'fixture', scripts: { build: 'node -e ""', test: 'node -e ""' } }, null, 2));
@@ -929,6 +1090,8 @@ function cmdSelftest() {
     assert(exists(abs(tmp, PROJECT)), 'project.md generated');
     assert(read(abs(tmp, PROJECT)).includes('npm run build'), 'detected build command');
     assert(exists(abs(tmp, '.agents/template.json')), 'provenance recorded');
+    assert(exists(abs(tmp, '.opencode/skills/agent-kit/SKILL.md')), 'the project skill is installed');
+    assert(!exists(abs(tmp, '.agents/rules/typescript.md')), 'no rule file for a language the repo may not have');
 
     console.log('\n2. doctor fails before the fill work');
     assert(quiet(() => cmdDoctor({ root: tmp, strict: true })) === 1, 'doctor --strict exits 1 on unfilled markers');
@@ -957,14 +1120,7 @@ function cmdSelftest() {
       git(tmp, ['-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-m', 'init']);
     }
     assert(quiet(() => cmdTaskNew({ root: tmp, slug: 'scoped-change', lane: 'quick' })) === 0, 'task new exits 0');
-    const activeDir = abs(tmp, `${TASKS}/active`);
-    const taskFile = fs.readdirSync(activeDir).find((f) => f.endsWith('.md'));
-    let task = read(abs(activeDir, taskFile));
-    task = task
-      .replace(/touches: \[\]/, 'touches: ["src/index.ts"]')
-      .replace(/summary: ""/, 'summary: "fixture change"')
-      .replace(/<!--\s*FILL:[\s\S]*?-->/g, 'filled by selftest');
-    write(abs(activeDir, taskFile), task);
+    fillTask(['src/index.ts'], 'fixture change');
     write(abs(tmp, 'src/index.ts'), 'export const x = 2;\n');
     write(abs(tmp, 'src/other.ts'), 'export const y = 1;\n');
     assert(quiet(() => cmdTaskClose({ root: tmp })) === 1, 'task close exits 1 on an out-of-scope file');
@@ -986,6 +1142,43 @@ function cmdSelftest() {
     assert(quiet(() => cmdSetup({ target: junkDir, sourceRoot: junkDir, sourceSpec: junkDir })) === 0, 'setup exits 0 on a self-copy');
     const selfState = JSON.parse(read(abs(junkDir, '.agents/template.json')));
     assert(selfState.role === 'target' && selfState.source === '', 'self-copy becomes a target with no upstream');
+
+    console.log('\n9. vague advice is not a rule');
+    const beh = abs(tmp, '.agents/rules/_behavior.md');
+    const behText = read(beh);
+    write(beh, `${behText}\n- Be careful with the config.\n`);
+    assert(quiet(() => cmdDoctor({ root: tmp })) === 1, 'doctor exits 1 on advice instead of a rule');
+    write(beh, behText);
+    assert(quiet(() => cmdDoctor({ root: tmp })) === 0, 'doctor exits 0 once the advice is gone');
+
+    console.log('\n10. doctor --fix repairs encoding only');
+    const docP = abs(tmp, 'docs/ARCH_MAP.md');
+    write(docP, `\uFEFF${read(docP).replace(/\n/g, '\r\n')}`);
+    assert(quiet(() => cmdDoctor({ root: tmp })) === 1, 'doctor exits 1 on a BOM');
+    assert(quiet(() => cmdDoctor({ root: tmp, fix: true })) === 0, 'doctor --fix clears the mechanical failure');
+    assert(!read(docP).startsWith('\uFEFF') && !read(docP).includes('\r'), 'BOM and CRLF are gone from the file');
+
+    console.log('\n11. a red run cannot be closed as done');
+    quiet(() => cmdTaskNew({ root: tmp, slug: 'red-then-green', lane: 'quick' }));
+    const taskP = fillTask(['.agents/sync-manifest.json'], 'prove the evidence gate');
+    write(abs(tmp, PROJECT), read(abs(tmp, PROJECT)).replace(/\| test \| .* \|/, '| test | node -e "process.exit(1)" |'));
+    assert(quiet(() => cmdVerify({ root: tmp, baseline: true })) === 1, 'the baseline run records the red state');
+    assert(read(taskP).includes('<!-- BASELINE:START -->'), 'baseline block written into the task');
+    assert(quiet(() => cmdTaskClose({ root: tmp })) === 1, 'close refuses while the evidence table is red');
+    write(abs(tmp, PROJECT), read(abs(tmp, PROJECT)).replace(/process\.exit\(1\)/, 'process.exit(0)'));
+    assert(quiet(() => cmdVerify({ root: tmp })) === 0, 'verify exits 0 after the fix');
+    assert(quiet(() => cmdTaskShow({ root: tmp })) === 0, 'task show exits 0');
+    assert(quiet(() => cmdTaskClose({ root: tmp })) === 1, 'close still refuses the out-of-scope file');
+    assert(quiet(() => cmdTaskClose({ root: tmp, amend: 'restored the declared test command' })) === 0, 'close --amend accepts it with a reason');
+    const amendedFile = walk(abs(tmp, `${TASKS}/archive`)).map((f) => read(abs(tmp, `${TASKS}/archive/${f}`))).pop() || '';
+    assert(amendedFile.includes('Scope amended at close'), 'the amendment is written into the plan');
+
+    console.log('\n12. check --json and pull --dry-run are read-only');
+    fs.appendFileSync(abs(tmp, 'scripts/agent-kit.mjs'), '\n// local edit 2\n');
+    const jsonTxt = captured(() => cmdCheck({ target: tmp, sourceRoot: SCRIPT_ROOT, jsonOut: true }));
+    assert(JSON.parse(jsonTxt).ok === false, 'check --json reports drift in a parseable shape');
+    assert(quiet(() => cmdPull({ target: tmp, sourceRoot: SCRIPT_ROOT, dryRun: true })) === 0, 'pull --dry-run exits 0');
+    assert(read(abs(tmp, 'scripts/agent-kit.mjs')).includes('local edit 2'), 'the dry run wrote nothing');
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
     if (junkDir) fs.rmSync(junkDir, { recursive: true, force: true });
@@ -1016,22 +1209,29 @@ function main(argv) {
     case 'check': {
       const target = path.resolve(process.cwd());
       const src = sourceFor(target, value('source'));
-      return cmdCheck({ target, sourceRoot: src ? src.root : null });
+      return cmdCheck({ target, sourceRoot: src ? src.root : null, jsonOut: flag('json') });
     }
     case 'pull': {
       const target = path.resolve(process.cwd());
       const src = sourceFor(target, value('source'));
-      return cmdPull({ target, sourceRoot: src ? src.root : null, force: flag('force'), seeds: flag('seeds') });
+      return cmdPull({
+        target,
+        sourceRoot: src ? src.root : null,
+        force: flag('force'),
+        seeds: flag('seeds'),
+        dryRun: flag('dry-run'),
+      });
     }
     case 'doctor':
-      return cmdDoctor({ root: process.cwd(), strict: flag('strict') });
+      return cmdDoctor({ root: process.cwd(), strict: flag('strict'), fix: flag('fix'), jsonOut: flag('json') });
     case 'verify':
-      return cmdVerify({ root: process.cwd() });
+      return cmdVerify({ root: process.cwd(), baseline: flag('baseline') });
     case 'task': {
       const sub = args[1];
       if (sub === 'new') return cmdTaskNew({ root: process.cwd(), slug: args[2], lane: value('lane'), force: flag('force') });
-      if (sub === 'close') return cmdTaskClose({ root: process.cwd(), id: value('id') });
-      return die('usage: task new <slug> | task close [--id TASK-N]');
+      if (sub === 'show') return cmdTaskShow({ root: process.cwd(), id: value('id') });
+      if (sub === 'close') return cmdTaskClose({ root: process.cwd(), id: value('id'), amend: value('amend') });
+      return die('usage: task new <slug> | task show | task close [--id TASK-N] [--amend "<why>"]');
     }
     case 'selftest':
       return cmdSelftest();
@@ -1040,8 +1240,7 @@ function main(argv) {
       console.log(read(path.join(SCRIPT_ROOT, 'scripts/agent-kit.mjs')).split('\n').slice(1, 24).join('\n'));
       return 0;
     default:
-      return die(`unknown command: ${cmd} (setup|check|pull|doctor|verify|task|selftest)`);
-  }
+      return die(`unknown command: ${cmd} (setup|check|pull|doctor|verify|task|selftest)`);  }
 }
 
 process.exitCode = main(process.argv);

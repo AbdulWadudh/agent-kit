@@ -1,6 +1,8 @@
-# Data and Migrations
+# Rule file example — data and migrations
 
-Delete this file if the repo has no database.
+Not installed. Copy this to `.agents/rules/database.md` when the repo owns a database.
+Delete a line that is not true here; a rule that is merely aspirational teaches the agent
+something false.
 
 1. **Migrations are append-only.** Never edit a migration that has run anywhere. Write a new one.
 2. **Queries go through the data layer.** Controllers and handlers do not contain SQL or ORM

@@ -45,9 +45,11 @@ This is the only work that needs judgement. Four items, in this order:
 | Item | What "filled" means |
 |---|---|
 | `AGENTS.md` | every `<!-- FILL:... -->` replaced; every `<UPPERCASE PLACEHOLDER>` replaced; rules 1-4 are constraints that are true **only** in this repo |
-| `.agents/project.md` | the detected commands are correct; domain notes say what the code cannot |
+| `.agents/project.md` | the detected commands are correct; the detection notes are confirmed or deleted; domain notes say what the code cannot |
 | `docs/ARCH_MAP.md`, `docs/ENTRY_POINTS.md`, `docs/API_SKELETON.md` | one real row or signature per entry; no invented layer |
-| `.agents/rules/typescript.md`, `database.md`, `anti-patterns.md` | delete what does not apply; keep the rest short |
+| `.agents/rules/` | one file per domain this repo actually has, copied from `.agents/templates/rule-examples/` when one matches. No file, no rule — do not install a rule about a language the repo does not use |
+
+`examples/minimal/` in the template shows all four after the fill, for a fictional repo.
 
 Convention: **uppercase** placeholders are obligations. Lowercase `<like-this>` inside prose
 is an illustration and is ignored by the checker.
@@ -66,24 +68,31 @@ are not a reason to keep editing.
 
 | Check | Fails when |
 |---|---|
-| required files | a kit file is missing |
+| required files | a kit file is missing (including `.opencode/skills/agent-kit/SKILL.md`) |
 | manifest integrity | an `owned` path is inside a `machinery` directory or is also a seed |
-| encoding | a file is not UTF-8, has a BOM, or shows mojibake |
+| encoding | a file is not UTF-8, has a BOM, or shows mojibake (`--fix` repairs the mechanical part) |
 | unfilled markers | a `FILL` marker or uppercase placeholder survived (`--strict` only) |
-| doc paths resolve | a path written in `docs/` or `.agents/` does not exist |
+| doc paths resolve | a path written in `docs/`, `.agents/` or the skill does not exist |
 | markdown links resolve | an index link points at a missing file |
 | declared commands | `project.md` names a package script that `package.json` does not have |
 | active tasks indexed | a task file in `active/` is not in the task index |
 | write-set collisions | two active tasks declare overlapping `touches` |
+| rules are checkable | a rule file contains advice ("be careful", "try to", "consider") instead of a rule |
+
+`--json` prints the same rows as `{ ok, fails, warns, rows }` for a CI comment or a gate.
 
 ## 4. First verification baseline
 
 ```bash
-bun scripts/agent-kit.mjs verify
+bun scripts/agent-kit.mjs task new bootstrap --lane quick
+bun scripts/agent-kit.mjs verify --baseline   # what the repo looked like coming in
+bun scripts/agent-kit.mjs verify              # after the fill; prints "fixed: ..." for the delta
 ```
 
 Expected: one line per declared command, then `PASS — n/n command(s) exited 0`. A failure
-here is the repo's problem, not the kit's: report it, do not work over it.
+here is the repo's problem, not the kit's: report it, do not work over it. The baseline run
+is what makes that sentence checkable — with it recorded, a red command that is still red is
+a known condition, not a new claim.
 
 Commit the fill work before opening the first task. `task new` records the current `HEAD` as
 the baseline, and `task close` derives the changed-file inventory from it — a repo with no
@@ -103,9 +112,9 @@ Tell the owner, in plain words:
 `setup` again: fills in anything missing, keeps everything present, refreshes the hash
 baseline. Safe.
 
-Later, to take template improvements: `check` (never writes) then `pull`. `pull` will not
-overwrite a file you modified unless you pass `--force`, and reports `SEED-UPDATED` when an
-upstream seed changed after you authored from it.
+Later, to take template improvements: `check` (never writes), `pull --dry-run` (prints the
+diff per row), then `pull`. `pull` will not overwrite a file you modified unless you pass
+`--force`, and reports `SEED-UPDATED` when an upstream seed changed after you authored from it.
 
 ## What is deliberately checked in
 

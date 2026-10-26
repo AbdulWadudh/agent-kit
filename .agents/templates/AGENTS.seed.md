@@ -57,8 +57,12 @@ You are working in <PROJECT NAME>. Read this file once per session, then follow 
 
 | Command | Use |
 |---|---|
-| `doctor` | truth checks over docs, declarations and tasks; `--strict` also fails on unfilled markers |
-| `verify` | run the declared build/typecheck/lint/test commands and record the evidence |
+| `doctor` | truth checks over docs, declarations and tasks; `--strict` also fails on unfilled markers; `--fix` repairs encoding only; `--json` for CI |
+| `verify` | run the declared build/typecheck/lint/test commands and record the evidence; `--baseline` records the "before" run |
 | `task new <slug> --lane quick\|planned` | open a task |
-| `task close` | scope-check against git, record the inventory, archive, index |
-| `check` / `pull` | drift against the template; `pull` never overwrites a locally modified file without `--force` |
+| `task show` | print the active task's scope, plan and evidence |
+| `task close` | scope-check against git, record the inventory, archive, index; `--amend "<why>"` accepts a declared breach and writes the reason into the plan |
+| `check` / `pull --dry-run` / `pull` | drift against the template; `pull` never overwrites a locally modified file without `--force` |
+
+Harnesses that load project skills can also pick this up from
+`.opencode/skills/agent-kit/SKILL.md`; everything it says is already in this file.

@@ -14,6 +14,8 @@ verified.** Everything here serves that, and anything that stops serving it gets
   gates, an evidence table, and a close-out that derives the changed files from git.
 - `.agents/rules/` — a router plus short rule files. One home per rule; indexes cite.
 - `docs/` — the knowledge seed: architecture map, API skeleton, entry points.
+- `.opencode/skills/agent-kit/` — a project skill: the trigger and the do/do-not boundary.
+- `examples/minimal/` — what a filled repo looks like, for a fictional project.
 - `scripts/agent-kit.mjs` — the only executable surface. Zero dependencies. Bun or Node.
 
 ## Install
@@ -34,9 +36,14 @@ See `SETUP.md` for the contract and the expected output of each step.
 
 ```bash
 bun scripts/agent-kit.mjs task new fix-login --lane planned
-bun scripts/agent-kit.mjs verify          # records the evidence in the active task
-bun scripts/agent-kit.mjs task close      # scope-check, inventory, archive, index
+bun scripts/agent-kit.mjs task show        # scope, plan, evidence — the thing G1/G2 asks you to read
+bun scripts/agent-kit.mjs verify --baseline # was it already broken?
+bun scripts/agent-kit.mjs verify           # records the evidence, prints the delta
+bun scripts/agent-kit.mjs task close       # scope-check, inventory, archive, index
 ```
+
+`--amend "<why>"` on `task close` is the recorded way to accept a file that turned out to be
+in scope later; the reason is written into the archived plan.
 
 ## The two lanes
 
@@ -54,12 +61,27 @@ schema change. Choosing per task is what keeps the gates honest.
 | Command | Question |
 |---|---|
 | `verify` | do the declared build, typecheck, lint and test commands exit 0 — with the codes recorded? |
-| `task close` | did the diff stay inside the declared write set, and is the outcome written down? |
-| `doctor` | do the docs name real paths, do the commands exist, is the index current, is the encoding clean? |
+| `task close` | did the diff stay inside the declared write set, is the evidence green, and is the outcome written down? |
+| `doctor` | do the docs name real paths, do the commands exist, is the index current, is the encoding clean, is every rule checkable? |
 | `check` | has the template moved since install, and did you edit machinery you should not have? |
 
 Every one of them can fail. `selftest` asserts that by building a throwaway repo and
-deliberately tripping each gate.
+deliberately tripping each gate — twelve scenarios, from a red baseline to a scope breach.
+
+## The skill
+
+`.opencode/skills/agent-kit/SKILL.md` is shipped with the kit: a project skill that triggers
+on "set this repo up" and states the boundary — what to do, what never to do. It is a
+pointer, not a second copy of the rules: `AGENTS.md` and `SETUP.md` remain the contract, and
+the skill says so in its first paragraph.
+
+No plugin: a plugin is code that runs on every turn, and this needs instructions at the
+moment the work starts. `examples/minimal/` shows a filled repo, for when you want to see the
+target instead of reading about it.
+
+The skill is repo-local: it triggers while you work in a repo that has it. To have it trigger
+in every repo, copy the directory into your own global skills folder once — that copy belongs
+to your machine, not to the kit, and `pull` will never touch it.
 
 ## Staying current
 
@@ -71,6 +93,6 @@ per-file hashes live in `.agents/template.json`.
 ## What is deliberately not here
 
 No sprint system, no persona fleet, no 10-phase pipeline, no per-rule report script, no
-PowerShell engine. Each of those is real machinery with a real maintenance cost, and none of
-them earns that cost at this size. If a repo outgrows this, add one thing at a time and give
-it a check.
+PowerShell engine, no plugin. Each of those is real machinery with a real maintenance cost,
+and none of them earns that cost at this size. If a repo outgrows this, add one thing at a
+time and give it a check.

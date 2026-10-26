@@ -33,9 +33,18 @@ summary: ""
 **Test plan** — the command, the expected result, and for a new check, its expected failure
 on the unfixed tree. A probe never seen failing is unproven.
 
+## Baseline (before the change)
+
+`agent-kit verify --baseline` writes this table. It is the "was it already broken?" answer: a
+failure present here is reported, not worked over.
+
+<!-- BASELINE:START -->
+<!-- BASELINE:END -->
+
 ## Verification
 
-`agent-kit verify` writes this table. Do not hand-write exit codes.
+`agent-kit verify` writes this table. Do not hand-write exit codes. `task close` refuses a
+table that records a non-zero exit.
 
 <!-- EVIDENCE:START -->
 | Action | Command | Expected | Observed | Exit |
