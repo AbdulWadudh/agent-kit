@@ -111,9 +111,16 @@ You do not type commands. You describe the task:
 
 The agent opens the task (`task new`, which records the full baseline run for you), edits
 inside the declared write set, and closes it (`task close`, which runs the full suite itself
-and refuses a red result). While working it runs `verify`, the quick suite — a slow build
-marked `milestone` only runs at the baseline, on `verify --full`, and at close. The kit exists
-so that path is checkable — not so that you drive it.
+and refuses a red result). While working it runs `verify`, the quick suite — test, typecheck and lint.
+Build is `milestone`, so it runs at the baseline, on `verify --full`, and at the main close,
+not on every pass.
+The kit exists so that path is checkable — not so that you drive it.
+
+A task that is too large for one sitting splits into subtasks: `task new --parent TASK-N` opens
+`TASK-N.1`, `TASK-N.2`, and so on. Each subtask closes on the quick suite and stays in
+`active/`. The main task's close is the milestone — it refuses while a subtask is open, runs
+build, and any error it reports is fixed right there and the close re-run. Then the
+whole family archives under the main id with one change file.
 
 What to ask instead of typing:
 
@@ -122,6 +129,7 @@ What to ask instead of typing:
 | "where are we?" | `start` — branch, commands and tiers, what is in flight, the last evidence, one next action |
 | "what's in flight?" | `task show` |
 | "we're stuck on a decision" | `task block "<the question>"`; the answer goes in chat, then `task resume` |
+| "this is too big for one sitting" | split it: `task new --parent TASK-N` per piece; each closes quick with lint, and the main close runs build |
 | "what's parked?" | read `.agents/tasks/BACKLOG.md`; picking a row means `task new` and then deleting it |
 | "populate the docs" | run `.agents/templates/docs-populate.md`; it opens a PLANNED task and fills the pages, learnings and backlog |
 | "which agents can drive this repo?" | `harnesses`, then wire each skill folder it names |
@@ -149,13 +157,14 @@ quiet until the repo's first task exists. Turn it on where an agent commits unat
 it if your team would rather not have a hook.
 
 A commit is one task and one kind of change. Its subject is
-`fix (TASK-118): rate-limit the invite endpoint`; the body is the change file's summary.
+`fix (TASK-118): rate-limit the invite endpoint`; the body is the change file's
+`## What changed` paragraph.
 
 ## What the changelog is
 
 It is a folder, not a ledger: `.agents/logs/MM-YYYY/YYYY-MM-DD-TASK-N-slug.md`, one file per
-commit, written by `task close`. Each file says what happened (the title) and what changed
-(the git inventory):
+commit, written by `task close`. The card is the completion record — what the task did, in the
+close-out paragraph, and where the plan lives:
 
 ```
 ---
@@ -167,14 +176,24 @@ summary: "Rate-limited the invite endpoint"
 
 # TASK-118 — Rate-limited the invite endpoint
 
-## 🛠️ Fixed
-- `src/routes/invites.ts`
-- `src/limits.ts`
+**Task:** [TASK-118](../../tasks/archive/2026-10/2026-10-26-TASK-118-invite-rate-limit.md)
+**Scope:** src
+
+## What changed
+
+The invite endpoint now allows five requests a minute per address, and the limit is a
+constant rather than a magic number in the route.
 ```
 
-The task ID is the pointer to the evidence, and `doctor` fails an archived task with no file.
-Nothing is folded into a second document, so there is nothing to keep in sync. If the repo also
-publishes a user-facing `CHANGELOG.md`, that is a different audience and a separate file.
+The date lives in the front matter, and the files live in the task's `FILES` block, so the card
+repeats neither. The plan, its evidence and its follow-ups stay in the task file the link points
+at; the card never restates them, so there is only one record to keep true. `doctor` fails an
+archived task with no file.
+
+A version can be rolled up for people and git: `release v0.2.0` writes `releases/v0.2.0.md`
+from every card no earlier release claims — `# Release v0.2.0`, the date, then `### Added`,
+`### Changed`, `### Fixed` and `### Removed`, one line per task. It prints the
+`gh release create --notes-file` line and never runs git itself.
 
 Both indexes list the five newest entries, so nobody scans a month folder to find out what
 just happened: the task index links the archived plans, the logs index links the change files.
@@ -216,7 +235,7 @@ schema change. Choosing per task is what keeps the gates honest.
 |---|---|
 | `start` | what is the state of this repo right now — branch, commands and tiers, tasks, gate, last evidence, loop, stale flag, and the one next action? (read-only; it never writes) |
 | `verify` | do the `always` commands exit 0, and is this the fourth identical red run? `--full` adds the `milestone` rows, so the slow build is checked before close, not every pass |
-| `task close` | did the diff stay inside the declared write set, is the full suite green, and is the outcome written down? It also prints the commit message in the hook's shape |
+| `task close` | did the diff stay inside the declared write set, is the full suite green, and is the outcome written down? A subtask closes on the quick suite (lint included); the main task's close runs build. It also prints the commit message in the hook's shape |
 | `doctor` | do the docs name real paths, is every kit directory indexed, do the commands exist, are the task and logs lists current, is rtk installed, is the encoding clean, is every rule checkable and indexed, is the backlog triaged, is every blocked task carrying its question? |
 | `check` | has the template moved since install, and did you edit machinery you should not have? |
 

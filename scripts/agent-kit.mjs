@@ -17,12 +17,14 @@
  *   verify [--full|--baseline]             run the always-tier commands; --full adds milestone rows
  *   harnesses                              list the coding agents on this machine (HOME, PATH, repo)
  *   task new <slug> [--lane quick|planned] open a task and record the baseline run
+ *            [--parent TASK-N]             ... as TASK-N.M, closing on the quick suite
  *   task show [--id TASK-N]                the active task's scope, plan, evidence and staleness
  *   task block "<question>"                stop at an impasse; the owner's question waits on disk
  *   task resume                            continue a blocked task
- *   task close [--amend "<why>"] [--pr]     full suite, scope-check, record, archive, index, message
+ *   task close [--amend "<why>"] [--pr]    quick for a subtask, full suite + archive for the main
  *   task guard [--message <file>]          hook gate: scope (pre-commit), message (commit-msg)
  *   learnings archive                      move entries past the 30 cap into .agents/learnings/
+ *   release <version>                      write releases/vX.Y.Z.md from the unclaimed change files
  *   selftest                               prove every gate can fail, in a temp repo
  *
  * Design rule: one canonical home per fact. Commands live in .agents/project.md
@@ -50,12 +52,12 @@ const LOG_DIR = ".agents/logs";
 
 // A change is one file, filed under the month it landed in:
 // `logs/MM-YYYY/YYYY-MM-DD-TASK-N-slug.md`. One home for the vocabulary: close validates
-// against it, the writer renders the heading.
+// against it, `release` renders the headings.
 const CATEGORIES = [
-	["added", "🟢 Added"],
-	["changed", "🔵 Changed"],
-	["fixed", "🛠️ Fixed"],
-	["removed", "⚠️ Deprecated / Removed"],
+	["added", "Added"],
+	["changed", "Changed"],
+	["fixed", "Fixed"],
+	["removed", "Removed"],
 ];
 const ENTRY_LIMIT = 140;
 // A loop is the same red set over the same code: past this many identical runs, a new plan.
@@ -286,18 +288,24 @@ function overlaps(a, b) {
 	return true;
 }
 
+// Markers count only as a whole line: the engine writes them that way, and prose that merely
+// names one must never be mistaken for the block.
 function block(text, name, body) {
 	const re = new RegExp(
-		`(<!-- ${name}:START -->)[\\s\\S]*?(<!-- ${name}:END -->)`,
+		`(^<!-- ${name}:START -->\\r?$)[\\s\\S]*?(^<!-- ${name}:END -->\\r?$)`,
+		"m",
 	);
 	if (!re.test(text)) return text;
-	return text.replace(re, `$1\n${body}\n$2`);
+	return text.replace(re, (_, open, close) => `${open}\n${body}\n${close}`);
 }
 
 /** The body of a named block, or null when its markers are absent. */
 function blockBody(text, name) {
 	const m = text.match(
-		new RegExp(`<!-- ${name}:START -->([\\s\\S]*?)<!-- ${name}:END -->`),
+		new RegExp(
+			`^<!-- ${name}:START -->\\r?$([\\s\\S]*?)^<!-- ${name}:END -->\\r?$`,
+			"m",
+		),
 	);
 	return m ? m[1].trim() : null;
 }
@@ -532,17 +540,19 @@ function projectMd(stack, today) {
 		"",
 		"## Commands",
 		"",
-		"`always` runs on every `verify`; `milestone` runs on the baseline, `verify --full` and",
-		"`task close`. Mark a slow command `milestone` so the inner loop stays short.",
+		"`always` runs on every `verify` and every close; `milestone` runs on the baseline,",
+		"`verify --full` and a top-level task's close — a subtask's close is quick. Mark a slow",
+		"command `milestone` so the inner loop and subtask closes stay short.",
 		"",
 		"| Action | Command | When |",
 		"|---|---|---|",
 	);
 	const order = ["install", "build", "typecheck", "lint", "test"];
+	const milestone = new Set(["build"]);
 	for (const action of order) {
 		if (stack.commands[action])
 			lines.push(
-				`| ${action} | ${stack.commands[action]} | ${action === "build" ? "milestone" : "always"} |`,
+				`| ${action} | ${stack.commands[action]} | ${milestone.has(action) ? "milestone" : "always"} |`,
 			);
 	}
 	if (Object.keys(stack.commands).length === 0)
@@ -1410,12 +1420,17 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 	);
 
 	const collisions = [];
-	const touches = active.map((f) => ({
-		f,
-		t: list(frontMatter(read(abs(activeDir, f))).touches),
-	}));
+	const touches = active.map((f) => {
+		const fm = frontMatter(read(abs(activeDir, f)));
+		const family = CHILD_ID.test(fm.id || "") ? parentId(fm) : fm.id;
+		return { f, t: list(fm.touches), family };
+	});
 	for (let i = 0; i < touches.length; i++) {
 		for (let j = i + 1; j < touches.length; j++) {
+			// A parent and its subtasks share one delivery; overlapping write sets inside a
+			// family are the point of the split, not a collision.
+			if (touches[i].family && touches[i].family === touches[j].family)
+				continue;
 			for (const a of touches[i].t)
 				for (const b of touches[j].t)
 					if (covers(a, b) || covers(b, a) || overlaps(a, b))
@@ -1454,6 +1469,47 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 		blockProblems.length ? "FAIL" : "PASS",
 		"blocked tasks",
 		blockProblems.join(", "),
+	);
+
+	// 5c. a subtask belongs to a live parent, and the parent holds the slot only once every
+	// subtask is done — the state `task new --parent` and the last subtask close maintain.
+	const subtaskProblems = [];
+	const byId = new Map(
+		active.map((f) => [frontMatter(read(abs(activeDir, f))).id, f]),
+	);
+	const kidsByParent = new Map();
+	for (const f of active) {
+		const fm = frontMatter(read(abs(activeDir, f)));
+		if (!CHILD_ID.test(fm.id || "")) continue;
+		const parent = parentId(fm);
+		if (!parent) {
+			subtaskProblems.push(`${f}: subtask with no parent`);
+			continue;
+		}
+		if (!byId.has(parent)) {
+			subtaskProblems.push(`${f}: parent ${parent} is not active`);
+			continue;
+		}
+		if (!kidsByParent.has(parent)) kidsByParent.set(parent, []);
+		kidsByParent.get(parent).push({ f, fm });
+	}
+	for (const [parent, kids] of kidsByParent) {
+		const pf = byId.get(parent);
+		const pfm = frontMatter(read(abs(activeDir, pf)));
+		const open = kids.filter((k) => k.fm.status !== "DONE");
+		if (pfm.status === "DONE")
+			subtaskProblems.push(`${pf}: DONE with subtasks still active`);
+		else if (pfm.status === "IN_PROGRESS" && open.length)
+			subtaskProblems.push(
+				`${pf}: in progress while ${open.map((k) => k.fm.id).join(", ")} open`,
+			);
+		else if (pfm.status === "QUEUED" && !open.length)
+			subtaskProblems.push(`${pf}: queued with every subtask done`);
+	}
+	add(
+		subtaskProblems.length ? "FAIL" : "PASS",
+		"subtasks",
+		subtaskProblems.join(", "),
 	);
 
 	// 5b. parked work is a candidate, not a second task list: the vocabulary and identity are
@@ -1580,7 +1636,8 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 		.filter((rel) => rel.endsWith(".md"))
 		.filter((rel) => {
 			const id = frontMatter(read(abs(base, rel))).id;
-			return id && !logged.has(id);
+			// A subtask archives inside its parent's delivery and is named in that change file.
+			return id && !CHILD_ID.test(id) && !logged.has(id);
 		});
 	add(
 		undocumented.length ? "FAIL" : "PASS",
@@ -1592,7 +1649,10 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 	const staleRecents = [];
 	for (const [rel, dir, field] of RECENT_LISTS) {
 		const text = readIf(abs(base, rel));
-		const actual = text === null ? null : blockBody(text, "RECENT");
+		// A Windows checkout (autocrlf) rewrites file content to CRLF; the generated lines are
+		// LF. Compare meaning, not line endings.
+		const body = text === null ? null : blockBody(text, "RECENT");
+		const actual = body === null ? null : body.split("\r\n").join("\n");
 		if (actual === null) staleRecents.push(`${rel}: no RECENT block`);
 		else if (actual !== recentLines(base, rel, dir, field))
 			staleRecents.push(`${rel}: stale`);
@@ -1601,6 +1661,26 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 		staleRecents.length ? "FAIL" : "PASS",
 		"recent lists",
 		staleRecents.join(", "),
+	);
+
+	// 7c. a release note is named for its version and says so on the first line, so a note
+	// cannot be filed under the wrong tag. A repo that never cuts a release has no folder.
+	const releaseDir = abs(base, "releases");
+	const releaseFiles = isDir(releaseDir)
+		? fs.readdirSync(releaseDir).filter((f) => f.endsWith(".md"))
+		: [];
+	const misnamed = releaseFiles.filter((f) => {
+		const first = (read(path.join(releaseDir, f)).split(/\r?\n/)[0] || "").trim();
+		return first !== `# Release ${f.replace(/\.md$/, "")}`;
+	});
+	add(
+		misnamed.length ? "FAIL" : "PASS",
+		"release notes",
+		misnamed.length
+			? `${misnamed.join(", ")} — first line must be "# 🚀 Release v<version>" matching the filename`
+			: releaseFiles.length
+				? `${releaseFiles.length} release(s)`
+				: "none yet",
 	);
 
 	const fails = rows.filter((r) => r[0] === "FAIL").length;
@@ -1639,7 +1719,7 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 /** Evidence rows, both shapes: five cells from older tasks, six with the Scope column. */
 function evidenceDetail(text) {
 	const m = text.match(
-		/<!-- EVIDENCE:START -->([\s\S]*?)<!-- EVIDENCE:END -->/,
+		/^<!-- VERIFY:START -->\r?$([\s\S]*?)^<!-- VERIFY:END -->\r?$/m,
 	);
 	if (!m) return [];
 	return m[1]
@@ -1703,7 +1783,9 @@ function evidenceState(base, text, fm) {
 
 /** The owner question `task block` wrote, or null. */
 function blockedState(text) {
-	const m = text.match(/<!-- BLOCKED:START -->([\s\S]*?)<!-- BLOCKED:END -->/);
+	const m = text.match(
+		/^<!-- BLOCKED:START -->\r?$([\s\S]*?)^<!-- BLOCKED:END -->\r?$/m,
+	);
 	if (!m) return null;
 	const line = m[1]
 		.split(/\r?\n/)
@@ -1774,7 +1856,8 @@ function cmdVerify({ root, baseline, full }) {
 	const all = declared.filter(([a]) =>
 		["build", "typecheck", "lint", "test"].includes(a),
 	);
-	const fullRun = !!(full || baseline);
+	// A bare `--baseline` still means the full suite; only the caller can ask for a quick one.
+	const fullRun = full === undefined ? !!baseline : !!full;
 	const runnable = fullRun ? all : all.filter(([, , when]) => when === "always");
 	if (all.length === 0) {
 		console.log(
@@ -1853,7 +1936,7 @@ function cmdVerify({ root, baseline, full }) {
 	}
 
 	if (target) {
-		const name = baseline ? "BASELINE" : "EVIDENCE";
+		const name = baseline ? "BASELINE" : "VERIFY";
 		let marker = "";
 		let attempts = 0;
 		if (!baseline) {
@@ -1884,7 +1967,7 @@ function cmdVerify({ root, baseline, full }) {
 			].join("\n") + marker;
 		write(target, block(read(target), name, body));
 		console.log(
-			`\nRecorded in ${TASKS}/active/${path.basename(target)} (${name.toLowerCase()})`,
+			`\nRecorded in ${TASKS}/active/${path.basename(target)} (${baseline ? "baseline" : "verification"})`,
 		);
 		if (attempts >= LOOP_LIMIT) {
 			console.log(
@@ -1942,9 +2025,53 @@ function activeTasks(root) {
 		});
 }
 
+const CHILD_ID = /^TASK-\d+\.\d+$/;
+
+/** Subtasks name their parent in `parent:`; a top-level task has none. */
+function parentId(fm) {
+	return (fm.parent || "").trim();
+}
+
+function childrenOf(root, parent) {
+	return activeTasks(root).filter((t) => parentId(t.fm) === parent);
+}
+
+/** `TASK-104.2` after `.1`, never touching the top-level `.counter`. */
+function nextChildId(root, parent) {
+	let n = 0;
+	const bump = (id) => {
+		const m = String(id || "").match(/^TASK-\d+\.(\d+)$/);
+		if (m) n = Math.max(n, Number(m[1]));
+	};
+	for (const t of childrenOf(root, parent)) bump(t.fm.id);
+	for (const rel of expand(root, `${TASKS}/archive`)) {
+		if (!rel.endsWith(".md")) continue;
+		const fm = frontMatter(read(abs(root, rel)));
+		if (parentId(fm) === parent) bump(fm.id);
+	}
+	return `${parent}.${n + 1}`;
+}
+
+/** The write set a task answers for: its own, plus its subtasks' when it has any. */
+function scopeTouches(root, fm) {
+	const own = list(fm.touches);
+	const id = fm.id || "";
+	const family = CHILD_ID.test(id) ? parentId(fm) : id;
+	const tasks = activeTasks(root);
+	const parent = tasks.find((t) => t.fm.id === family);
+	const kids = family ? tasks.filter((t) => parentId(t.fm) === family) : [];
+	return [
+		...new Set([
+			...(parent ? list(parent.fm.touches) : []),
+			...own,
+			...kids.flatMap((t) => list(t.fm.touches)),
+		]),
+	];
+}
+
 /** The Active block is derived from active/, so a status change cannot rot it. */
 function refreshActive(base) {
-	const rank = { IN_PROGRESS: 0, REVIEW: 1, BLOCKED: 2, QUEUED: 3 };
+	const rank = { IN_PROGRESS: 0, REVIEW: 1, BLOCKED: 2, QUEUED: 3, DONE: 4 };
 	const rows = activeTasks(base)
 		.sort(
 			(a, b) =>
@@ -1965,34 +2092,68 @@ function refreshActive(base) {
 	);
 }
 
-function cmdTaskNew({ root, slug, lane, force, noBaseline }) {
+function cmdTaskNew({ root, slug, lane, force, noBaseline, parent }) {
 	const base = path.resolve(root || process.cwd());
-	if (!slug) die("usage: task new <slug> [--lane quick|planned]");
+	if (!slug)
+		die("usage: task new <slug> [--lane quick|planned] [--parent TASK-N]");
 	const activeDir = abs(base, `${TASKS}/active`);
-	const inProgress = activeTasks(base).filter(
-		(t) => t.fm.status === "IN_PROGRESS",
-	);
-	if (inProgress.length && !force)
-		die(
-			`a task is already in progress (${inProgress[0].file}). Close it, block it, or pass --force.`,
+	const tasks = activeTasks(base);
+
+	let id;
+	let parentTask = null;
+	if (parent) {
+		parentTask = tasks.find((t) => t.fm.id === parent);
+		if (!parentTask) die(`no active task with id ${parent}`);
+		if (parentTask.fm.status === "BLOCKED")
+			die(`${parent} is blocked; resume it first`);
+		if (!["IN_PROGRESS", "QUEUED"].includes(parentTask.fm.status))
+			die(
+				`${parent} is ${parentTask.fm.status || "statusless"}; only an in-progress or queued task takes subtasks`,
+			);
+		const openChild = tasks.find(
+			(t) => parentId(t.fm) === parent && t.fm.status === "IN_PROGRESS",
 		);
+		if (openChild)
+			die(`${openChild.fm.id} is in progress; close it before opening another subtask`);
+		if (parentTask.fm.status === "IN_PROGRESS") {
+			write(
+				parentTask.path,
+				read(parentTask.path).replace(/^status:.*$/m, "status: QUEUED"),
+			);
+		}
+		id = nextChildId(base, parent);
+	} else {
+		const inProgress = tasks.filter((t) => t.fm.status === "IN_PROGRESS");
+		if (inProgress.length && !force)
+			die(
+				`a task is already in progress (${inProgress[0].file}). Close it, block it, or pass --force.`,
+			);
+		id = `TASK-${nextId(base)}`;
+	}
 	if (!exists(abs(base, TASK_TEMPLATE))) die(`missing ${TASK_TEMPLATE}`);
 
 	const today = new Date().toISOString().slice(0, 10);
-	const id = `TASK-${nextId(base)}`;
 	const file = `${today}-${id}-${slugify(slug)}.md`;
 	const baseline = git(base, ["rev-parse", "HEAD"]) || "none";
-	const body = read(abs(base, TASK_TEMPLATE))
+	let body = read(abs(base, TASK_TEMPLATE))
 		.replaceAll("{{ID}}", id)
 		.replaceAll("{{DATE}}", today)
 		.replaceAll("{{LANE}}", (lane || "planned").toUpperCase())
 		.replaceAll("{{TITLE}}", slug.replace(/-/g, " "))
 		.replaceAll("{{BASELINE}}", baseline);
+	if (parent)
+		body = /^parent:.*$/m.test(body)
+			? body.replace(/^parent:.*$/m, `parent: ${parent}`)
+			: body.replace(/^(id:.*\r?\n)/m, `$1parent: ${parent}\n`);
 	write(abs(activeDir, file), body);
 
 	refreshActive(base);
 
 	console.log(`\nOpened ${id} -> ${TASKS}/active/${file}`);
+	if (parent)
+		console.log(
+			`Subtask of ${parent}; it closes on the quick suite (lint included). The main close adds build.`,
+		);
 	console.log(
 		"Fill: touches, scope, plan. PLANNED halts for approval before the first edit.",
 	);
@@ -2001,14 +2162,20 @@ function cmdTaskNew({ root, slug, lane, force, noBaseline }) {
 		return 0;
 	}
 	console.log("Baseline run, so a red command is reported rather than blamed on this task:\n");
-	cmdVerify({ root: base, baseline: true, full: true });
+	cmdVerify({ root: base, baseline: true, full: !parent });
 	return 0;
+}
+
+/** Find by exact id first: `TASK-104` is a prefix of its own subtasks' file names. */
+function matchTasks(tasks, id) {
+	const exact = tasks.filter((t) => t.fm.id === id);
+	return exact.length ? exact : tasks.filter((t) => t.file.includes(id));
 }
 
 function currentTask(root, id) {
 	const tasks = activeTasks(root);
 	const hit = id
-		? tasks.filter((t) => t.fm.id === id || t.file.includes(id))
+		? matchTasks(tasks, id)
 		: tasks.filter((t) => t.fm.status === "IN_PROGRESS");
 	if (hit.length !== 1)
 		die(
@@ -2031,7 +2198,7 @@ function cmdTaskShow({ root, id }) {
 	}
 	const inProgress = tasks.filter((t) => t.fm.status === "IN_PROGRESS");
 	const task = id
-		? tasks.find((t) => t.fm.id === id || t.file.includes(id))
+		? matchTasks(tasks, id)[0]
 		: inProgress.length === 1
 			? inProgress[0]
 			: tasks.length === 1
@@ -2049,6 +2216,13 @@ function cmdTaskShow({ root, id }) {
 		`\n${fm.id}  ${fm.lane || "?"}  ${fm.status || "?"}  ${fm.summary || "(no summary)"}`,
 	);
 	console.log(`  ${TASKS}/active/${task.file}`);
+	const taskParent = parentId(fm);
+	if (taskParent) console.log(`  parent: ${taskParent}`);
+	const subtasks = taskParent ? [] : childrenOf(base, fm.id);
+	if (subtasks.length)
+		console.log(
+			`  subtasks: ${subtasks.filter((t) => t.fm.status === "DONE").length}/${subtasks.length} done — ${subtasks.map((t) => `${t.fm.id} [${t.fm.status || "?"}]`).join(", ")}`,
+		);
 	const plan = text.match(/## Scope[\s\S]*?(?=\n## Verification)/);
 	console.log(plan ? `\n${plan[0].trim()}\n` : "\n(no scope/plan section)\n");
 	const rows = evidenceDetail(text);
@@ -2062,7 +2236,9 @@ function cmdTaskShow({ root, id }) {
 	);
 	if (milestone.length && !rows.some((r) => r.scope === "full"))
 		console.log(
-			`Full suite: not run — ${milestone.length} milestone command(s) wait for \`verify --full\` or close`,
+			taskParent
+				? `Full suite: not run — ${milestone.length} milestone command(s) run at the main task's close`
+				: `Full suite: not run — ${milestone.length} milestone command(s) wait for \`verify --full\` or close`,
 		);
 	const es = evidenceState(base, text, fm);
 	if (es.state === "stale")
@@ -2128,7 +2304,7 @@ function cmdTaskResume({ root, id }) {
 	const base = path.resolve(root || process.cwd());
 	const tasks = activeTasks(base);
 	const hit = id
-		? tasks.filter((t) => t.fm.id === id || t.file.includes(id))
+		? matchTasks(tasks, id)
 		: tasks.filter((t) => t.fm.status === "BLOCKED");
 	if (hit.length !== 1)
 		die(
@@ -2148,7 +2324,10 @@ function cmdTaskResume({ root, id }) {
 	write(
 		task.path,
 		task.text
-			.replace(/<!-- BLOCKED:START -->[\s\S]*?<!-- BLOCKED:END -->\r?\n?/, "")
+			.replace(
+				/^<!-- BLOCKED:START -->\r?$[\s\S]*?^<!-- BLOCKED:END -->\r?$\r?\n?/m,
+				"",
+			)
 			.replace(/^status:.*$/m, "status: IN_PROGRESS"),
 	);
 	refreshActive(base);
@@ -2203,6 +2382,13 @@ function cmdStart({ root } = {}) {
 	console.log(
 		`\nTask    ${fm.id}  ${fm.lane || "?"}  ${fm.status || "?"}  ${fm.summary || "(no summary)"}`,
 	);
+	if (parentId(fm)) console.log(`Parent  ${parentId(fm)}`);
+	const family = CHILD_ID.test(fm.id || "") ? parentId(fm) : fm.id;
+	const subtasks = family ? childrenOf(base, family) : [];
+	if (subtasks.length)
+		console.log(
+			`Subtasks ${subtasks.filter((t) => t.fm.status === "DONE").length}/${subtasks.length} done — ${subtasks.map((t) => `${t.fm.id} [${t.fm.status || "?"}]`).join(", ")}`,
+		);
 	console.log(
 		`Plan    ${list(fm.touches).length} file(s) in touches · depends on ${list(fm.depends_on).join(", ") || "none"}`,
 	);
@@ -2239,10 +2425,37 @@ function cmdStart({ root } = {}) {
 		next = "verify — the task's files changed since the last run";
 	else if (red.length) next = `fix ${red.map((r) => r.action).join(", ")}, then verify`;
 	else if (milestone.length && !fullRun)
-		next = "verify --full — the milestone commands have not run";
-	else next = "task close — the suite is green";
+		next = fm.parent
+			? "task close — a subtask closes on the quick suite; build runs at the main close"
+			: subtasks.some((t) => t.fm.status !== "DONE")
+				? "close the open subtasks — the main close runs build"
+				: "task close — the main close runs build";
+	else next = fm.parent
+		? "task close — a subtask closes on the quick suite"
+		: "task close — the suite is green";
 	console.log(`\nNext    ${next}\n`);
 	return 0;
+}
+
+/** A `**Field** — …` block in a task's prose, up to the next field, comment or heading. */
+function closeOutField(text, name) {
+	const m = (text || "").match(
+		new RegExp(
+			`\\*\\*${name}\\*\\*\\s*—?\\s*([\\s\\S]*?)(?=\\n\\*\\*|\\n<!--|\\n##\\s|$)`,
+		),
+	);
+	return m ? m[1].trim() : "";
+}
+
+/** The commit subject and body a close prints: the change file's wording, or the summary. */
+function closingNote(text, fm, type) {
+	const note = closeOutField(text, "Summary") || closeOutField(text, "Outcome");
+	const notes = note && !/<!--/.test(note) ? note : fm.summary;
+	const commitType =
+		{ added: "feat", changed: "feat", fixed: "fix", removed: "refactor" }[
+			type
+		] || "chore";
+	return { commitType, notes };
 }
 
 function cmdTaskClose({ root, id, amend, noVerify, pr }) {
@@ -2253,6 +2466,10 @@ function cmdTaskClose({ root, id, amend, noVerify, pr }) {
 	const fm = frontMatter(text);
 	const today = new Date().toISOString().slice(0, 10);
 	const problems = [];
+	const isChild = CHILD_ID.test(fm.id || "");
+	const parent = isChild ? parentId(fm) : "";
+	const kids = isChild ? [] : childrenOf(base, fm.id);
+	const openKids = kids.filter((t) => t.fm.status !== "DONE");
 
 	if (fm.status === "BLOCKED") {
 		console.error(
@@ -2260,6 +2477,19 @@ function cmdTaskClose({ root, id, amend, noVerify, pr }) {
 		);
 		return 1;
 	}
+	if (fm.status === "DONE") {
+		console.error(`\nCannot close ${file}: it is already DONE.\n`);
+		return 1;
+	}
+	if (isChild && !parent)
+		problems.push(
+			"subtask front matter has no parent (a `TASK-N.M` id needs `parent: TASK-N`)",
+		);
+	// The main close is the milestone: build runs here, after every subtask is done.
+	if (!isChild && openKids.length)
+		problems.push(
+			`subtasks still open: ${openKids.map((t) => `${t.fm.id} (${t.fm.status || "?"})`).join(", ")} — close them first; the main close is where build runs`,
+		);
 
 	if (!fm.summary)
 		problems.push(
@@ -2274,21 +2504,26 @@ function cmdTaskClose({ root, id, amend, noVerify, pr }) {
 		problems.push(
 			`front-matter type "${fm.type}" is not one of ${CATEGORIES.map(([t]) => t).join(", ")}`,
 		);
-	const touches = list(fm.touches);
-	if (touches.length === 0)
+	if (list(fm.touches).length === 0 && !kids.length)
 		problems.push("front-matter touches is empty (declare the write set)");
 	if (/<!--\s*FILL:/.test(text))
 		problems.push("unfilled <!-- FILL: --> marker left in the task file");
+
+	// A subtask answers for the family's files; the main task answers for its own plus every
+	// child's, because the one change file it writes covers the whole delivery.
+	const touches = scopeTouches(base, fm);
 
 	// Close runs the suite itself: the last moment the tree is still "as delivered" is the
 	// only moment worth recording, and an agent cannot forget a step it never had to take.
 	if (!problems.length && !noVerify) {
 		console.log(
-			"Verification (close runs the full suite; `verify` is the mid-flight quick check):",
+			isChild
+				? "Verification (a subtask closes on the quick suite; build runs at the main close):"
+				: "Verification (close runs the full suite; `verify` is the mid-flight quick check):",
 		);
-		if (cmdVerify({ root: base, full: true }) !== 0)
+		if (cmdVerify({ root: base, full: !isChild }) !== 0)
 			problems.push(
-				"verification failed — the EVIDENCE table in the task file holds the exit codes",
+				"verification failed — the recorded table in the task file holds the exit codes",
 			);
 		text = read(abs(base, rel));
 	}
@@ -2318,7 +2553,9 @@ function cmdTaskClose({ root, id, amend, noVerify, pr }) {
 	// changelog) is written by these commands, so counting it would flag every close as a breach.
 	changed = changed.filter(
 		(c) =>
-			c !== rel && !c.startsWith(`${TASKS}/`) && !c.startsWith(`${LOG_DIR}/`),
+			c !== rel &&
+			!c.startsWith(`${TASKS}/`) &&
+			!c.startsWith(`${LOG_DIR}/`),
 	);
 
 	const outOfScope = touches.length
@@ -2346,7 +2583,7 @@ function cmdTaskClose({ root, id, amend, noVerify, pr }) {
 	}
 
 	if (outOfScope.length) {
-		const amended = [...touches, ...outOfScope];
+		const amended = [...list(fm.touches), ...outOfScope];
 		text = text.replace(
 			/^touches:.*$/m,
 			`touches: [${amended.map((t) => `"${t}"`).join(", ")}]`,
@@ -2356,6 +2593,49 @@ function cmdTaskClose({ root, id, amend, noVerify, pr }) {
 			`**Scope amended at close** — ${amend}: ${outOfScope.map((c) => `\`${c}\``).join(", ")}\n\n<!-- FILES:START -->`,
 		);
 		console.log(`\nScope amended: ${outOfScope.join(", ")}`);
+	}
+
+	// A subtask closes quietly: it keeps its file for the main close to archive, and its share
+	// of the inventory is already inside the parent's baseline diff.
+	if (isChild) {
+		const own = list(fm.touches);
+		const files = changed.filter((c) => own.some((t) => covers(t, c)));
+		text = block(
+			text,
+			"FILES",
+			files.length ? files.map((c) => `- \`${c}\``).join("\n") : "- none detected",
+		);
+		text = text.replace(/^status:.*$/m, `status: DONE\nclosed: ${today}`);
+		write(abs(base, rel), text);
+		refreshActive(base);
+
+		const stillOpen = childrenOf(base, parent).filter(
+			(t) => t.fm.status !== "DONE",
+		);
+		const parentTask = activeTasks(base).find((t) => t.fm.id === parent);
+		let promoted = "";
+		if (!stillOpen.length && parentTask && parentTask.fm.status === "QUEUED") {
+			write(
+				parentTask.path,
+				read(parentTask.path).replace(/^status:.*$/m, "status: IN_PROGRESS"),
+			);
+			refreshActive(base);
+			promoted = parent;
+		}
+
+		const { commitType, notes } = closingNote(text, fm, type);
+		console.log(`\nClosed ${fm.id} (subtask)`);
+		console.log(`  inventory ${files.length} file(s) — the parent's change file covers the family`);
+		console.log(
+			promoted
+				? `  parent    ${promoted} is back in progress — its close runs build`
+				: `  parent    ${parent} — ${stillOpen.length} subtask(s) still open`,
+		);
+		console.log("\nCommit message:\n");
+		console.log(`${commitType} (${fm.id}): ${fm.summary}`);
+		console.log("");
+		console.log(`${notes} (${fm.id})\n`);
+		return 0;
 	}
 
 	text = block(
@@ -2373,6 +2653,13 @@ function cmdTaskClose({ root, id, amend, noVerify, pr }) {
 	write(abs(base, `${archive}/${file}`), text);
 	fs.rmSync(abs(base, rel));
 
+	// Done subtasks travel with the parent: one delivery, one archive, one change file.
+	for (const kid of kids)
+		if (kid.fm.status === "DONE") {
+			write(abs(base, `${archive}/${kid.file}`), kid.text);
+			fs.rmSync(abs(base, `${TASKS}/active/${kid.file}`));
+		}
+
 	const change = writeChange(base, {
 		id: fm.id,
 		type,
@@ -2382,6 +2669,8 @@ function cmdTaskClose({ root, id, amend, noVerify, pr }) {
 			.replace(/^[A-Z][A-Z0-9-]*-/, ""),
 		summary: fm.summary,
 		changed,
+		task: text,
+		taskRel: `${archive}/${file}`,
 	});
 
 	refreshActive(base);
@@ -2389,17 +2678,15 @@ function cmdTaskClose({ root, id, amend, noVerify, pr }) {
 
 	console.log(`\nClosed ${fm.id}`);
 	console.log(`  archived  ${archive}/${file}`);
+	if (kids.length)
+		console.log(
+			`  subtasks  ${kids.filter((k) => k.fm.status === "DONE").length} archived with it`,
+		);
 	console.log(`  inventory ${changed.length} file(s)`);
 	console.log(`  change    ${change} (${type})`);
 
 	const archived = read(abs(base, `${archive}/${file}`));
-	const outcome = (archived.match(/\*\*Outcome\*\*\s*—\s*([^\n]+)/) || [])[1];
-	const notes =
-		outcome && !/<!--/.test(outcome) ? outcome.trim() : fm.summary;
-	const commitType =
-		{ added: "feat", changed: "feat", fixed: "fix", removed: "refactor" }[
-			type
-		] || "chore";
+	const { commitType, notes } = closingNote(archived, fm, type);
 	console.log("\nCommit message:\n");
 	console.log(`${commitType} (${fm.id}): ${fm.summary}`);
 	console.log("");
@@ -2437,13 +2724,19 @@ function cmdTaskClose({ root, id, amend, noVerify, pr }) {
  * One file per change, written at close. The folder is the month it landed in, the filename
  * is the record: `logs/MM-YYYY/YYYY-MM-DD-TASK-N-slug.md`. There is no second ledger —
  * this file *is* the changelog entry, and `doctor` finds an archived task through its id.
+ *
+ * It is the completion record, not the plan: the close-out paragraph, the files git reported,
+ * and the two lines that place it. Intent, evidence and follow-ups stay in the archived task;
+ * the id is the pointer to them, and copying them here would make a second home.
  */
-function writeChange(base, { id, type, slug, summary, changed }) {
+function writeChange(base, { id, type, slug, summary, changed, task, taskRel }) {
 	const day = new Date().toISOString().slice(0, 10);
 	const month = `${day.slice(5, 7)}-${day.slice(0, 4)}`;
 	const dir = `${LOG_DIR}/${month}`;
 	const rel = `${dir}/${day}-${id}-${slug}.md`;
-	const [, label] = CATEGORIES.find(([t]) => t === type);
+	const note = closeOutField(task, "Summary") || closeOutField(task, "Outcome");
+	const areas = [...new Set(changed.map((c) => c.split("/")[0]))].sort();
+	const link = posix(path.relative(path.dirname(rel), taskRel));
 	fs.mkdirSync(abs(base, dir), { recursive: true });
 	write(
 		abs(base, rel),
@@ -2457,8 +2750,12 @@ function writeChange(base, { id, type, slug, summary, changed }) {
 			"",
 			`# ${id} — ${summary}`,
 			"",
-			`## ${label}`,
-			...(changed.length ? changed.map((c) => `- \`${c}\``) : ["- none detected"]),
+			`**Task:** [${id}](${link})`,
+			`**Scope:** ${areas.join(", ") || "none"}`,
+			"",
+			"## What changed",
+			"",
+			note && !/<!--/.test(note) ? note : summary,
 			"",
 		].join("\n"),
 	);
@@ -2479,7 +2776,7 @@ function entriesIn(base, dir, dateField) {
 				date: fm[dateField] || fm.created || name,
 			};
 		})
-		.filter((e) => e.id)
+		.filter((e) => e.id && !CHILD_ID.test(e.id))
 		.sort((a, b) =>
 			`${b.date}\u0000${b.rel}`.localeCompare(`${a.date}\u0000${a.rel}`),
 		);
@@ -2509,6 +2806,81 @@ function refreshRecents(base) {
 	}
 }
 
+// --------------------------------------------------------------- release
+
+/** The change files no earlier release claims, oldest first. */
+function unreleasedChanges(base) {
+	const claimed = new Set();
+	for (const rel of expand(base, "releases").filter((r) => r.endsWith(".md")))
+		for (const m of read(abs(base, rel)).matchAll(
+			/<!--\s*RELEASED:START\s*-->([\s\S]*?)<!--\s*RELEASED:END\s*-->/g,
+		))
+			for (const id of m[1].matchAll(/\bTASK-\d+\b/g)) claimed.add(id[0]);
+
+	return expand(base, LOG_DIR)
+		.filter((rel) => rel.endsWith(".md") && !rel.endsWith("INDEX.md"))
+		.map((rel) => {
+			const fm = frontMatter(read(abs(base, rel)));
+			return {
+				id: fm.id || "",
+				type: (fm.type || "changed").toLowerCase(),
+				summary: fm.summary || "",
+				date: fm.date || "",
+			};
+		})
+		.filter((e) => e.id && !CHILD_ID.test(e.id) && !claimed.has(e.id))
+		.sort((a, b) =>
+			`${a.date}\u0000${a.id}`.localeCompare(`${b.date}\u0000${b.id}`),
+		);
+}
+
+/**
+ * `releases/vX.Y.Z.md` — the short, user-facing layer over the change files. It is written
+ * once per version and read by git and people, not by an agent index. The command never runs
+ * git: tagging, pushing and `gh release create` stay with the owner.
+ */
+function cmdRelease({ root, version }) {
+	const base = path.resolve(root || process.cwd());
+	const raw = String(version || "").trim().replace(/^v/i, "");
+	if (!/^\d+\.\d+\.\d+$/.test(raw)) {
+		console.error("agent-kit: usage: release <version>  (X.Y.Z or vX.Y.Z)");
+		return 1;
+	}
+	const rel = `releases/v${raw}.md`;
+	if (exists(abs(base, rel))) {
+		console.error(`\nCannot release: ${rel} already exists — bump the version.\n`);
+		return 1;
+	}
+	const fresh = unreleasedChanges(base);
+	if (!fresh.length) {
+		console.error(
+			"\nCannot release: nothing new — every change file is claimed by a release.\n",
+		);
+		return 1;
+	}
+
+	const day = new Date().toISOString().slice(0, 10);
+	const lines = [`# Release v${raw}`, "", `**Date:** ${day}`, ""];
+	for (const [type, label] of CATEGORIES) {
+		const group = fresh.filter((e) => e.type === type);
+		if (!group.length) continue;
+		lines.push(`### ${label}`, "");
+		for (const e of group) lines.push(`- ${e.summary} (${e.id})`, "");
+	}
+	lines.push(
+		"---",
+		"",
+		"<!-- RELEASED:START -->",
+		...fresh.map((e) => `- ${e.id}`),
+		"<!-- RELEASED:END -->",
+		"",
+	);
+	write(abs(base, rel), lines.join("\n"));
+	console.log(`\nWrote ${rel} — ${fresh.length} change(s)\n`);
+	console.log(`Next    gh release create v${raw} --notes-file ${rel}\n`);
+	return 0;
+}
+
 // ---------------------------------------------------------------- guard
 
 const COMMIT_TYPES =
@@ -2516,7 +2888,8 @@ const COMMIT_TYPES =
 
 /**
  * Message gate, run by `.githooks/commit-msg`. The subject names the type and the task; the
- * body is the change file's summary. A repo with no task yet (the setup fill commit) has no
+ * body is the change file's `## What changed` paragraph. A repo with no task yet (the setup
+ * fill commit) has no
  * ID to name, so the gate stays out of the way until the first task exists.
  *
  * Advisory by design: a shared checkout must never block a human's `git commit`. A wrong
@@ -2554,7 +2927,9 @@ function guardCommitMessage(base, file) {
 		console.error(`  got:   ${subject || "(empty)"}`);
 		console.error("  want:  <type> (TASK-ID): <summary>");
 		console.error(`  types: ${COMMIT_TYPES.replaceAll("|", ", ")}`);
-		console.error("  body:  a blank line, then the change file's summary");
+		console.error(
+			"  body:  a blank line, then the change file's What-changed paragraph",
+		);
 		console.error("  The commit proceeds; rewrite it with `git commit --amend`.\n");
 		return 0;
 	};
@@ -2687,7 +3062,7 @@ function cmdSelftest() {
 		}
 	};
 	/** Fill the in-progress task the way a session would: write set, summary, no markers. */
-	const fillTask = (touches, summary) => {
+	const fillTask = (touches, summary, note = "filled by selftest") => {
 		const dir = abs(tmp, `${TASKS}/active`);
 		const files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
 		const p = abs(
@@ -2704,6 +3079,10 @@ function cmdSelftest() {
 					`touches: [${touches.map((t) => `"${t}"`).join(", ")}]`,
 				)
 				.replace(/summary: ""/, `summary: "${summary}"`)
+				.replace(
+					/\*\*Summary\*\*\s*—\s*<!--\s*FILL:summary[\s\S]*?-->/,
+					`**Summary** — ${note}`,
+				)
 				.replace(/<!--\s*FILL:[\s\S]*?-->/g, "filled by selftest"),
 		);
 		return p;
@@ -2715,7 +3094,11 @@ function cmdSelftest() {
 			JSON.stringify(
 				{
 					name: "fixture",
-					scripts: { build: 'node -e ""', test: 'node -e ""' },
+					scripts: {
+						build: 'node -e ""',
+						lint: 'node -e ""',
+						test: 'node -e ""',
+					},
 				},
 				null,
 				2,
@@ -2832,7 +3215,21 @@ function cmdSelftest() {
 			) === 0,
 			"task new exits 0",
 		);
-		fillTask(["src/index.ts"], "fixture change");
+		const freshDir = abs(tmp, `${TASKS}/active`);
+		const freshText = read(
+			abs(freshDir, fs.readdirSync(freshDir).find((f) => f.endsWith(".md"))),
+		);
+		assert(
+			freshText.includes("**Decisions**") &&
+				!/Assumptions taken|Learnings promoted|\*\*Files\*\*/.test(freshText) &&
+				freshText.length < 1800,
+			"a new task is a skeleton — intent, scope, decisions, plan, proof, no guidance prose",
+		);
+		fillTask(
+			["src/index.ts"],
+			"fixture change",
+			"The fixture changed one file, and the change file says so.",
+		);
 		write(abs(tmp, "src/index.ts"), "export const x = 2;\n");
 		write(abs(tmp, "src/other.ts"), "export const y = 1;\n");
 		git(tmp, ["add", "src/other.ts"]);
@@ -2870,12 +3267,33 @@ function cmdSelftest() {
 			taskFile,
 			read(taskFile).replace(/^summary: .*$/m, 'summary: "fixture change"'),
 		);
+		write(
+			taskFile,
+			read(taskFile).replace(
+				"## Plan",
+				"The plan names <!-- VERIFY:START --> in prose.\n\n## Plan",
+			),
+		);
 		const before = quiet(() => cmdTaskClose({ root: tmp }));
 		assert(before === 0, "task close exits 0 when the write set holds");
 		assert(
 			exists(abs(tmp, `${TASKS}/archive`)) &&
 				fs.readdirSync(abs(tmp, `${TASKS}/archive`)).length > 0,
 			"task archived",
+		);
+		const archivedRel =
+			expand(tmp, `${TASKS}/archive`).find((rel) => /TASK-101.*\.md$/.test(rel)) ||
+			"";
+		const archivedText = read(abs(tmp, archivedRel));
+		assert(
+			archivedText.includes("<!-- VERIFY:START -->") &&
+				!archivedText.includes("<!-- EVIDENCE:START -->"),
+			"recorded runs sit in the VERIFY block, and the old marker is gone",
+		);
+		assert(
+			archivedText.includes("The plan names <!-- VERIFY:START --> in prose.") &&
+				archivedText.includes("## Plan"),
+			"a marker named in the plan's prose is not mistaken for the real block",
 		);
 		const changeRel = expand(tmp, LOG_DIR).find((rel) =>
 			/^\.agents\/logs\/\d{2}-\d{4}\/.+\.md$/.test(rel),
@@ -2889,9 +3307,24 @@ function cmdSelftest() {
 		const changeText = read(abs(tmp, changeRel));
 		assert(
 			changeText.includes("# TASK-101 — fixture change") &&
-				changeText.includes("## 🔵 Changed") &&
-				changeText.includes("- `src/index.ts`"),
-			"the file says what happened (title) and what changed (category + inventory)",
+				changeText.includes("## What changed") &&
+				changeText.includes(
+					"The fixture changed one file, and the change file says so.",
+				),
+			"the file says what the task did",
+		);
+		assert(
+			changeText.includes("**Task:** [TASK-101](../../tasks/archive/") &&
+				!changeText.includes("**Date:**") &&
+				!changeText.includes("- `src/index.ts`") &&
+				changeText.includes("**Scope:** src"),
+			"the card links the task, keeps the date in the front matter, and lists no files",
+		);
+		assert(
+			!changeText.includes("## Why") &&
+				!changeText.includes("## Evidence") &&
+				!changeText.includes("## Follow-ups"),
+			"the plan's sections stay in the task; the change file does not copy them",
 		);
 		const taskIndexText = read(abs(tmp, TASK_INDEX));
 		assert(
@@ -3480,6 +3913,10 @@ function cmdSelftest() {
 			/\| build \| npm run build \| milestone \|/.test(tierProject),
 			"setup marks the build milestone and the test always",
 		);
+		assert(
+			/\| lint \| npm run lint \| always \|/.test(tierProject),
+			"lint rides the quick suite, so subtask closes run it",
+		);
 		const tierText = () => read(tierTask);
 		assert(
 			/^\| build \|.*\| full \|/m.test(tierText()),
@@ -3698,6 +4135,260 @@ function cmdSelftest() {
 				doctorRow("blocked tasks").status === "PASS",
 			"the other task stays blocked and the pair is consistent",
 		);
+
+		console.log(
+			"\n26. a subtask closes quick and the main close is where build runs",
+		);
+		assert(
+			quiet(() => cmdTaskClose({ root: tmp })) === 0,
+			"the resumed task closes and frees the slot",
+		);
+		quiet(() =>
+			cmdTaskNew({ root: tmp, slug: "subtask-main", lane: "quick" }),
+		);
+		const mainTask = fillTask(
+			[],
+			"prove the main close runs build",
+		);
+		const mainId = frontMatter(read(mainTask)).id;
+		const counterBefore = read(abs(tmp, `${TASKS}/.counter`));
+		quiet(() =>
+			cmdTaskNew({
+				root: tmp,
+				slug: "subtask-one",
+				lane: "quick",
+				parent: mainId,
+			}),
+		);
+		// The close edits project.md to redden the build, so it is part of the write set.
+		const childTask = fillTask(
+			["src/child.txt", PROJECT],
+			"prove a child close is quick",
+		);
+		const childId = frontMatter(read(childTask)).id;
+		write(abs(tmp, "src/child.txt"), "one\n");
+		assert(childId === `${mainId}.1`, "a subtask id extends the main id");
+		assert(
+			read(abs(tmp, `${TASKS}/.counter`)) === counterBefore,
+			"opening a subtask does not move the top-level counter",
+		);
+		assert(
+			frontMatter(read(mainTask)).status === "QUEUED",
+			"the main task waits while its subtask works",
+		);
+		assert(
+			captured(() => cmdStart({ root: tmp })).includes(`Parent  ${mainId}`),
+			"start names the parent of the active subtask",
+		);
+		const tieredProject = read(abs(tmp, PROJECT));
+		const redBuild = tieredProject.replace(
+			"| build | npm run build | milestone |",
+			'| build | node -e "process.exit(1)" | milestone |',
+		);
+		assert(redBuild !== tieredProject, "the fixture can turn the build red");
+		write(abs(tmp, PROJECT), redBuild);
+		const childClose = spoken(() => cmdTaskClose({ root: tmp }));
+		assert(
+			childClose.code === 0,
+			"a red build does not block a subtask close",
+		);
+		assert(
+			/^feat \(TASK-\d+\.\d+\): prove a child close is quick$/m.test(
+				childClose.out,
+			),
+			"the subtask prints its own commit message",
+		);
+		assert(
+			/^status: DONE$/m.test(read(childTask)),
+			"the subtask is DONE and still in active/",
+		);
+		assert(
+			!expand(tmp, LOG_DIR).some((rel) => rel.includes(`${childId}-`)),
+			"the subtask writes no change file",
+		);
+		assert(
+			frontMatter(read(mainTask)).status === "IN_PROGRESS",
+			"closing the last subtask hands the slot back",
+		);
+		assert(
+			captured(() => cmdStart({ root: tmp })).includes("Subtasks 1/1 done"),
+			"start reports the family state",
+		);
+		const mainRefused = spoken(() => cmdTaskClose({ root: tmp }));
+		assert(
+			mainRefused.code === 1 &&
+				mainRefused.out.includes("verification failed"),
+			"the main close runs build and refuses a red result",
+		);
+		assert(exists(mainTask), "a refused main close archives nothing");
+		write(abs(tmp, PROJECT), tieredProject);
+		const mainClose = spoken(() => cmdTaskClose({ root: tmp }));
+		assert(
+			mainClose.code === 0,
+			"fixing the build at the main close lets it through",
+		);
+		const archivedDir = abs(
+			tmp,
+			`${TASKS}/archive/${new Date().toISOString().slice(0, 7)}`,
+		);
+		assert(
+			exists(abs(archivedDir, path.basename(childTask))),
+			"the done subtask archives with the main task",
+		);
+		assert(
+			expand(tmp, LOG_DIR).filter((rel) => rel.includes(`-${mainId}-`))
+				.length === 1,
+			"one change file under the main id",
+		);
+		assert(
+			doctorRow("archived tasks changelogged").status === "PASS",
+			"doctor accepts a subtask archived inside its main task",
+		);
+		assert(
+			!read(abs(tmp, TASK_INDEX)).includes(childId),
+			"the recent list names the main task, not its subtasks",
+		);
+
+		console.log(
+			"\n27. a family shares one write set, one archive and one change file",
+		);
+		git(tmp, ["add", "-A"]);
+		git(tmp, [
+			"-c",
+			"user.email=t@t",
+			"-c",
+			"user.name=t",
+			"commit",
+			"-qm",
+			"settle before family",
+		]);
+		quiet(() =>
+			cmdTaskNew({ root: tmp, slug: "family-main", lane: "planned" }),
+		);
+		const familyMain = fillTask(["src/family"], "prove the family write set");
+		const familyId = frontMatter(read(familyMain)).id;
+		const familyCounter = read(abs(tmp, `${TASKS}/.counter`));
+		quiet(() =>
+			cmdTaskNew({
+				root: tmp,
+				slug: "family-one",
+				lane: "quick",
+				parent: familyId,
+			}),
+		);
+		const familyOne = fillTask(["src/family/one.txt"], "first slice");
+		write(abs(tmp, "src/family/one.txt"), "one\n");
+		assert(
+			doctorRow("write-set collisions").status === "PASS",
+			"doctor accepts a main task and its subtask sharing files",
+		);
+		assert(
+			quiet(() => cmdTaskClose({ root: tmp })) === 0,
+			"the first slice closes on the quick suite",
+		);
+		quiet(() =>
+			cmdTaskNew({
+				root: tmp,
+				slug: "family-two",
+				lane: "quick",
+				parent: familyId,
+			}),
+		);
+		const familyTwo = fillTask(["src/family/two.txt"], "second slice");
+		write(abs(tmp, "src/family/two.txt"), "two\n");
+		const familyTwoId = frontMatter(read(familyTwo)).id;
+		assert(
+			familyTwoId === `${familyId}.2`,
+			"the second subtask takes the next dotted number",
+		);
+		assert(
+			read(abs(tmp, `${TASKS}/.counter`)) === familyCounter,
+			"neither subtask moves the counter",
+		);
+		assert(
+			frontMatter(read(familyMain)).status === "QUEUED",
+			"opening the next subtask queues the main task again",
+		);
+		assert(
+			captured(() => cmdStart({ root: tmp })).includes("Subtasks 1/2 done"),
+			"start counts the family",
+		);
+		const openRefused = spoken(() => cmdTaskClose({ root: tmp, id: familyId }));
+		assert(
+			openRefused.code === 1 &&
+				openRefused.out.includes("subtasks still open"),
+			"the main close refuses while a subtask is open",
+		);
+		assert(
+			quiet(() => cmdTaskClose({ root: tmp })) === 0,
+			"the second slice closes on the quick suite",
+		);
+		const familyClose = spoken(() => cmdTaskClose({ root: tmp }));
+		assert(familyClose.code === 0, "the main close delivers the family");
+		assert(
+			exists(abs(archivedDir, path.basename(familyOne))) &&
+				exists(abs(archivedDir, path.basename(familyTwo))),
+			"both subtasks archive with the main task",
+		);
+		assert(
+			expand(tmp, LOG_DIR).filter((rel) => rel.includes(`-${familyId}-`))
+				.length === 1,
+			"one change file for the whole delivery",
+		);
+		assert(
+			doctorRow("subtasks").status === "PASS",
+			"doctor accepts the family once it is archived",
+		);
+
+		console.log("\n28. a release collects the change files no release claims");
+		assert(
+			quiet(() => cmdRelease({ root: tmp, version: "v0.1.0" })) === 0,
+			"release writes the version file",
+		);
+		const releaseRel = "releases/v0.1.0.md";
+		assert(exists(abs(tmp, releaseRel)), "releases/v0.1.0.md exists");
+		const releaseText = read(abs(tmp, releaseRel));
+		assert(
+			releaseText.split(/\r?\n/)[0] === "# Release v0.1.0",
+			"the first line names the version",
+		);
+		assert(
+			releaseText.includes("### Changed") &&
+				releaseText.includes("- fixture change (TASK-101)") &&
+				!releaseText.includes("Touched Modules"),
+			"the release lists each task under its category, with no file inventory",
+		);
+		assert(
+			/<!-- RELEASED:START -->[\s\S]*TASK-101[\s\S]*<!-- RELEASED:END -->/.test(
+				releaseText,
+			),
+			"the release records the tasks it claims",
+		);
+		assert(
+			doctorRow("release notes").status === "PASS",
+			"doctor accepts a release file",
+		);
+		assert(
+			quiet(() => cmdRelease({ root: tmp, version: "0.1.0" })) === 1,
+			"the same version is refused",
+		);
+		assert(
+			quiet(() => cmdRelease({ root: tmp, version: "0.2.0" })) === 1,
+			"a version with nothing new is refused",
+		);
+		write(
+			abs(tmp, releaseRel),
+			releaseText.replace("# Release v0.1.0", "# Release 0.1.0"),
+		);
+		assert(
+			doctorRow("release notes").status === "FAIL",
+			"doctor fails a release whose first line does not name its version",
+		);
+		write(abs(tmp, releaseRel), releaseText);
+		assert(
+			doctorRow("release notes").status === "PASS",
+			"doctor accepts it again once the heading is restored",
+		);
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });
 		if (junkDir) fs.rmSync(junkDir, { recursive: true, force: true });
@@ -3775,7 +4466,7 @@ function main(argv) {
 			return cmdVerify({
 				root: process.cwd(),
 				baseline: flag("baseline"),
-				full: flag("full"),
+				full: flag("full") ? true : undefined,
 			});
 		case "harnesses":
 			return cmdHarnesses({ root: process.cwd() });
@@ -3788,6 +4479,7 @@ function main(argv) {
 					lane: value("lane"),
 					force: flag("force"),
 					noBaseline: flag("no-baseline"),
+					parent: value("parent"),
 				});
 			if (sub === "show")
 				return cmdTaskShow({ root: process.cwd(), id: value("id") });
@@ -3813,7 +4505,7 @@ function main(argv) {
 					message: value("message"),
 				});
 			return die(
-				'usage: task new <slug> | task show | task block "<question>" | task resume | task close [--id TASK-N] [--amend "<why>"] [--pr] | task guard [--message <file>]',
+				'usage: task new <slug> [--parent TASK-N] | task show | task block "<question>" | task resume | task close [--id TASK-N] [--amend "<why>"] [--pr] | task guard [--message <file>]',
 			);
 		}
 		case "learnings": {
@@ -3821,6 +4513,8 @@ function main(argv) {
 				return die("usage: learnings archive  (moves entries past the 30 cap)");
 			return cmdLearningsArchive({ root: process.cwd() });
 		}
+		case "release":
+			return cmdRelease({ root: process.cwd(), version: positional[0] });
 		case "selftest":
 			return cmdSelftest();
 		case "help":
@@ -3834,7 +4528,7 @@ function main(argv) {
 			return 0;
 		default:
 			return die(
-				`unknown command: ${cmd} (setup|check|pull|doctor|start|verify|harnesses|task|learnings|selftest)`,
+				`unknown command: ${cmd} (setup|check|pull|doctor|start|verify|harnesses|task|learnings|release|selftest)`,
 			);
 	}
 }

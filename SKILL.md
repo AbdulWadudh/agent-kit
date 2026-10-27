@@ -71,7 +71,14 @@ a rewrite.
 
 `task new <slug> --lane quick|planned`. It records the baseline run itself — a full one, so the
 milestone rows are on record before you touch anything. Before the first edit, fill the task's
-intent, scope and `touches` — the exact paths you will write.
+intent, scope and `touches` — the exact paths you will write. Keep it minimal: intent, scope,
+the decisions a later session would re-open (each with its pointer), the plan, the proof and
+the summary. If an explanation changes no later action, it is not recorded.
+
+A task too big for one sitting splits into subtasks: `task new <slug> --lane quick|planned
+--parent TASK-N` opens `TASK-N.M`, queues the main task, and records a quick baseline. One
+subtask is in progress at a time. The main task stays QUEUED until its last subtask closes.
+Do not use a subtask to dodge G1: the plan and the gate are the main task's.
 
 ## 4. G1 — plan approval (PLANNED only)
 
@@ -94,6 +101,9 @@ progress, and a green you did not cause is not a fix. Three identical red runs o
 files make `verify` refuse — and `task close` with it — until the Plan says what the next
 attempt changes; `task show` prints `Loop: n/3`.
 
+A subtask's quick suite is its whole close: test, typecheck and lint, but not build. Build is
+not skipped, only moved — it runs at the main task's close, over the family's union of files.
+
 ## 7. G2 — result approval (PLANNED only)
 
 Report what changed and the evidence, in the user's words. Wait for a yes, then close.
@@ -102,14 +112,33 @@ Report what changed and the evidence, in the user's words. Wait for a yes, then 
 
 `task close` runs the full suite, refuses a red result, checks the diff against `touches`,
 inventories the files, archives the plan and writes the change file (`.agents/logs/MM-YYYY/`).
+The card is the completion record: a `**Task:**` link to the archived plan, `**Scope:**`, then
+`## What changed` with the close-out paragraph. No date (the front matter has it), no file list
+(the task's `FILES` block has it); the plan, evidence and follow-ups stay in the task the link
+points at.
 It prints the commit message already in the hook's shape — subject and body — so closing and
 committing do not drift apart. `--pr` also prints a PR body built from the change file and the
 evidence. `--amend "<why>"` accepts a declared breach and writes the reason into the plan —
 only with the user's reason, never as a way past a red suite.
 
+A subtask closes differently: `task close` runs the quick suite (lint included), marks it DONE
+and leaves it in `active/`, and prints its own commit message. It writes no change file and
+archives nothing. The last subtask close puts the main task back in progress.
+
+The main task's close is the milestone. It refuses while a subtask is open, then runs the full
+suite, build included. A red build stops the close with its rows recorded: fix those errors
+now, in this task, and close again; the suite re-runs. Green, the main task and its DONE
+subtasks archive together, the change file is one, the write set is the main task's files plus
+every subtask's, and the commit message is under the main id.
+
 Commits are split by task and by kind of change: one task that adds, fixes and documents is
 three commits. The subject is `type (TASK-ID): summary`; the body is the change file's
-summary. Stage those files, never the tree. `.githooks/commit-msg` warns when the shape misses
+`## What changed` paragraph.
+
+`agent-kit release <version>` rolls every card no earlier release claims into
+`releases/vX.Y.Z.md` — `# Release vX.Y.Z`, the date, then `### Added`, `### Changed`,
+`### Fixed` and `### Removed`, one line per task. It writes the file and prints the
+`gh release create --notes-file` line; running git stays with the owner. Stage those files, never the tree. `.githooks/commit-msg` warns when the shape misses
 and never blocks; keeping it right is on you. The rule and its type list are
 `.agents/rules/_behavior.md` §10.
 

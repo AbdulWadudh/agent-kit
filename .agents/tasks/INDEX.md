@@ -8,13 +8,31 @@ the one task it names; not the folders.
 
 ## Routing
 
-1. **Check Active** below. If a task is in flight, open it and resume from its last recorded
-   step. Do not start a second one.
-2. **Otherwise open a task:** `agent-kit task new <slug> --lane quick|planned`.
-3. **Looking for what is next?** Read `BACKLOG.md` — parked candidates, not tasks. A row
+1. **Start with `agent-kit start`.** It prints the branch, the commands and their tiers, what
+   is in flight, the gate, the last evidence, and one next action — reading it replaces
+   guessing where the session stopped.
+2. **Check Active** below. If a task is in progress, open it and resume from its last recorded
+   step. Do not start a second one. A `BLOCKED` task does not hold the slot: its question waits
+   in the file until `agent-kit task resume` (the owner has answered), and only then is it the
+   session's work again.
+3. **Otherwise open a task:** `agent-kit task new <slug> --lane quick|planned`. A task too
+   large for one sitting splits: add `--parent TASK-N` and it opens `TASK-N.M` (see Subtasks).
+4. **Looking for what is next?** Read `BACKLOG.md` — parked candidates, not tasks. A row
    becomes work only when the owner picks it, and then it is deleted.
-4. **Never work from memory.** The task file is the state; if a fact is not in it, it did not
+5. **Never work from memory.** The task file is the state; if a fact is not in it, it did not
    happen.
+
+## Subtasks
+
+A subtask is the same task file with a dotted id and a `parent:` line. The main task is QUEUED
+while one of its subtasks is in progress; only one subtask runs at a time. A subtask closes on
+the quick suite and stays DONE in `active/`; closing the last one puts the main task back in
+progress.
+
+The main close is the milestone: it refuses while a subtask is open, runs the full suite —
+build included — and errors found there are fixed at that moment, not deferred. Green,
+the family archives together under the main id: one change file, one commit message, and the
+write set is the main task's files plus every subtask's.
 
 ## Lanes
 
@@ -22,7 +40,7 @@ the one task it names; not the folders.
 |---|---|---|
 | **Eligible when** | three files or fewer, one domain, reversible with `git revert`, no contract change | everything else |
 | **G1 — plan** | record intent in the task and proceed | **halt** for approval before the first edit |
-| **G2 — result** | `task close` runs the suite and closes | **halt** for approval after the suite, before close |
+| **G2 — result** | `task close` runs the full suite and closes (a subtask closes on the quick suite, lint included; its main task runs build) | **halt** for approval after the suite, before close |
 | **Typical** | typo, doc fix, one-file bug, a test | feature, refactor, schema, interface change |
 
 ## Gates
@@ -52,6 +70,8 @@ _Nothing in flight._
 ## Recent
 
 <!-- RECENT:START -->
+- `2026-10-27` [TASK-105](archive/2026-10/2026-10-27-TASK-105-changelog-shape.md) — a changelog entry carries the task summary, and each version gets a release file
+- `2026-10-27` [TASK-104](archive/2026-10/2026-10-26-TASK-104-subtask-close.md) — subtasks close quick with lint; the main task runs build at close
 - `2026-10-26` [TASK-103](archive/2026-10/2026-10-26-TASK-103-session-ergonomics.md) — one command for session state, tiered verify, blocked tasks, close artifacts
 - `2026-10-26` [TASK-101](archive/2026-10/2026-10-26-TASK-101-hook-smoke.md) — prove the hook fires
 <!-- RECENT:END -->
@@ -59,5 +79,6 @@ _Nothing in flight._
 ## History
 
 Closed tasks move to `.agents/tasks/archive/YYYY-MM/`, and each leaves one change file in
-`.agents/logs/MM-YYYY/`. The five newest of both are listed above and in the logs index;
-open anything older only when the user asks about it.
+`.agents/logs/MM-YYYY/`. A DONE subtask waits in `active/` until its main task closes, then
+archives with it under the main task's single change file. The five newest of both are listed
+above and in the logs index; open anything older only when the user asks about it.

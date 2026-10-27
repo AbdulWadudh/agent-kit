@@ -22,7 +22,7 @@ verification gate cite it; none of them restates it.
 | lint | `node scripts/agent-kit.mjs doctor` | always |
 
 `bun` runs the same file unchanged. No build step: the script is the artifact. Both rows are
-fast enough for every run, so neither is `milestone` here.
+fast enough for every run; a target repo's build is the row that would be `milestone`.
 
 ## Entry points
 

@@ -28,12 +28,16 @@ create a contradiction with a delay on it.
 A directory is read through its `INDEX.md`: one row, then one file. A folder listing is not
 context.
 
-## 3. Plans contain no code
+## 3. Plans contain no code, task files contain no narrative
 
-A plan states intent, steps, files and acceptance criteria. Code goes to the file, in one
-pass. The only literals a plan may contain are exact strings: a regex, a migration, a CLI
-command, a config key, an error message. A plan full of code has already done the work
+A plan states intent, steps, files, decisions and acceptance criteria. Code goes to the file,
+in one pass. The only literals a plan may contain are exact strings: a regex, a migration, a
+CLI command, a config key, an error message. A plan full of code has already done the work
 without review.
+
+The task file is read by the next session, so it holds only what changes a later action:
+intent, scope, the decisions that would otherwise be re-opened (each with its pointer), the
+steps, the proof, and the close-out. Explanation that changes no later action is not recorded.
 
 ## 4. Chunked writes
 

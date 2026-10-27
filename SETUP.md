@@ -161,13 +161,15 @@ are not a reason to keep editing.
 | markdown links resolve | an index link points at a missing file |
 | declared commands | `project.md` names a package script that `package.json` does not have, or a `When` value is not `always` or `milestone` |
 | active tasks indexed | a task file in `active/` is not in the task index |
-| write-set collisions | two active tasks declare overlapping `touches` |
+| write-set collisions | two active tasks declare overlapping `touches` (a main task and its subtasks are one family and may overlap) |
 | blocked tasks | a `BLOCKED` task carries no question, or a task carries the block marker without the status |
+| subtasks | a subtask has no parent or its parent is not active, a main task is in progress with a subtask open, or a queued main task has every subtask done |
 | backlog | a row in `.agents/tasks/BACKLOG.md` has an unknown status, a reused ID, a missing cell, or an empty item, source or next step |
 | rules are checkable | a rule file contains advice ("be careful", "try to", "consider") instead of a rule |
 | rules indexed | a file in `.agents/rules/` has no row in its `INDEX.md`, or a row names a missing file |
 | archived tasks changelogged | a task is in `archive/` but has no file under `.agents/logs/MM-YYYY/` |
 | recent lists | a task or logs index is missing its `RECENT` block, or the last five entries are stale |
+| release notes | a file under `releases/` does not start with `# Release vX.Y.Z` matching its filename; no folder is fine |
 | commit guard | WARN, not FAIL: the optional `pre-commit` and `commit-msg` hooks are not wired in this clone |
 | commit identity | a commit message carries AI attribution (FAIL); a commit author is not the configured identity (WARN) |
 
@@ -191,13 +193,21 @@ A failure here is the repo's problem, not the kit's: report it, do not work over
 
 The baseline is a **full** run. The `When` cell in `project.md` splits the rows:
 
-- `always` — `verify` runs it on every pass. Setup marks test, lint and typecheck here.
-- `milestone` — only the baseline, `verify --full` and `task close` run it. Setup marks build
-  here, because a full build is what makes an inner-loop iteration slow.
+- `always` — `verify` and every close run it. Setup marks test, typecheck and lint here.
+- `milestone` — only the baseline, `verify --full` and a top-level task's close run it. Setup
+  marks build here: a full build is what makes an iteration slow, and it is worth paying for
+  once, at the end. A subtask's close is quick, so it does not run the milestone rows.
 
 So the inner loop is `verify` (quick), and the expensive row cannot be skipped at close:
-`task close` runs the full suite itself. Move a command between tiers in `project.md`, not in
-the kit, and confirm the slowest row is `milestone` while filling the file.
+`task close` on a top-level task runs the full suite itself. Move a command between tiers in
+`project.md`, not in the kit, and mark the slowest commands `milestone` while filling the file.
+
+A task too large for one sitting splits into subtasks: `task new <slug> --parent TASK-N` opens
+`TASK-N.M` and queues the main task. A subtask closes on the quick suite, so test, typecheck
+and lint run per subtask. The main task's close is where build runs: it refuses while a
+subtask is open, runs the full suite, and an error found there is fixed in that moment and the
+close re-run. The family then archives under the main id with one change file and one commit
+message.
 
 `task show` and `start` say when the quick run is the whole story and when the milestone rows
 still wait. `start` is the read-only brief to begin a session with: branch, commands and tiers,
@@ -218,8 +228,8 @@ If git has no identity here, stop and ask — do not invent one.
 
 The fill commit is the one commit that needs no task ID, because no task exists yet. From the
 first task on, a commit is one task and one kind of change: the subject is
-`type (TASK-ID): summary`, and the body is the change file's summary. The rule and its type
-list are `.agents/rules/_behavior.md` §10.
+`type (TASK-ID): summary`, and the body is the change file's `## What changed` paragraph. The
+rule and its type list are `.agents/rules/_behavior.md` §10.
 
 `setup` does not touch git config. If an agent will commit unattended in this clone and you want
 the earlier warning, opt in once:

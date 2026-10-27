@@ -37,6 +37,7 @@
     ".agents/tasks/active",
     ".agents/tasks/archive",
     ".agents/tasks/.counter",
-    ".agents/logs"
+    ".agents/logs",
+    "releases"
   ]
 }

@@ -1,77 +1,58 @@
 ---
 id: {{ID}}
+parent: ""
 lane: {{LANE}}
 status: IN_PROGRESS
 created: {{DATE}}
 baseline: {{BASELINE}}
 touches: []
 depends_on: []
-type: changed  # added | changed | fixed | removed — what kind of change this is
+type: changed  # added | changed | fixed | removed
 summary: ""
 ---
 # {{ID}} — {{TITLE}}
 
 ## Scope (frozen once approved)
 
-**Intent**
-<!-- FILL:intent — the user's request in one or two sentences, in their words. -->
+**Intent** — <!-- FILL:intent — one or two sentences: what the owner asked, in their words. -->
 
 **In scope**
 - <!-- FILL:in-scope -->
 
 **Out of scope**
-- <!-- FILL:out-of-scope — say what you are deliberately not touching. -->
+- <!-- FILL:out-of-scope -->
 
-**Assumptions taken without asking**
-- none
-
-An assumption carries the evidence it stands on (`path:line`, a command's result, or the
-owner's words); with no evidence, write the still-open question here instead.
+**Decisions** — only choices a later session would otherwise re-open, each with the pointer it
+rests on (`path:line`, a command's result, or the owner's words). No explanation.
+- <!-- FILL:decision -->
 
 ## Plan
 
-1. <!-- FILL:step-1 -->
+1. <!-- FILL:step -->
 
-**Files** — must match `touches` above.
-
-**Evidence** — the `path:line`, command or owner quote each step rests on. A step resting on
-none says `Assumption:` and the check that will settle it.
-
-**Test plan** — the command, the expected result, and for a new check, its expected failure
-on the unfixed tree. A probe never seen failing is unproven.
+**Test plan** — command → expected; a new check also shows its failing run.
+- <!-- FILL:test -->
 
 ## Baseline (before the change)
-
-`agent-kit verify --baseline` writes this table. It is the "was it already broken?" answer: a
-failure present here is reported, not worked over.
 
 <!-- BASELINE:START -->
 <!-- BASELINE:END -->
 
 ## Verification
 
-`agent-kit verify` writes this table. Do not hand-write exit codes. A quick run records the
-`always` rows; `verify --full` and close add the `milestone` rows, so each row carries its
-scope. `task close` refuses a table that records a non-zero exit.
-
-<!-- EVIDENCE:START -->
+<!-- VERIFY:START -->
 | Action | Command | Scope | Expected | Observed | Exit |
 |---|---|---|---|---|---|
 | — | not run | — | — | — | — |
-<!-- EVIDENCE:END -->
+<!-- VERIFY:END -->
 
 ## Close-out
 
-**Outcome** — <!-- FILL:outcome — one line, plain words, factual. Becomes the change file title. -->
+**Summary** — <!-- FILL:summary — one short paragraph: what the task did and why. Reused in the change card and the commit body. -->
 
-**Docs updated**
-- <!-- FILL:docs-updated — or write "none needed: <reason>" and delete the bullet. -->
+**Docs updated** — <!-- FILL:docs-updated — or "none needed: <reason>" -->
 
-**Learnings promoted**
-- none
-
-**Follow-ups**
-- none
+**Follow-ups** — none
 
 <!-- FILES:START -->
 <!-- FILES:END -->
