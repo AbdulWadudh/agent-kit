@@ -1,3 +1,7 @@
+---
+trigger: always_on
+---
+
 # Behaviour — how work is done here
 
 Cross-cutting rules. They apply to every task, every file, every agent.
@@ -17,7 +21,7 @@ Cross-cutting rules. They apply to every task, every file, every agent.
   cleaner" is not a proposal.
 - A commit outside the declared write set is not refused by the repo — `.githooks/pre-commit`
   is per-clone and opt-in. Do not rely on it; `task close` is the check that always runs. A
-  git hook is never bypassed; see §10.
+  git hook is never bypassed; see `.agents/rules/commits.md`.
 
 ## 2. One home per fact
 
@@ -105,30 +109,8 @@ words. Name the risk and the cost. Leave the jargon in the code.
 
 ## 10. Commits are the owner's
 
-- Use the repo's configured identity. Never pass `-c user.name` or `-c user.email`, and never
-  invent one from session context. No identity configured: stop and ask.
-- No `Co-Authored-By`, no "Generated with ...", no AI attribution in commits, PR bodies,
-  issues or changelog entries.
-- Commit or push only when asked. On the default branch, branch first.
-- One commit is one task and one kind of change. A task that adds a feature, fixes a bug and
-  updates docs is three commits, each with the files that belong to it. Never one bulk commit
-  for a session's work.
-- Stage by path. `git add -A`, `git add .` and `git commit -a` sweep in work that belongs to
-  another commit; a path that is not part of this commit stays unstaged.
-- The subject carries the type and the task:
-  `type (TASK-ID): imperative summary` — lower-case type, one space before the parenthesis,
-  no full stop. Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `build`,
-  `ci`, `style`, `revert`.
-- The body is the change file's summary, after one blank line: what changed and why, in plain
-  words. A commit with no body is not finished.
-- `.githooks/commit-msg` prints the expected shape when a message misses it and exits 0; it
-  never blocks the owner, so this rule is the session's alone to keep. `.githooks/pre-commit`
-  checks the write set. The one commit without a task ID is the setup fill commit, made before
-  the first task exists.
-- Every closed task leaves one change file under `.agents/logs/MM-YYYY/`: the summary and the
-  files it touched. `task close` writes it and refreshes the five-entry Recent lists in both
-  indexes; never hand-write one, and never keep a second ledger.
-- A failing scope hook gets its cause fixed. `--no-verify` is not an option.
+Commit or push only when asked. Before the first commit, read `.agents/rules/commits.md` — the
+identity, attribution, split, staging, subject, body and hooks live there, not here.
 
 ## 11. Decisions before build
 
@@ -145,18 +127,13 @@ words. Name the risk and the cost. Leave the jargon in the code.
 
 ## 12. Sources before memory
 
-- Check the installed skills and MCP servers first, and name the one you used. A skill that
-  applies is not optional — questions and exploration included.
-- Recommended companions, and their sources: ponytail
-  (https://github.com/DietrichGebert/ponytail), prompt-master
-  (https://github.com/nidhinjs/prompt-master), caveman
-  (https://github.com/juliusbrussee/caveman), anthropic skills
-  (https://github.com/anthropics/skills). Being recommended is not consent: ask the owner
-  "shall I install the recommended skills?" and install only what comes back yes.
-  `agent-browser` (https://github.com/vercel-labs/agent-browser, skill at
-  https://agent-browser.dev/skills) is a separate question — it drives a real browser.
-- Keep an installed skill current from its own source when asked. Never install one the owner
-  declined, never re-add one that was removed without asking, and never install one "while you
-  were there".
+- Check installed skills and MCP servers first, and name the one you used; a skill that applies
+  is part of the plan. Installing one is the owner's yes at setup — `SETUP.md` §3.
+- Companions, and where each pays off: ponytail — over-building; prompt-master — prompts as
+  readable prose; caveman — session token cost; anthropic skills — documents, slides, PDFs,
+  frontend; agent-browser — real pages, opt-in and asked separately, because it can reach live
+  sites and accounts.
+- Keep an installed skill current from its own source when asked; never re-add one the owner
+  declined, and never install one "while you were there".
 - For a library, SDK, CLI or cloud API, read current docs rather than training data. With
   `docs-lookup.md` installed that means `ctx7`; otherwise the project's own source of truth.

@@ -27,7 +27,7 @@ plan. A skill that matches is part of the plan, not a preference: read it and fo
 fit, take the narrowest; none fits, say so and write the smallest step by hand. Use a configured
 MCP server before a hand-written script that does the same, and an existing CLI or repo script
 before a one-off. Re-check when the task changes shape. Installing a skill or wiring an MCP
-server is `SETUP.md` §3 and the owner's yes — not a mid-task fix. The rule and its sources are
+server is `SETUP.md` §3 and the owner's yes — not a mid-task fix. The rule itself is
 `.agents/rules/_behavior.md` §12.
 
 `agent-kit harnesses` lists the coding agents installed on this machine — HOME config, PATH,
@@ -36,7 +36,7 @@ repo, and wire `SKILL.md` for each harness that has a skill folder; the command 
 paths. It is a report, not a gate.
 
 Keep them current when the owner asks: reinstall from the skill's own source, listed in
-`.agents/rules/_behavior.md` §12. Where `agent-browser` is installed it drives a real browser:
+`SETUP.md` §3. Where `agent-browser` is installed it drives a real browser:
 it never sends, posts, buys or logs in unless the task says to.
 
 ## Shell output — run it through rtk
@@ -131,16 +131,13 @@ now, in this task, and close again; the suite re-runs. Green, the main task and 
 subtasks archive together, the change file is one, the write set is the main task's files plus
 every subtask's, and the commit message is under the main id.
 
-Commits are split by task and by kind of change: one task that adds, fixes and documents is
-three commits. The subject is `type (TASK-ID): summary`; the body is the change file's
-`## What changed` paragraph.
+Before committing, read `.agents/rules/commits.md` — the split, subject, body and staging.
 
 `agent-kit release <version>` rolls every card no earlier release claims into
 `releases/vX.Y.Z.md` — `# Release vX.Y.Z`, the date, then `### Added`, `### Changed`,
 `### Fixed` and `### Removed`, one line per task. It writes the file and prints the
-`gh release create --notes-file` line; running git stays with the owner. Stage those files, never the tree. `.githooks/commit-msg` warns when the shape misses
-and never blocks; keeping it right is on you. The rule and its type list are
-`.agents/rules/_behavior.md` §10.
+`gh release create --notes-file` line; running git stays with the owner. Stage those files, never
+the tree; `.githooks/commit-msg` warns when the shape misses and never blocks.
 
 ## 9. Report
 

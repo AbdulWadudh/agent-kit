@@ -64,7 +64,7 @@ the vocabulary, the IDs and the cells, so a malformed row fails before it wastes
 ## Active
 
 <!-- ACTIVE:START -->
-- `TASK-107` [IN_PROGRESS] PLANNED — [2026-10-27-TASK-107-rules-split.md](active/2026-10-27-TASK-107-rules-split.md)
+- `TASK-107` [BLOCKED] PLANNED — [2026-10-27-TASK-107-rules-split.md](active/2026-10-27-TASK-107-rules-split.md)
 <!-- ACTIVE:END -->
 
 ## Recent

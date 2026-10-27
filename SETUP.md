@@ -100,19 +100,19 @@ message, in these words or close to them:
 > browser, including live sites and accounts, so it is opt-in — install that too, or leave it?
 
 Then read the answer as a list: each yes is installed and reported, each no is dropped for this
-repo and not asked again unprompted. Sources for every one of them are in
-`.agents/rules/_behavior.md` §12 — one home, so the list cannot drift between files.
+repo and not asked again unprompted. Sources are in the table.
 
-| Skill | Gap the kit's own loop does not close |
-|---|---|
-| ponytail | over-building: the smallest change that works, and the check that proves it |
-| prompt-master | a prompt written for one tool instead of prose the owner can read |
-| caveman | token cost of long sessions |
-| anthropic skills | documents, spreadsheets, slides, PDFs, frontend polish |
+| Skill | Gap the kit's own loop does not close | Source |
+|---|---|---|
+| ponytail | over-building: the smallest change that works, and the check that proves it | https://github.com/DietrichGebert/ponytail |
+| prompt-master | a prompt written for one tool instead of prose the owner can read | https://github.com/nidhinjs/prompt-master |
+| caveman | token cost of long sessions | https://github.com/juliusbrussee/caveman |
+| anthropic skills | documents, spreadsheets, slides, PDFs, frontend polish | https://github.com/anthropics/skills |
 
 `agent-browser` is **opt-in and asked separately**. It drives a real browser: live sites,
 accounts, local pages. Never install it because it looked useful; ask whether this repo needs
-an agent that can load and click pages, and take a no.
+an agent that can load and click pages, and take a no. Source:
+https://github.com/vercel-labs/agent-browser (skill at https://agent-browser.dev/skills).
 
 Install with the harness's own mechanism (its skill folder, or its plugin command). Leave it
 as a pointer, never a copy: `doctor`'s `skill pointers` row fails a copy of an installed
@@ -229,7 +229,7 @@ If git has no identity here, stop and ask — do not invent one.
 The fill commit is the one commit that needs no task ID, because no task exists yet. From the
 first task on, a commit is one task and one kind of change: the subject is
 `type (TASK-ID): summary`, and the body is the change file's `## What changed` paragraph. The
-rule and its type list are `.agents/rules/_behavior.md` §10.
+rule and its type list are `.agents/rules/commits.md`.
 
 `setup` does not touch git config. If an agent will commit unattended in this clone and you want
 the earlier warning, opt in once:

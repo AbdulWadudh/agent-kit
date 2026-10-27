@@ -261,7 +261,7 @@ finds them even when the repo shows no harness config.
 Companion skills are recommended, not bundled: ponytail, prompt-master, caveman and the
 anthropic skills — and `agent-browser` only if you say yes, because it drives a real browser
 and can reach live sites and accounts. The sources and the exact question to ask are in
-`SETUP.md` §3 and `.agents/rules/_behavior.md` §12.
+`SETUP.md` §3.
 
 No plugin: a plugin is code that runs on every turn, and this needs instructions at the
 moment the work starts. `examples/minimal/` shows a filled repo, for when you want to see the

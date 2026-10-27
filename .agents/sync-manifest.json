@@ -11,6 +11,7 @@
     ".agents/templates",
     ".agents/rules/INDEX.md",
     ".agents/rules/_behavior.md",
+    ".agents/rules/commits.md",
     ".agents/rules/anti-patterns.md"
   ],
   "seeds": {

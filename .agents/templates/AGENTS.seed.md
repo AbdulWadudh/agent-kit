@@ -37,7 +37,7 @@ You are working in <PROJECT NAME>. Read this file once per session, then follow 
 - Close a task with edits it does not record.
 - Commit as the session. Git's configured identity is the author — never `-c user.name`, never
   `-c user.email`, never a name from the conversation — and no `Co-Authored-By`, "Generated with",
-  or any other AI attribution in a commit, PR or changelog. It is `_behavior.md` §10.
+  or any other AI attribution in a commit, PR or changelog. It is `.agents/rules/commits.md`.
 - Hand the user a command to run. Execute it, then report the result in one or two lines. If this
   environment cannot execute it, say so and stop — never hand over a script, and never claim the
   step passed.

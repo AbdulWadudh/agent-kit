@@ -40,7 +40,8 @@ Read, in order:
 1. `SETUP.md` — the install contract the change must keep true.
 2. `.agents/sync-manifest.json` — what travels to a target repo and what never does.
 3. `.agents/rules/_behavior.md` — how work is planned, verified and closed here.
-4. `docs/INDEX.md` — this repo's own map (it is small on purpose).
+4. `.agents/rules/commits.md` — the commit conventions.
+5. `docs/INDEX.md` — this repo's own map (it is small on purpose).
 
 Then run the gates before and after:
 
@@ -60,6 +61,7 @@ else lands here:
 | The change is | Home | Also update |
 |---|---|---|
 | a rule for every task, in every repo | `.agents/rules/_behavior.md` | its row in `.agents/rules/INDEX.md` |
+| a commit-time rule | `.agents/rules/commits.md` | its row in `.agents/rules/INDEX.md` |
 | a new hallucination guard | `.agents/rules/anti-patterns.md` | its row in `.agents/rules/INDEX.md` |
 | a rule example for a domain | `.agents/templates/rule-examples/<domain>.md` | `rule-examples/INDEX.md` |
 | a file every installed repo starts with | `.agents/templates/<name>.seed.md` | manifest `seeds`, `.agents/templates/INDEX.md`, `SETUP.md` |

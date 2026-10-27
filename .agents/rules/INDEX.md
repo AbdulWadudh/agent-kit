@@ -4,15 +4,17 @@
 not pay for it.
 
 **Load it when** — every session. Open `_behavior.md`; add only the domain files whose "read
-when" column matches the files you will touch. Load only what matches.
+when" column matches the files you will touch or the step you are about to take. Load only what
+matches.
 
 | Domain | File | Read when |
 |---|---|---|
 | Behaviour | `_behavior.md` | every session |
 | Repo memory | `learnings.md` | before planning anything |
 | Hallucination guards | `anti-patterns.md` | adding an import, endpoint or dependency |
+| Commits | `commits.md` | before the first commit of a task |
 
-The domain files here are the two every repo needs. Add one more per domain you actually
+The files above ship with every repo. Add one more per domain you actually
 have — `typescript`, `database`, `payments`, `auth`, `mobile` — by copying the matching
 example from `.agents/templates/rule-examples/` and editing it. The steps for adding,
 changing or removing a rule are in `.agents/templates/INDEX.md`. A domain with no file is a

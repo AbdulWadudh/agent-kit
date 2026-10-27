@@ -32,7 +32,8 @@ The owner states the rule; the agent finds its home and writes it down. A rule t
 in the conversation does not exist.
 
 1. **Find the home.** An existing file that owns the domain wins: edit its bullet. A
-   cross-cutting rule goes in `_behavior.md`; a hallucination guard in `anti-patterns.md`. A
+   cross-cutting rule goes in `_behavior.md`; a hallucination guard in `anti-patterns.md`; a
+   commit-time rule in `commits.md`. A
    new domain copies the closest file from `rule-examples/`; no example fits, write one in the
    same shape. A stack fact, a command or a path is not a rule — it belongs in
    `.agents/project.md` or `docs/`.
