@@ -1434,11 +1434,17 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 	);
 
 	const collisions = [];
-	const touches = active.map((f) => {
-		const fm = frontMatter(read(abs(activeDir, f)));
-		const family = CHILD_ID.test(fm.id || "") ? parentId(fm) : fm.id;
-		return { f, t: list(fm.touches), family };
-	});
+	// A blocked card is parked, not in flight: `task resume` refuses while another task is in
+	// progress, so it can never be edited alongside one. Reserving its files only deadlocks the
+	// card that is actually in flight.
+	const touches = active
+		.map((f) => ({ f, fm: frontMatter(read(abs(activeDir, f))) }))
+		.filter(({ fm }) => fm.status !== "BLOCKED")
+		.map(({ f, fm }) => ({
+			f,
+			t: list(fm.touches),
+			family: CHILD_ID.test(fm.id || "") ? parentId(fm) : fm.id,
+		}));
 	for (let i = 0; i < touches.length; i++) {
 		for (let j = i + 1; j < touches.length; j++) {
 			// A parent and its subtasks share one delivery; overlapping write sets inside a
@@ -4423,6 +4429,69 @@ function cmdSelftest() {
 		assert(
 			doctorRow("release notes").status === "PASS",
 			"doctor accepts it again once the heading is restored",
+		);
+
+		console.log("\n29. a blocked card holds no write set");
+		git(tmp, ["add", "-A"]);
+		git(tmp, [
+			"-c",
+			"user.email=t@t",
+			"-c",
+			"user.name=t",
+			"commit",
+			"-qm",
+			"settle before collisions",
+		]);
+		quiet(() =>
+			cmdTaskNew({
+				root: tmp,
+				slug: "collide-a",
+				lane: "quick",
+				noBaseline: true,
+			}),
+		);
+		fillTask(["src/shared.txt"], "first claim");
+		quiet(() =>
+			cmdTaskNew({
+				root: tmp,
+				slug: "collide-b",
+				lane: "quick",
+				noBaseline: true,
+				force: true,
+			}),
+		);
+		const collideB = abs(
+			tmp,
+			`${TASKS}/active/${activeTasks(tmp).find((t) => t.file.includes("-collide-b.md")).file}`,
+		);
+		write(
+			collideB,
+			read(collideB)
+				.replace(/touches: \[\]/, 'touches: ["src/shared.txt"]')
+				.replace(/summary: ""/, 'summary: "second claim"')
+				.replace(
+					/\*\*Summary\*\*\s*—\s*<!--\s*FILL:summary[\s\S]*?-->/,
+					"**Summary** — second claim",
+				)
+				.replace(/<!--\s*FILL:[\s\S]*?-->/g, "filled by selftest"),
+		);
+		const collisionRow = doctorRow("write-set collisions");
+		assert(
+			collisionRow.status === "FAIL" &&
+				collisionRow.detail.includes("collide-a") &&
+				collisionRow.detail.includes("collide-b"),
+			"doctor fails two workable tasks that claim one file",
+		);
+		quiet(() =>
+			cmdTaskBlock({
+				root: tmp,
+				id: frontMatter(read(collideB)).id,
+				question: "who owns the shared file?",
+			}),
+		);
+		assert(
+			doctorRow("write-set collisions").status === "PASS",
+			"doctor drops a blocked task's write set",
 		);
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });
