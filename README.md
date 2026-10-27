@@ -8,30 +8,30 @@ verified.** Everything here serves that, and anything that stops serving it gets
 ## What you get
 
 - `AGENTS.md` — the entry point. Read once, then follow its start-here steps.
-- `.agents/project.md` — generated from your manifests: stack, real build/test/lint commands
+- `.agent-kit/project.md` — generated from your manifests: stack, real build/test/lint commands
   with a tier (`always` on every verify, `milestone` at the baseline and close), entry points,
   generated directories. One home, cited by everything else.
-- `.agents/tasks/` — one task file per unit of work, with a lane (QUICK or PLANNED), two
+- `.agent-kit/tasks/` — one task file per unit of work, with a lane (QUICK or PLANNED), two
   gates, an evidence table that records each run's scope, and a close-out that derives the
   changed files from git. A task can park on an owner question (`task block`) without holding
   the single in-progress slot. A parked candidate lives in `BACKLOG.md` with a status; it is
   not a task until `task new` opens it.
-- `.agents/rules/` — a router plus short rule files. One home per rule; indexes cite. Ready-made
+- `.agent-kit/rules/` — a router plus short rule files. One home per rule; indexes cite. Ready-made
   examples for TypeScript, Bun, Biome, API versioning, config and library docs sit in
-  `.agents/templates/rule-examples/`; you install only the ones that are true.
-- `docs/` — the knowledge seed: architecture map, API skeleton, entry points, and
-  `.agents/templates/docs-populate.md`, the pass that fills them from `path:line` evidence,
+  `.agent-kit/templates/rule-examples/`; you install only the ones that are true.
+- `.agent-kit/docs/` — the knowledge seed: architecture map, API skeleton, entry points, and
+  `.agent-kit/templates/docs-populate.md`, the pass that fills them from `path:line` evidence,
   interviews the gaps, moves exception comments into learnings and TODOs into the backlog.
 - Indexed directories — every directory the kit owns has an `INDEX.md` saying what lives there,
   why, and when to open it. A session reads one index and one file, never a folder listing, so
   the always-on context stays small. `doctor` fails an unindexed directory.
-- `SKILL.md` — the work loop: classify, open, gate, verify, close, report.
+- `.agent-kit/SKILL.md` — the work loop: classify, open, gate, verify, close, report.
 - `rtk` — the token saver: setup installs it when missing, and the skill runs shell output
   through it (`rtk git status`, `rtk npm test`) so the agent reads less of it.
 - `agent-kit harnesses` — lists the coding agents installed on the machine (HOME config, PATH,
   repo markers), so a repo with no harness files still gets the skill wired for each one.
 - `examples/minimal/` — what a filled repo looks like, for a fictional project.
-- `scripts/agent-kit.mjs` — the only executable surface. Zero dependencies. Bun or Node.
+- `.agent-kit/agent-kit.mjs` — the only executable surface. Zero dependencies. Bun or Node.
 
 ## Start here
 
@@ -44,7 +44,7 @@ Set up agent-kit in this workspace: https://github.com/AbdulWadudh/agent-kit
 Read the repo before you ask anything: manifests, entry points, and which rule examples in
 the template fit this codebase; a rule about a language this repo does not use does not get
 installed. Repo harness config is a hint, not the list: after setup, run
-`scripts/agent-kit.mjs harnesses` and say which harnesses you found — the machine may have
+`.agent-kit/agent-kit.mjs harnesses` and say which harnesses you found — the machine may have
 several while the repo shows none. I will wire the skill for each.
 
 Then ask me these five questions, and wait for the answers before changing anything:
@@ -66,24 +66,24 @@ Then run every step yourself; I am in chat, not a terminal. Follow SETUP.md from
 template exactly — it wins if it disagrees with this message:
 
 1. git clone --depth 1 https://github.com/AbdulWadudh/agent-kit "$TMPDIR/agent-kit"
-   bun "$TMPDIR/agent-kit/scripts/agent-kit.mjs" setup . --source https://github.com/AbdulWadudh/agent-kit
+   bun "$TMPDIR/agent-kit/.agent-kit/agent-kit.mjs" setup . --source https://github.com/AbdulWadudh/agent-kit
    (node instead of bun if Bun is absent; download the archive and pass the unpacked
    path as --source if git is unavailable. Setup also installs rtk, the token saver,
    unless it is already present or I pass --no-rtk.)
-2. Fill AGENTS.md, .agents/project.md, docs/ARCH_MAP.md, docs/ENTRY_POINTS.md and
-   docs/API_SKELETON.md from the real tree. Ask, do not invent: propose candidates for
+2. Fill AGENTS.md, .agent-kit/project.md, .agent-kit/docs/ARCH_MAP.md, .agent-kit/docs/ENTRY_POINTS.md and
+   .agent-kit/docs/API_SKELETON.md from the real tree. Ask, do not invent: propose candidates for
    rules 1-4 from my answers and the code, get a yes, then write them. Install the rule
    examples that are true here — code, config, api — and say which ones you skipped and why.
 3. Install the skills I approved for each harness (SETUP.md §3), and list the files you wrote.
    If I said yes to agent-browser, install it and its skill; if I said no, do not.
-4. Run `scripts/agent-kit.mjs harnesses`, say the list, then install the skill for every
-   harness it found. Take the frontmatter (name and description) from SKILL.md, put it in
-   that harness's skill folder, and make the body one line: "Read SKILL.md at the repository
+4. Run `.agent-kit/agent-kit.mjs harnesses`, say the list, then install the skill for every
+   harness it found. Take the frontmatter (name and description) from .agent-kit/SKILL.md, put it in
+   that harness's skill folder, and make the body one line: "Read .agent-kit/SKILL.md at the repository
    root." A pointer, never a copy. If a harness has no skill mechanism, put the trigger in
    the file it does read. List the files you wrote.
 5. Record the off-limits answers in AGENTS.md (Ask first and rules 1-4). Wire the guard if
-   I said yes. Then run bun scripts/agent-kit.mjs doctor --strict until it exits 0.
-6. Run bun scripts/agent-kit.mjs verify --full and report the baseline honestly.
+   I said yes. Then run bun .agent-kit/agent-kit.mjs doctor --strict until it exits 0.
+6. Run bun .agent-kit/agent-kit.mjs verify --full and report the baseline honestly.
 
 Report: the harnesses found and wired, the files you wrote, the detected stack, the commands
 you found and any you could not, the `rtk` row, what you filled, the doctor table, and the
@@ -95,7 +95,7 @@ task until I say go.
 
 ## What setup does
 
-`setup` detects your stack, writes `.agents/project.md`, copies the kit, installs
+`setup` detects your stack, writes `.agent-kit/project.md`, copies the kit, installs
 `rtk` (the token saver) when it is missing, and lists the coding agents found in HOME and on
 PATH. It never overwrites a file that already exists.
 `doctor --strict` exits non-zero until the fill work is done — that is the definition of
@@ -130,8 +130,8 @@ What to ask instead of typing:
 | "what's in flight?" | `task show` |
 | "we're stuck on a decision" | `task block "<the question>"`; the answer goes in chat, then `task resume` |
 | "this is too big for one sitting" | split it: `task new --parent TASK-N` per piece; each closes quick with lint, and the main close runs build |
-| "what's parked?" | read `.agents/tasks/BACKLOG.md`; picking a row means `task new` and then deleting it |
-| "populate the docs" | run `.agents/templates/docs-populate.md`; it opens a PLANNED task and fills the pages, learnings and backlog |
+| "what's parked?" | read `.agent-kit/tasks/BACKLOG.md`; picking a row means `task new` and then deleting it |
+| "populate the docs" | run `.agent-kit/templates/docs-populate.md`; it opens a PLANNED task and fills the pages, learnings and backlog |
 | "which agents can drive this repo?" | `harnesses`, then wire each skill folder it names |
 | "is this repo actually healthy?" | `doctor --strict` and reports the failing row |
 | "what changed since the template?" | `check`, then `pull --dry-run` |
@@ -147,7 +147,7 @@ And when an agent commits outside its declared write set, the optional scope hoo
 the message hook only warns:
 
 ```bash
-git config core.hooksPath .githooks   # per clone, off by default
+git config core.hooksPath .agent-kit/githooks   # per clone, off by default
 ```
 
 It is off by default on purpose. It is git config, not a repo file: every clone would
@@ -162,7 +162,7 @@ A commit is one task and one kind of change. Its subject is
 
 ## What the changelog is
 
-It is a folder, not a ledger: `.agents/logs/MM-YYYY/YYYY-MM-DD-TASK-N-slug.md`, one file per
+It is a folder, not a ledger: `.agent-kit/logs/MM-YYYY/YYYY-MM-DD-TASK-N-slug.md`, one file per
 commit, written by `task close`. The card is the completion record — what the task did, in the
 close-out paragraph, and where the plan lives:
 
@@ -190,7 +190,7 @@ repeats neither. The plan, its evidence and its follow-ups stay in the task file
 at; the card never restates them, so there is only one record to keep true. `doctor` fails an
 archived task with no file.
 
-A version can be rolled up for people and git: `release v0.2.0` writes `releases/v0.2.0.md`
+A version can be rolled up for people and git: `release v0.2.0` writes `.agent-kit/releases/v0.2.0.md`
 from every card no earlier release claims — `# Release v0.2.0`, the date, then `### Added`,
 `### Changed`, `### Fixed` and `### Removed`, one line per task. It prints the
 `gh release create --notes-file` line and never runs git itself.
@@ -201,7 +201,7 @@ just happened: the task index links the archived plans, the logs index links the
 ## Token economy
 
 Shell output is the part of the context an agent pays for most often. `setup` installs
-[rtk](https://github.com/rtk-ai/rtk), and `SKILL.md` runs the commands whose output the agent
+[rtk](https://github.com/rtk-ai/rtk), and `.agent-kit/SKILL.md` runs the commands whose output the agent
 inspects through it:
 
 ```bash
@@ -216,7 +216,7 @@ The command and its exit code are unchanged; only what reaches the context shrin
 
 rtk's history is machine-wide, not per task. The skill reports savings under the active task
 ID, and the change file carries the same ID, so a number in the report points at a record in
-`.agents/logs/`.
+`.agent-kit/logs/`.
 
 ## The two lanes
 
@@ -244,13 +244,13 @@ deliberately tripping each gate — from a red baseline to a scope breach.
 
 ## The skill
 
-`SKILL.md` is the work loop, and it is the only place that order lives: classify the request,
+`.agent-kit/SKILL.md` is the work loop, and it is the only place that order lives: classify the request,
 open a task, stop for the plan gate, edit inside the declared write set, prove it with real
 exit codes, stop for the result gate, close, report. Pressure is where agents skip steps, so
 the failure branches live there too — red suite, scope that grows, a suite you cannot run.
 
-It is procedure, not knowledge. The repo's facts stay in `.agents/project.md`, its rules in
-`.agents/rules/`, its install in `SETUP.md`. The skill cites them; it never restates them.
+It is procedure, not knowledge. The repo's facts stay in `.agent-kit/project.md`, its rules in
+`.agent-kit/rules/`, its install in `SETUP.md`. The skill cites them; it never restates them.
 
 So install is not the skill's job — it happens once, before any of this exists, from the
 README prompt. That is also why one file is enough for every harness: `AGENTS.md` lists it as
@@ -270,8 +270,8 @@ target instead of reading about it.
 ## Adding a rule, or extending the kit
 
 State the rule in chat; the agent writes it in the file that owns the domain, adds its trigger
-to `.agents/rules/INDEX.md`, and checks it. The steps — including how a rule is moved or
-deleted — are in `.agents/templates/INDEX.md`. A rule that stays in the conversation is gone
+to `.agent-kit/rules/INDEX.md`, and checks it. The steps — including how a rule is moved or
+deleted — are in `.agent-kit/templates/INDEX.md`. A rule that stays in the conversation is gone
 at the next session.
 
 Extending the kit itself — a new command, seed, check or rule example — follows the
@@ -283,7 +283,7 @@ new check failing before it can be trusted.
 `check` never writes and prints one row per file: `CURRENT`, `UPGRADE`, `DRIFT`, `MISSING`,
 `PRUNE`, `SEED-UPDATED`. `pull` applies the safe rows, refuses to overwrite a file you
 modified unless you pass `--force`, and never deletes without a `prune` entry. Provenance and
-per-file hashes live in `.agents/template.json`.
+per-file hashes live in `.agent-kit/template.json`.
 
 ## What is deliberately not here
 

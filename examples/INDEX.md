@@ -7,7 +7,7 @@ not installed into a target repo and receives no updates.
 
 | Path | Holds | Open when |
 |---|---|---|
-| `minimal/` | a fictional repo right after setup: `AGENTS.md` and `.agents/project.md` filled, one source file | comparing shapes |
+| `minimal/` | a fictional repo right after setup: `AGENTS.md` and `.agent-kit/project.md` filled, one source file | comparing shapes |
 
 Open `examples/minimal/AGENTS.md` first. The rest is the example's own tree, not a template to
 copy file by file.

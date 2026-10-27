@@ -9,5 +9,5 @@ replace the markers. This is that file afterwards, for a fictional notes API.
 | File | Shows |
 |---|---|
 | `AGENTS.md` | markers replaced, rules 1-4 written for a real repo, kit section kept verbatim |
-| `.agents/project.md` | the generated table with the commands confirmed by a human |
+| `.agent-kit/project.md` | the generated table with the commands confirmed by a human |
 | `src/index.ts` | the file the example rules talk about |

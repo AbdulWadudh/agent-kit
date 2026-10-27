@@ -11,10 +11,10 @@ git clone --depth 1 https://github.com/AbdulWadudh/agent-kit "$TMPDIR/agent-kit"
 ```
 
 No git? Download the archive and unpack it. The only requirement is that
-`scripts/agent-kit.mjs` and `.agents/sync-manifest.json` are reachable.
+`.agent-kit/agent-kit.mjs` and `.agent-kit/sync-manifest.json` are reachable.
 
-No git and no archive? Copy `scripts/`, `.agents/` and `docs/` into the target and run
-`bun scripts/agent-kit.mjs setup . --source .` from the target root. The script adopts the
+No git and no archive? Copy `.agent-kit/` into the target and run
+`bun .agent-kit/agent-kit.mjs setup . --source .` from the target root. The script adopts the
 repo in place: it records the hash baseline of what is already there and clears `source`, so
 `check` and `pull` report "not set up" until you install from a real source. That path loses
 history, not correctness.
@@ -24,14 +24,14 @@ history, not correctness.
 From the **target repo root**:
 
 ```bash
-bun "$TMPDIR/agent-kit/scripts/agent-kit.mjs" setup . --source https://github.com/AbdulWadudh/agent-kit
+bun "$TMPDIR/agent-kit/.agent-kit/agent-kit.mjs" setup . --source https://github.com/AbdulWadudh/agent-kit
 ```
 
 Fallback if Bun is absent: `node` instead of `bun`. Same file, same behaviour.
 
 What it does, in order:
 
-1. Reads the target's manifests and writes `.agents/project.md` — languages, package manager,
+1. Reads the target's manifests and writes `.agent-kit/project.md` — languages, package manager,
    `install`/`build`/`typecheck`/`lint`/`test`, entry points, generated directories.
 2. Copies the machinery (the script, the workflow, the manifest, the directory indexes, the seeds, the rule router).
 3. Copies each seed to its authored path **only if the path is absent**.
@@ -39,7 +39,7 @@ What it does, in order:
 5. Detects the coding agents installed on this machine — HOME config folders, `PATH`, and repo
    markers — and prints `Harnesses found: ...`. A repo with no harness config can still be
    driven by several agents; the machine is the source.
-6. Writes `.agents/template.json`: source, version, date, and a hash baseline per file.
+6. Writes `.agent-kit/template.json`: source, version, date, and a hash baseline per file.
 7. Prints the fill list.
 
 Expected output: `N copied, M kept, template v1`, a per-file table including `PRESENT` or
@@ -70,16 +70,16 @@ This is the only work that needs judgement. Four items, in this order:
 | Item | What "filled" means |
 |---|---|
 | `AGENTS.md` | every `<!-- FILL:... -->` replaced; every `<UPPERCASE PLACEHOLDER>` replaced; rules 1-4 are constraints that are true **only** in this repo |
-| `.agents/project.md` | the detected commands are correct; the detection notes are confirmed or deleted; domain notes say what the code cannot |
-| `docs/ARCH_MAP.md`, `docs/ENTRY_POINTS.md`, `docs/API_SKELETON.md` | one real row or signature per entry; no invented layer. The full pass is `.agents/templates/docs-populate.md` |
-| `.agents/rules/` | one file per domain this repo actually has, copied from `.agents/templates/rule-examples/` when one matches. `code` (the TypeScript example) earns its file in any TypeScript repo; `config` and `api` only where the repo has tunables or HTTP routes. Simplicity needs no file — it is `_behavior.md` §8, and `_behavior.md` ships with the machinery. No file, no rule: do not install a rule about a language the repo does not use |
+| `.agent-kit/project.md` | the detected commands are correct; the detection notes are confirmed or deleted; domain notes say what the code cannot |
+| `.agent-kit/docs/ARCH_MAP.md`, `.agent-kit/docs/ENTRY_POINTS.md`, `.agent-kit/docs/API_SKELETON.md` | one real row or signature per entry; no invented layer. The full pass is `.agent-kit/templates/docs-populate.md` |
+| `.agent-kit/rules/` | one file per domain this repo actually has, copied from `.agent-kit/templates/rule-examples/` when one matches. `code` (the TypeScript example) earns its file in any TypeScript repo; `config` and `api` only where the repo has tunables or HTTP routes. Simplicity needs no file — it is `_behavior.md` §8, and `_behavior.md` ships with the machinery. No file, no rule: do not install a rule about a language the repo does not use |
 
 `examples/minimal/` in the template shows all four after the fill, for a fictional repo.
 
-**Populating the docs in full.** `.agents/templates/docs-populate.md` is the pass that fills
+**Populating the docs in full.** `.agent-kit/templates/docs-populate.md` is the pass that fills
 these pages from evidence: it inventories the tree with `path:line`, asks three to five
 questions only where the code cannot answer, writes an exception comment's reason into
-`.agents/rules/learnings.md`, and parks every `TODO` in `.agents/tasks/BACKLOG.md` with a
+`.agent-kit/rules/learnings.md`, and parks every `TODO` in `.agent-kit/tasks/BACKLOG.md` with a
 status. It opens a PLANNED task, so run it after the fill commit in §5 — that commit is the
 only one that predates a task.
 
@@ -125,7 +125,7 @@ misses them. `setup` ends with `Harnesses found: ...`, and `agent-kit harnesses`
 same list with the evidence: known HOME config folders, binaries on `PATH`, and harness
 markers in the repo.
 
-Say the list in the report. Wire `SKILL.md` for each harness with a repo skill folder — the
+Say the list in the report. Wire `.agent-kit/SKILL.md` for each harness with a repo skill folder — the
 command prints those paths (Claude Code and OpenCode today). For the rest, the kit's entry
 point is `AGENTS.md`; where a harness reads a different file, put the trigger there. A
 pointer, never a copy: `doctor`'s `skill pointers` row fails a copy.
@@ -139,7 +139,7 @@ equivalent by hand. `doctor` cannot see MCP; that is a report line, not a check.
 ## 4. Verify
 
 ```bash
-bun scripts/agent-kit.mjs doctor --strict
+bun .agent-kit/agent-kit.mjs doctor --strict
 ```
 
 Expected, before the fill: `FAIL — N failure(s)`, naming `unfilled markers` and any doc path
@@ -150,26 +150,26 @@ are not a reason to keep editing.
 
 | Check | Fails when |
 |---|---|
-| required files | a kit file is missing (including `SKILL.md`) |
-| directory indexes | a directory under `.agents/`, `docs/`, `scripts/` or `.githooks/` has no `INDEX.md` |
-| skill pointers | a harness skill file is a copy of the loop instead of a pointer to `SKILL.md` |
+| required files | a kit file is missing (including `.agent-kit/SKILL.md`) |
+| directory indexes | a directory under `.agent-kit/` has no `INDEX.md` |
+| skill pointers | a harness skill file is a copy of the loop instead of a pointer to `.agent-kit/SKILL.md` |
 | token saver | WARN, not FAIL: `rtk gain` failed, so shell output is not being compressed |
 | manifest integrity | an `owned` path is inside a `machinery` directory or is also a seed |
 | encoding | a file is not UTF-8, has a BOM, or shows mojibake (`--fix` repairs the mechanical part) |
 | unfilled markers | a `FILL` marker or uppercase placeholder survived (`--strict` only) |
-| doc paths resolve | a path written in `docs/`, `.agents/` or the skill does not exist |
+| doc paths resolve | a path written in `.agent-kit/docs/`, `.agent-kit/` or the skill does not exist |
 | markdown links resolve | an index link points at a missing file |
 | declared commands | `project.md` names a package script that `package.json` does not have, or a `When` value is not `always` or `milestone` |
 | active tasks indexed | a task file in `active/` is not in the task index |
 | write-set collisions | two active tasks declare overlapping `touches` (a main task and its subtasks are one family and may overlap) |
 | blocked tasks | a `BLOCKED` task carries no question, or a task carries the block marker without the status |
 | subtasks | a subtask has no parent or its parent is not active, a main task is in progress with a subtask open, or a queued main task has every subtask done |
-| backlog | a row in `.agents/tasks/BACKLOG.md` has an unknown status, a reused ID, a missing cell, or an empty item, source or next step |
+| backlog | a row in `.agent-kit/tasks/BACKLOG.md` has an unknown status, a reused ID, a missing cell, or an empty item, source or next step |
 | rules are checkable | a rule file contains advice ("be careful", "try to", "consider") instead of a rule |
-| rules indexed | a file in `.agents/rules/` has no row in its `INDEX.md`, or a row names a missing file |
-| archived tasks changelogged | a task is in `archive/` but has no file under `.agents/logs/MM-YYYY/` |
+| rules indexed | a file in `.agent-kit/rules/` has no row in its `INDEX.md`, or a row names a missing file |
+| archived tasks changelogged | a task is in `archive/` but has no file under `.agent-kit/logs/MM-YYYY/` |
 | recent lists | a task or logs index is missing its `RECENT` block, or the last five entries are stale |
-| release notes | a file under `releases/` does not start with `# Release vX.Y.Z` matching its filename; no folder is fine |
+| release notes | a file under `.agent-kit/releases/` does not start with `# Release vX.Y.Z` matching its filename; no folder is fine |
 | commit guard | WARN, not FAIL: the optional `pre-commit` and `commit-msg` hooks are not wired in this clone |
 | commit identity | a commit message carries AI attribution (FAIL); a commit author is not the configured identity (WARN) |
 
@@ -184,7 +184,7 @@ is a report to the owner, not a gate.
 the task opens, so it cannot be forgotten:
 
 ```bash
-bun scripts/agent-kit.mjs task new bootstrap --lane quick
+bun .agent-kit/agent-kit.mjs task new bootstrap --lane quick
 ```
 
 Expected: the task id, then one line per declared command and `PASS (full) — n/n command(s) exited 0`.
@@ -229,13 +229,13 @@ If git has no identity here, stop and ask — do not invent one.
 The fill commit is the one commit that needs no task ID, because no task exists yet. From the
 first task on, a commit is one task and one kind of change: the subject is
 `type (TASK-ID): summary`, and the body is the change file's `## What changed` paragraph. The
-rule and its type list are `.agents/rules/commits.md`.
+rule and its type list are `.agent-kit/rules/commits.md`.
 
 `setup` does not touch git config. If an agent will commit unattended in this clone and you want
 the earlier warning, opt in once:
 
 ```bash
-git config core.hooksPath .githooks
+git config core.hooksPath .agent-kit/githooks
 ```
 
 It is per clone and bypassable (`git commit --no-verify`), so it is a speed bump, not the check.
@@ -250,7 +250,7 @@ them; `doctor` reports them as a WARN with that command, not a failure.
 Tell the owner, in plain words:
 
 - what stack was detected and which commands were found (or which are missing);
-- which harnesses were found, and which of them now point at `SKILL.md`;
+- which harnesses were found, and which of them now point at `.agent-kit/SKILL.md`;
 - which files were filled and which placeholders you had to leave and why;
 - the `doctor --strict` result;
 - the next action: open a task with `agent-kit task new <slug> --lane planned`.
@@ -266,6 +266,6 @@ diff per row), then `pull`. `pull` will not overwrite a file you modified unless
 
 ## What is deliberately checked in
 
-`.agents/tasks/active/` is committed. A task in flight is part of the repo's state, and a
+`.agent-kit/tasks/active/` is committed. A task in flight is part of the repo's state, and a
 future session resumes from it. The archive is committed too — it is the only record of why
 a change happened.

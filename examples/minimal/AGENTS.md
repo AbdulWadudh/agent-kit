@@ -5,10 +5,10 @@ session, then follow it.
 
 ## Start here, in order
 
-1. `.agents/project.md` — stack, commands, entry points. Cite it; never restate it.
-2. `.agents/tasks/INDEX.md` — resume the active task, or open a new one.
-3. `.agents/rules/INDEX.md` — load only the rule files matching what you will touch.
-4. `docs/INDEX.md` — find where the logic lives before searching the tree.
+1. `.agent-kit/project.md` — stack, commands, entry points. Cite it; never restate it.
+2. `.agent-kit/tasks/INDEX.md` — resume the active task, or open a new one.
+3. `.agent-kit/rules/INDEX.md` — load only the rule files matching what you will touch.
+4. `.agent-kit/docs/INDEX.md` — find where the logic lives before searching the tree.
 
 ## Boundary protocol
 
@@ -40,17 +40,17 @@ session, then follow it.
 5. **Context discipline.** Search narrowly. Read at most three source files at a time.
 6. **One home per fact.** A rule lives in exactly one file; everywhere else cites it.
 7. **Planning.** Anything beyond the QUICK lane (three files or fewer, reversible, no contract
-   change) needs a task file in `.agents/tasks/active/`, with the plan approved before the first edit.
+   change) needs a task file in `.agent-kit/tasks/active/`, with the plan approved before the first edit.
 8. **Subagents.** Every subagent prompt names the files to read and the deliverable. It never
    restates the plan.
 9. **Shell output.** Prefix commands with `rtk` (`rtk git status`, `rtk npm test`); `rtk bypass
    <cmd>` when the full output is the evidence. Name the active task ID with any savings you
-   report — the detail is in `SKILL.md` §Shell output.
+   report — the detail is in `.agent-kit/SKILL.md` §Shell output.
 
 ## Done means
 
 `agent-kit verify` exits 0, the task's evidence table holds real exit codes,
-`.agents/tasks/INDEX.md` is current, and `agent-kit doctor` reports no failures. Then
+`.agent-kit/tasks/INDEX.md` is current, and `agent-kit doctor` reports no failures. Then
 `agent-kit task close`.
 
 ---
@@ -58,7 +58,7 @@ session, then follow it.
 <!-- MACHINERY: everything below is the kit. Keep it as written. -->
 ## Kit
 
-`bun scripts/agent-kit.mjs <command>` (fallback: `node scripts/agent-kit.mjs <command>`)
+`bun .agent-kit/agent-kit.mjs <command>` (fallback: `node .agent-kit/agent-kit.mjs <command>`)
 
 | Command | Use |
 |---|---|
