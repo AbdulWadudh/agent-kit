@@ -64,12 +64,13 @@ the vocabulary, the IDs and the cells, so a malformed row fails before it wastes
 ## Active
 
 <!-- ACTIVE:START -->
-_Nothing in flight._
+- `TASK-107` [IN_PROGRESS] PLANNED — [2026-10-27-TASK-107-rules-split.md](active/2026-10-27-TASK-107-rules-split.md)
 <!-- ACTIVE:END -->
 
 ## Recent
 
 <!-- RECENT:START -->
+- `2026-10-27` [TASK-106](archive/2026-10/2026-10-27-TASK-106-character-cost.md) — a session pays for characters, not lines
 - `2026-10-27` [TASK-105](archive/2026-10/2026-10-27-TASK-105-changelog-shape.md) — a changelog entry carries the task summary, and each version gets a release file
 - `2026-10-27` [TASK-104](archive/2026-10/2026-10-26-TASK-104-subtask-close.md) — subtasks close quick with lint; the main task runs build at close
 - `2026-10-26` [TASK-103](archive/2026-10/2026-10-26-TASK-103-session-ergonomics.md) — one command for session state, tiered verify, blocked tasks, close artifacts

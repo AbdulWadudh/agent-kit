@@ -23,6 +23,7 @@ it), and nothing from the plan: the link is the pointer.
 ## Recent
 
 <!-- RECENT:START -->
+- `2026-10-27` [TASK-106](10-2026/2026-10-27-TASK-106-character-cost.md) — a session pays for characters, not lines
 - `2026-10-27` [TASK-105](10-2026/2026-10-27-TASK-105-changelog-shape.md) — a changelog entry carries the task summary, and each version gets a release file
 - `2026-10-27` [TASK-104](10-2026/2026-10-27-TASK-104-subtask-close.md) — subtasks close quick with lint; the main task runs build at close
 - `2026-10-26` [TASK-103](10-2026/2026-10-26-TASK-103-session-ergonomics.md) — one command for session state, tiered verify, blocked tasks, close artifacts

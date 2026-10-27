@@ -28,6 +28,12 @@ create a contradiction with a delay on it.
 A directory is read through its `INDEX.md`: one row, then one file. A folder listing is not
 context.
 
+Context cost is the number of characters read, not the number of lines. How the text is wrapped
+does not change what a session pays: many short lines can be cheaper than a few long ones. So
+every cap on text a session reads counts characters — the harness pointer, the task skeleton,
+the change title. A source file's ceiling counts lines: its job is to decide when to split one
+file, not to bound what a session reads.
+
 ## 3. Plans contain no code, task files contain no narrative
 
 A plan states intent, steps, files, decisions and acceptance criteria. Code goes to the file,

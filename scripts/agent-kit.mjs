@@ -3584,6 +3584,17 @@ function cmdSelftest() {
 			quiet(() => cmdDoctor({ root: tmp })) === 0,
 			"a short pointer passes",
 		);
+		write(
+			abs(tmp, ".claude/skills/agent-kit/SKILL.md"),
+			`---\nname: agent-kit\ndescription: pointer\n---\n\nRead \`SKILL.md\` at the repository root.\n\n${Array.from(
+				{ length: 150 },
+				() => "a",
+			).join("\n")}\n`,
+		);
+		assert(
+			quiet(() => cmdDoctor({ root: tmp })) === 0,
+			"150 one-word lines pass: the pointer cap counts characters, not lines",
+		);
 		write(abs(tmp, ".claude/skills/agent-kit/SKILL.md"), read(abs(tmp, "SKILL.md")));
 		assert(
 			quiet(() => cmdDoctor({ root: tmp })) === 1,
