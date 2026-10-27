@@ -6,8 +6,7 @@ description: The work loop in an agent-kit repo — classify, open a task, pass 
 # agent-kit — the work loop
 
 One request in, one verified task out. This file is the order. `AGENTS.md` holds the
-boundaries and this repo's facts; `SETUP.md` holds the one-time install. If they disagree with
-this file, they win.
+boundaries and this repo's facts; if it disagrees with this file, it wins.
 
 ## 1. Start of session
 
@@ -27,7 +26,7 @@ plan. A skill that matches is part of the plan, not a preference: read it and fo
 fit, take the narrowest; none fits, say so and write the smallest step by hand. Use a configured
 MCP server before a hand-written script that does the same, and an existing CLI or repo script
 before a one-off. Re-check when the task changes shape. Installing a skill or wiring an MCP
-server is `SETUP.md` §3 and the owner's yes — not a mid-task fix. The rule itself is
+server is the owner's yes — not a mid-task fix. The rule itself is
 `.agents/rules/_behavior.md` §12.
 
 `agent-kit harnesses` lists the coding agents installed on this machine — HOME config, PATH,
@@ -35,9 +34,11 @@ repo markers. The repo may show none of them. Say the list when you set up or re
 repo, and wire `SKILL.md` for each harness that has a skill folder; the command prints those
 paths. It is a report, not a gate.
 
-Keep them current when the owner asks: reinstall from the skill's own source, listed in
-`SETUP.md` §3. Where `agent-browser` is installed it drives a real browser:
-it never sends, posts, buys or logs in unless the task says to.
+## Browser access — use `agent-browser`
+
+Reach for `agent-browser` only when the task needs the UI: clicking, forms, a session, a
+rendered page, or building and checking one. No UI needed, plain `curl` or `fetch` is the
+right tool. No Playwright, no headless driver of your own.
 
 ## Shell output — run it through rtk
 
@@ -165,7 +166,7 @@ follow-up suggestions unless asked.
 
 ## Not yours
 
-- Installing or upgrading the kit, or a skill the owner has not approved. That is `SETUP.md`,
-  once, and a chat decision.
+- Installing or upgrading the kit, or a skill the owner has not approved. That is a one-time
+  setup step and a chat decision.
 - Editing machinery (`scripts/`, `.agents/templates/`, the manifest) to make a gate pass.
   `pull --force` takes it back, and the gate was the point.
