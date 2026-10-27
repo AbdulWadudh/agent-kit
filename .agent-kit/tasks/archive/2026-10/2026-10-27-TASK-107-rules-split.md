@@ -2,9 +2,10 @@
 id: TASK-107
 parent: ""
 lane: PLANNED
-status: BLOCKED
+status: DONE
+closed: 2026-10-27
 created: 2026-10-27
-baseline: 6fe93eb3d5216aa0c000fd4362e70305884b449d
+baseline: c0bfa6362adb80216be3b62f9e4de284176a4e4b
 touches: [".agent-kit/rules/_behavior.md", ".agent-kit/rules/commits.md", ".agent-kit/rules/INDEX.md", ".agent-kit/sync-manifest.json", ".agent-kit/templates/AGENTS.seed.md", ".agent-kit/templates/INDEX.md", ".agent-kit/templates/rule-examples/typescript.md", "AGENTS.md", "README.md", "SETUP.md", ".agent-kit/SKILL.md"]
 depends_on: []
 type: changed  # added | changed | fixed | removed
@@ -12,10 +13,6 @@ summary: commit conventions and skill sources leave the always-read rule file
 ---
 # TASK-107 — rules split
 
-<!-- BLOCKED:START -->
-**BLOCKED 2026-10-27** — TASK-107's write set lists rule-examples/typescript.md but not rule-examples/config.md, and the owner has now asked for config.md changes too. Does the config.md rewrite belong in TASK-107 (add it to touches), or is it its own task?
-Resume with `agent-kit task resume` once the owner answers.
-<!-- BLOCKED:END -->
 
 ## Scope (frozen once approved)
 
@@ -49,6 +46,9 @@ skills become names with a one-line use, no links.
 - `commits.md` ships as machinery because these are the kit's conventions, not a per-repo domain rule.
 - A source file's ceiling counts lines, because its job is to decide when to split one file — not
   a context cost. The owner: "this should be line base its a code written in one file".
+- The `rule-examples/config.md` rewrite is its own task, not TASK-107's: this task's scope is
+  delivered and committed. The owner, 2026-10-27; parked as `B-06` in
+  `.agent-kit/tasks/BACKLOG.md`.
 
 ## Plan
 
@@ -79,7 +79,7 @@ skills become names with a one-line use, no links.
 |---|---|---|---|---|---|
 | test | `node .agent-kit/agent-kit.mjs selftest` | full | exit 0 | exit 0 | 0 |
 | lint | `node .agent-kit/agent-kit.mjs doctor` | full | exit 0 | exit 0 | 0 |
-<!-- LOOP {"n":0,"fail":"","diff":"3eab055f8d8915cc","plan":"f7f8049b10c9d6f7"} -->
+<!-- LOOP {"n":0,"fail":"","diff":"e3b0c44298fc1c14","plan":"50d521981c772de6"} -->
 <!-- VERIFY:END -->
 
 ## Close-out
@@ -91,4 +91,5 @@ skills become names with a one-line use, no links.
 **Follow-ups** — none
 
 <!-- FILES:START -->
+- none detected
 <!-- FILES:END -->

@@ -24,8 +24,8 @@ it), and nothing from the plan: the link is the pointer.
 
 <!-- RECENT:START -->
 - `2026-10-27` [TASK-108](10-2026/2026-10-27-TASK-108-move-kit-under-dot-agent-kit.md) — every installed path lives under .agent-kit, except the three a harness pins to a fixed location
+- `2026-10-27` [TASK-107](10-2026/2026-10-27-TASK-107-rules-split.md) — commit conventions and skill sources leave the always-read rule file
 - `2026-10-27` [TASK-106](10-2026/2026-10-27-TASK-106-character-cost.md) — a session pays for characters, not lines
 - `2026-10-27` [TASK-105](10-2026/2026-10-27-TASK-105-changelog-shape.md) — a changelog entry carries the task summary, and each version gets a release file
 - `2026-10-27` [TASK-104](10-2026/2026-10-27-TASK-104-subtask-close.md) — subtasks close quick with lint; the main task runs build at close
-- `2026-10-26` [TASK-103](10-2026/2026-10-26-TASK-103-session-ergonomics.md) — one command for session state, tiered verify, blocked tasks, close artifacts
 <!-- RECENT:END -->

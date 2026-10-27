@@ -12,6 +12,7 @@ an empty item, source or next step.
 |---|---|---|---|---|
 | `B-04` | `later` | adopt an existing repo's agent files at setup (inventory, clean or migrate) | 2026-10-26 design session (cinevo probe) | re-open as a PLANNED task from the plan in project memory; start with `setup --inventory` |
 | `B-05` | `later` | derive task ids from active and archive, drop the `.counter` file | 2026-10-27 owner ask | re-open as a PLANNED task: `nextId()` scans active + archive; the manifest `owned` list and `AGENTS.md` drop `.counter`; selftest asserts the file is never written |
+| `B-06` | `later` | rewrite the `rule-examples/config.md` example | 2026-10-27 TASK-107 answer | owner states the rewrite; open a task with `.agent-kit/templates/rule-examples/config.md` in its write set, then delete this row |
 
 ## Statuses
 
