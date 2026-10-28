@@ -49,12 +49,12 @@ export function guardCommitMessage(base, file) {
 	if (ids.size === 0) return 0;
 
 	const ref = subject.match(
-		new RegExp(`^(${COMMIT_TYPES}) \\((TASK-\\d+)\\): \\S`),
+		new RegExp(`^(${COMMIT_TYPES}) \\((TASK-\\d+|PATCH-\\d+)\\): \\S`),
 	);
 	const fail = (why) => {
 		console.error(`\nagent-kit: commit message warning. ${why}`);
 		console.error(`  got:   ${subject || "(empty)"}`);
-		console.error("  want:  <type> (TASK-ID): <summary>");
+		console.error("  want:  <type> (TASK-ID|PATCH-ID): <summary>");
 		console.error(`  types: ${COMMIT_TYPES.replaceAll("|", ", ")}`);
 		console.error(
 			"  body:  a blank line, then what this commit changed and why",
@@ -64,7 +64,7 @@ export function guardCommitMessage(base, file) {
 		);
 		return 0;
 	};
-	if (!ref) return fail("The subject is not `type (TASK-ID): summary`.");
+	if (!ref) return fail("The subject is not `type (TASK-ID|PATCH-ID): summary`.");
 	if (!ids.has(ref[2]))
 		return fail(`${ref[2]} is not a task in active/ or archive/.`);
 	if ((lines[1] || "").trim())

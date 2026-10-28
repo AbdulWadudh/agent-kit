@@ -259,7 +259,7 @@ function install({
 		"\n  Optional commit guard (off by default, per clone, bypassable):",
 		"\n    git config core.hooksPath .agent-kit/githooks",
 		"\n  It refuses a commit outside the active task's write set, and warns — never blocks —",
-		"\n  on a message that is not `type (TASK-ID): summary` with a summary in the body.",
+		"\n  on a message that is not `type (TASK-ID|PATCH-ID): summary` with a summary in the body.",
 		"\n  `task close` performs the scope check either way; the message rule is the session's.",
 	);
 	console.log(

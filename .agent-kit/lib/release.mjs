@@ -4,6 +4,7 @@ import { CATEGORIES, LOG_DIR } from "./consts.mjs";
 import { repoSlug } from "./github.mjs";
 import { abs, exists, expand, frontMatter, git, posix, read, run, write } from "./io.mjs";
 import { CHILD_ID, idsMode } from "./taskfile.mjs";
+import { cmdVerify } from "./verify/index.mjs";
 
 
 /** The archived task a card points at, repo-relative, or "" when the card has no link. */
@@ -60,7 +61,7 @@ export function unreleasedChanges(base) {
 		for (const m of read(abs(base, rel)).matchAll(
 			/<!--\s*RELEASED:START\s*-->([\s\S]*?)<!--\s*RELEASED:END\s*-->/g,
 		))
-			for (const id of m[1].matchAll(/\bTASK-\d+\b/g)) claimed.add(id[0]);
+			for (const id of m[1].matchAll(/\b(?:TASK|PATCH)-\d+\b/g)) claimed.add(id[0]);
 
 	return expand(base, LOG_DIR)
 		.filter((rel) => rel.endsWith(".md") && !rel.endsWith("INDEX.md"))
@@ -88,12 +89,12 @@ export function unreleasedChanges(base) {
  * once per version and read by git and people, not by an agent index. Cutting the note never commits
  * or tags; `--tag` is the second half, and it refuses to tag a note that is not committed yet.
  */
-export function cmdRelease({ root, version, tag }) {
+export function cmdRelease({ root, version, tag, noVerify }) {
 	const base = path.resolve(root || process.cwd());
 	const raw = String(version || "").trim().replace(/^v/i, "");
 	if (!/^\d+\.\d+\.\d+$/.test(raw)) {
 		console.error(
-			"agent-kit: usage: release <version>  (X.Y.Z or vX.Y.Z) | release --tag <version>",
+			"agent-kit: usage: release <version> [--no-verify]  (X.Y.Z or vX.Y.Z) | release --tag <version>",
 		);
 		return 1;
 	}
@@ -152,16 +153,30 @@ export function cmdRelease({ root, version, tag }) {
 		);
 		return 1;
 	}
+	// Build proof happens once per version, not once per micro fix: a red full suite stops the cut.
+	if (!noVerify) {
+		console.log("Verification (release runs the full suite):");
+		if (cmdVerify({ root: base, full: true }) !== 0) {
+			console.error(
+				"\nCannot release: verify --full is red — fix it, or cut a deliberate note with --no-verify.\n",
+			);
+			return 1;
+		}
+	}
 
 	const day = new Date().toISOString().slice(0, 10);
 	const slug = repoSlug(base);
-	const issueById = idsMode(base) === "issue" ? issueNumbers(base) : new Map();
+	// A PATCH id never has an issue; skip the lookup when the batch carries none.
+	const hasTaskIds = fresh.some((e) => /^TASK-\d+$/.test(e.id));
+	const issueById =
+		idsMode(base) === "issue" && hasTaskIds ? issueNumbers(base) : new Map();
 	const tagName = `v${raw}`;
 	const taskLink = (e) =>
 		slug && e.taskRel
 			? `[${e.id}](https://github.com/${slug}/blob/${tagName}/${e.taskRel})`
 			: e.id;
 	const issueLink = (e) => {
+		if (/^PATCH-/.test(e.id)) return "";
 		const n = slug ? issueById.get(e.id) : null;
 		return n
 			? ` · [issue #${n}](https://github.com/${slug}/issues/${n})`

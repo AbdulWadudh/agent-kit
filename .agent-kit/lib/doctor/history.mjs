@@ -12,6 +12,7 @@ import {
 	read,
 } from "../io.mjs";
 import { CHILD_ID } from "../taskfile.mjs";
+import { evidenceDetail } from "../verify/evidence.mjs";
 
 export function historyChecks({ base, add }) {
 	// 7. completeness: an archived task with no change file is a change nobody can find.
@@ -32,6 +33,25 @@ export function historyChecks({ base, add }) {
 		undocumented.length ? "FAIL" : "PASS",
 		"archived tasks changelogged",
 		undocumented.slice(0, 3).join(", "),
+	);
+
+	// A micro close keeps the record: the card it wrote and a real exit code in its evidence.
+	const microProblems = [];
+	for (const rel of expand(base, `${TASKS}/archive`).filter((r) =>
+		r.endsWith(".md"),
+	)) {
+		const text = read(abs(base, rel));
+		const fm = frontMatter(text);
+		if (String(fm.lane || "").toUpperCase() !== "MICRO" || CHILD_ID.test(fm.id || ""))
+			continue;
+		if (!logged.has(fm.id)) microProblems.push(`${fm.id}: no change card`);
+		if (!evidenceDetail(text).some((r) => Number.isFinite(r.exit)))
+			microProblems.push(`${fm.id}: no evidence row`);
+	}
+	add(
+		microProblems.length ? "FAIL" : "PASS",
+		"micro closes",
+		microProblems.slice(0, 3).join(", ") || "none",
 	);
 
 	// 7b. a release note is named for its version and says so on the first line, so a note

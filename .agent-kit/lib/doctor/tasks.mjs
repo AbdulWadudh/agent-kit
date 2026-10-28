@@ -19,6 +19,7 @@ import {
 	CHILD_ID,
 	ID_MODES,
 	idsMode,
+	LANES,
 	parentId,
 	queueRows,
 } from "../taskfile.mjs";
@@ -66,8 +67,8 @@ export function taskChecks({ base, add }) {
 				idProblems.push(`${rel}: no id`);
 				continue;
 			}
-			if (!/^TASK-\d+(?:\.\d+)?$/.test(id))
-				idProblems.push(`${rel}: ${id} is not TASK-N`);
+			if (!/^(?:TASK-\d+(?:\.\d+)?|PATCH-\d+)$/.test(id))
+				idProblems.push(`${rel}: ${id} is not TASK-N or PATCH-N`);
 			else if (!path.basename(rel).includes(`-${id}-`))
 				idProblems.push(`${rel}: id ${id} does not match the file name`);
 			if (!by.has(id)) by.set(id, []);
@@ -133,6 +134,23 @@ export function taskChecks({ base, add }) {
 		unknown.length ? "WARN" : "PASS",
 		"task statuses",
 		unknown.map((u) => `${u.f} (${u.s || "missing"})`).join(", "),
+	);
+
+	// The lane vocabulary is closed: a typo would otherwise open a task with no ceremony at all.
+	const laneRows = active.map((f) => ({
+		f,
+		lane: String(frontMatter(read(abs(activeDir, f))).lane || "").toUpperCase(),
+	}));
+	const badLanes = laneRows.filter((r) => r.lane && !LANES.has(r.lane));
+	const noLane = laneRows.filter((r) => !r.lane);
+	add(
+		badLanes.length ? "FAIL" : noLane.length ? "WARN" : "PASS",
+		"task lanes",
+		badLanes.length
+			? badLanes.map((r) => `${r.f} (${r.lane})`).slice(0, 4).join(", ")
+			: noLane.length
+				? `missing: ${noLane.map((r) => r.f).slice(0, 4).join(", ")}`
+				: "micro, quick, planned",
 	);
 
 	const blockProblems = [];
