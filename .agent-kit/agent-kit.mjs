@@ -9,9 +9,11 @@
  *
  * Commands
  *   setup [target] [--source <path|url>]   scaffold a repo; never overwrites an authored file
+ *          [--ref <tag>]                  install that release tag; default is the newest tag
  *          [--no-rtk]                     skip the token-saver install
- *   check [--json]                         drift table vs the template; never writes
+ *   check [--json] [--ref <tag>]           drift table vs the template; never writes
  *   pull [--dry-run|--force|--seeds]       apply the sync, then doctor
+ *        [--ref <tag>]                     move the install to that release tag
  *   doctor [--strict] [--fix] [--json]     truth checks over the repo's own docs
  *   start                                  session brief: task, gate, evidence, next; never writes
  *   verify [--full|--baseline]             run the always-tier commands; --full adds milestone rows
@@ -345,25 +347,60 @@ function manifestOf(root) {
 	return m;
 }
 
-function sourceFor(root, override) {
-	if (override) return resolveSpec(root, override);
+function sourceFor(root, override, refOverride) {
 	const state = json(abs(root, STATE));
-	if (state?.source) return resolveSpec(root, state.source);
-	return null;
+	const spec = override || state?.source;
+	if (!spec) return null;
+	// A pinned install compares against the tag it chose; a fresh or unpinned one takes the
+	// newest release, so an install never lands on unreleased commits by default.
+	const ref = isRemote(spec)
+		? refOverride || (!override ? state?.ref : null) || tagList(root, spec)[0] || null
+		: null;
+	return resolveSpec(root, spec, ref);
 }
 
-function resolveSpec(root, spec) {
-	const looksRemote =
-		/^(https?:\/\/|git@|ssh:\/\/)/.test(spec) || spec.endsWith(".git");
-	if (!looksRemote) {
+/** A spec git can clone. A plain path is a working tree, where HEAD is the truth. */
+function isRemote(spec) {
+	return /^(https?:\/\/|git@|ssh:\/\/|file:\/\/)/.test(spec) || spec.endsWith(".git");
+}
+
+const SEMVER = /^v?(\d+)\.(\d+)\.(\d+)$/;
+
+function semverCmp(a, b) {
+	const x = String(a).match(SEMVER);
+	const y = String(b).match(SEMVER);
+	if (!x || !y) return 0;
+	for (let i = 1; i <= 3; i++) if (+x[i] !== +y[i]) return +x[i] - +y[i];
+	return 0;
+}
+
+/** The release tags a source exposes, newest first. Empty means it has no releases yet. */
+function tagList(root, spec) {
+	const r = isRemote(spec)
+		? run(`git ls-remote --tags --refs "${spec}"`, root)
+		: run(`git -C "${path.resolve(root, spec)}" tag --list`, root);
+	if (r.code !== 0) return [];
+	return [
+		...new Set(
+			r.out
+				.split(/\r?\n/)
+				.map((l) => l.trim().split(/\s+/).pop().split("/").pop())
+				.filter((t) => SEMVER.test(t)),
+		),
+	].sort((a, b) => semverCmp(b, a));
+}
+
+function resolveSpec(root, spec, ref) {
+	if (!isRemote(spec)) {
 		const p = path.resolve(root, spec);
 		if (!isDir(p)) die(`source not found: ${p}`);
-		return { root: p, spec, temp: false };
+		return { root: p, spec, ref: null, temp: false };
 	}
 	const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "agent-kit-"));
-	const r = run(`git clone --depth 1 "${spec}" "${tmp}"`, root);
+	const pin = ref ? ` --branch "${ref}"` : "";
+	const r = run(`git clone --depth 1${pin} "${spec}" "${tmp}"`, root);
 	if (r.code !== 0) die(`git clone failed for ${spec}\n${r.out}`);
-	return { root: tmp, spec, temp: true };
+	return { root: tmp, spec, ref: ref || null, temp: true };
 }
 
 // ---------------------------------------------------------------- stack detection
@@ -788,7 +825,7 @@ function cmdHarnesses({ root, home, pathEnv } = {}) {
 
 // ---------------------------------------------------------------- setup
 
-function cmdSetup({ target, sourceRoot, sourceSpec, noRtk, home, pathEnv }) {
+function cmdSetup({ target, sourceRoot, sourceSpec, ref, noRtk, home, pathEnv }) {
 	const root = path.resolve(target || process.cwd());
 	const src = path.resolve(sourceRoot || SCRIPT_ROOT);
 	const selfAdopt = root === src;
@@ -854,10 +891,14 @@ function cmdSetup({ target, sourceRoot, sourceSpec, noRtk, home, pathEnv }) {
 	rows.push(rtk);
 
 	// Baseline = what we just installed. Drift is measured against this, never against memory.
+	const pin = !selfAdopt && isRemote(sourceSpec || "") ? ref || "" : "";
 	const next = {
 		role: "target",
 		// In-place adoption has no upstream to diff against; an empty source keeps check honest.
 		source: selfAdopt ? "" : sourceSpec || state.source || src,
+		ref: pin,
+		release: SEMVER.test(pin) ? pin.replace(/^v/i, "") : "",
+		commit: pin ? git(src, ["rev-parse", "--short", "HEAD"]) || "" : "",
 		version: manifest.version || 1,
 		installed_at: state.installed_at || today,
 		last_pull: today,
@@ -877,7 +918,9 @@ function cmdSetup({ target, sourceRoot, sourceSpec, noRtk, home, pathEnv }) {
 	write(abs(root, STATE), `${JSON.stringify(next, null, 2)}\n`);
 
 	console.log(`\nSetup -> ${root}`);
-	console.log(`  ${copied} copied, ${kept} kept, template v${next.version}\n`);
+	console.log(
+		`  ${copied} copied, ${kept} kept, template v${next.version}${next.ref ? ` at ${next.ref}` : ""}\n`,
+	);
 	if (rows.length) table(rows);
 	if (rtk[0] === "MISSING" || rtk[0] === "CONFLICT")
 		console.log(`\nToken saver: ${rtk[2]}`);
@@ -969,7 +1012,32 @@ function computeSync(targetRoot, sourceRoot) {
 	return { manifest, state, rows };
 }
 
-function cmdCheck({ target, sourceRoot, jsonOut }) {
+/**
+ * The version row `check` adds: an install follows a tag, and "newer release exists" is a
+ * different question from "a file changed". A working-tree source has no tags, so no row.
+ */
+function releaseRow(state, latest) {
+	if (!state.ref || !state.release) {
+		return {
+			status: "UNPINNED",
+			rel: "release",
+			detail: `tracks a branch - pull pins to ${latest}`,
+		};
+	}
+	const cmp = semverCmp(state.release, latest);
+	return {
+		status: cmp < 0 ? "BEHIND" : cmp > 0 ? "AHEAD" : "CURRENT",
+		rel: "release",
+		detail:
+			cmp < 0
+				? `v${state.release} (${state.commit || "?"}) -> ${latest} - pull --ref ${latest}`
+				: cmp > 0
+					? `v${state.release} is ahead of every tag (${latest})`
+					: `v${state.release} (${state.commit || "?"})`,
+	};
+}
+
+function cmdCheck({ target, sourceRoot, spec, jsonOut }) {
 	const root = path.resolve(target || process.cwd());
 	if (!sourceRoot) {
 		console.log(
@@ -982,6 +1050,12 @@ function cmdCheck({ target, sourceRoot, jsonOut }) {
 		return 0;
 	}
 	const { rows } = computeSync(root, sourceRoot);
+	const state = json(abs(root, STATE), {});
+	const specOf = spec || state.source || "";
+	if (isRemote(specOf)) {
+		const latest = tagList(root, specOf)[0];
+		if (latest) rows.push(releaseRow(state, latest));
+	}
 	const bad = rows.filter((r) => !["CURRENT"].includes(r.status));
 	if (jsonOut) {
 		console.log(
@@ -1011,7 +1085,7 @@ function cmdCheck({ target, sourceRoot, jsonOut }) {
 	return bad.length === 0 ? 0 : 1;
 }
 
-function cmdPull({ target, sourceRoot, force, seeds, dryRun }) {
+function cmdPull({ target, sourceRoot, spec, ref, force, seeds, dryRun }) {
 	const root = path.resolve(target || process.cwd());
 	if (!sourceRoot)
 		die(
@@ -1100,9 +1174,14 @@ function cmdPull({ target, sourceRoot, force, seeds, dryRun }) {
 	// A seed pull can replace an index; the entries it lists are derived, so rebuild them.
 	refreshRecents(root);
 
+	const specOf = spec || state.source || "";
+	const pin = isRemote(specOf) ? ref || state.ref || "" : "";
 	const next = {
 		role: "target",
 		source: state.source || sourceRoot,
+		ref: pin,
+		release: SEMVER.test(pin) ? pin.replace(/^v/i, "") : state.release || "",
+		commit: pin ? git(sourceRoot, ["rev-parse", "--short", "HEAD"]) || "" : "",
 		version: manifest.version || 1,
 		installed_at: state.installed_at || new Date().toISOString().slice(0, 10),
 		last_pull: new Date().toISOString().slice(0, 10),
@@ -1122,6 +1201,10 @@ function cmdPull({ target, sourceRoot, force, seeds, dryRun }) {
 	write(abs(root, STATE), `${JSON.stringify(next, null, 2)}\n`);
 
 	console.log(`\nPull v${next.version}: ${applied.length} change(s)`);
+	if (pin)
+		console.log(
+			`Pinned ${pin}${state.ref ? (state.ref === pin ? " (unchanged)" : ` (was ${state.ref})`) : " (was tracking a branch)"}`,
+		);
 	if (applied.length) table(applied);
 	const skipped = rows.filter((r) => r.status === "DRIFT" && !force);
 	if (skipped.length) {
@@ -2969,7 +3052,10 @@ function cmdRelease({ root, version }) {
 	);
 	write(abs(base, rel), lines.join("\n"));
 	console.log(`\nWrote ${rel} — ${fresh.length} change(s)\n`);
-	console.log(`Next    gh release create v${raw} --notes-file ${rel}\n`);
+	console.log(
+		`Tag it  git tag -a v${raw} -m "Release v${raw}" && git push origin v${raw}`,
+	);
+	console.log(`Then    gh release create v${raw} --notes-file ${rel}\n`);
 	return 0;
 }
 
@@ -4632,6 +4718,96 @@ function cmdSelftest() {
 			doctorRow("context budget").status === "PASS",
 			"the budget clears once the file is back under its cap",
 		);
+
+		console.log(
+			"\n33. an install pins a release tag and ignores unreleased commits",
+		);
+		const work = abs(junkDir, "tag-src");
+		const bare = abs(junkDir, "tag-src.git");
+		const t33 = abs(junkDir, "tag-target");
+		fs.mkdirSync(work, { recursive: true });
+		fs.mkdirSync(t33, { recursive: true });
+		write(
+			abs(work, MANIFEST),
+			`${JSON.stringify({ version: 1, machinery: ["kit.md"], seeds: {}, prune: [], owned: [] }, null, 2)}\n`,
+		);
+		write(abs(work, "kit.md"), "one\n");
+		git(work, ["init", "-q"]);
+		git(work, ["add", "."]);
+		git(work, ["commit", "-qm", "v1"]);
+		git(work, ["tag", "v1.0.0"]);
+		run(`git clone --bare -q "${work}" "${bare}"`, junkDir);
+
+		const first = sourceFor(t33, bare);
+		assert(
+			first.ref === "v1.0.0",
+			"a fresh install resolves the newest tag, not the branch",
+		);
+		quiet(() =>
+			cmdSetup({
+				target: t33,
+				sourceRoot: first.root,
+				sourceSpec: bare,
+				ref: first.ref,
+				noRtk: true,
+				home: abs(t33, "no-home"),
+				pathEnv: "",
+			}),
+		);
+		const state33 = JSON.parse(read(abs(t33, STATE)));
+		assert(
+			state33.ref === "v1.0.0" && state33.release === "1.0.0",
+			"template.json records the tag and its version",
+		);
+
+		// Upstream moves on without a release.
+		write(abs(work, "kit.md"), "two\n");
+		git(work, ["commit", "-qam", "unreleased"]);
+		run(`git -C "${work}" push -q "${bare}" HEAD:refs/heads/main --tags`, junkDir);
+		assert(
+			quiet(() =>
+				cmdCheck({
+					target: t33,
+					sourceRoot: sourceFor(t33).root,
+					spec: bare,
+				}),
+			) === 0,
+			"an unreleased commit on the branch is not an upgrade",
+		);
+
+		// The tag is what makes it installable.
+		git(work, ["tag", "v1.0.1"]);
+		run(`git -C "${work}" push -q "${bare}" --tags`, junkDir);
+		const behind = captured(() =>
+			cmdCheck({ target: t33, sourceRoot: sourceFor(t33).root, spec: bare }),
+		);
+		assert(
+			behind.includes("BEHIND") && behind.includes("v1.0.1"),
+			"a newer tag is named with the command that moves to it",
+		);
+
+		// Through `main`, so a flag the CLI forgets to pass is a failing scenario, not a silent no-op.
+		const cwd0 = process.cwd();
+		try {
+			process.chdir(t33);
+			quiet(() => main(["node", "agent-kit", "pull", "--ref", "v1.0.1"]));
+		} finally {
+			process.chdir(cwd0);
+		}
+		assert(
+			read(abs(t33, "kit.md")).trim() === "two",
+			"pull --ref takes the tagged content",
+		);
+		assert(
+			JSON.parse(read(abs(t33, STATE))).release === "1.0.1",
+			"the pin moves with the pull",
+		);
+		assert(
+			quiet(() =>
+				cmdCheck({ target: t33, sourceRoot: sourceFor(t33).root, spec: bare }),
+			) === 0,
+			"check is green at the new tag",
+		);
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });
 		if (junkDir) fs.rmSync(junkDir, { recursive: true, force: true });
@@ -4665,7 +4841,7 @@ function main(argv) {
 	switch (cmd) {
 		case "setup": {
 			const target = path.resolve(positional[0] || process.cwd());
-			const src = sourceFor(target, value("source")) || {
+			const src = sourceFor(target, value("source"), value("ref")) || {
 				root: SCRIPT_ROOT,
 				spec: SCRIPT_ROOT,
 			};
@@ -4673,24 +4849,28 @@ function main(argv) {
 				target,
 				sourceRoot: src.root,
 				sourceSpec: src.spec,
+				ref: src.ref,
 				noRtk: flag("no-rtk"),
 			});
 		}
 		case "check": {
 			const target = path.resolve(process.cwd());
-			const src = sourceFor(target, value("source"));
+			const src = sourceFor(target, value("source"), value("ref"));
 			return cmdCheck({
 				target,
 				sourceRoot: src ? src.root : null,
+				spec: src ? src.spec : null,
 				jsonOut: flag("json"),
 			});
 		}
 		case "pull": {
 			const target = path.resolve(process.cwd());
-			const src = sourceFor(target, value("source"));
+			const src = sourceFor(target, value("source"), value("ref"));
 			return cmdPull({
 				target,
 				sourceRoot: src ? src.root : null,
+				spec: src ? src.spec : null,
+				ref: src ? src.ref : null,
 				force: flag("force"),
 				seeds: flag("seeds"),
 				dryRun: flag("dry-run"),

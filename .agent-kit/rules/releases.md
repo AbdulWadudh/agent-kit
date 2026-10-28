@@ -28,5 +28,17 @@ The number is the owner's. Propose one with its reason and let them overrule it.
 ## Publish
 
 Stage the release file and the change files it claims, by path — never the tree. The commit and
-its message follow `commits.md`. `gh release create vX.Y.Z --notes-file <file>` is the only step
-that touches GitHub, and it runs when the owner asks for it, not as part of the release command.
+its message follow `commits.md`. The tag is what makes the release installable: `setup --ref` and
+`pull --ref` clone it, and `check` compares against it. So cut the note, commit it, then tag that
+commit:
+
+```bash
+git tag -a vX.Y.Z -m "Release vX.Y.Z" && git push origin vX.Y.Z
+```
+
+`gh release create vX.Y.Z --notes-file <file>` is the only step that touches GitHub, and it runs
+when the owner asks for it, not as part of the release command. `release` never runs git; it
+prints both lines.
+
+A tag is a promise: never move one. A fix is a new patch tag, because an install pinned to the old
+tag must keep building what it installed.

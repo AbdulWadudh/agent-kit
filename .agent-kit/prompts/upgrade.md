@@ -5,19 +5,20 @@ itself from the source recorded at install; no product code is touched.
 
 ## 1. Ask the source, do not guess
 
-`agent-kit check` never writes. It clones the recorded source and prints one row per file:
-`UPGRADE` (upstream moved, yours untouched), `DRIFT` (you edited it), `MISSING`, `PRUNE`,
-`SEED-UPDATED`, `AHEAD`. `IN SYNC` means stop and say so.
+`agent-kit check` never writes. It clones the recorded source at the release tag this repo
+tracks and prints one row per file: `UPGRADE` (upstream moved, yours untouched), `DRIFT` (you
+edited it), `MISSING`, `PRUNE`, `SEED-UPDATED`, `AHEAD`. A `release` row says which tag you are on
+and which newer one exists: `BEHIND v1.0.2 - pull --ref v1.0.2`. `UNPINNED` means the install
+still tracks a branch, and `pull` pins it to the newest tag.
 
-There is no release number to compare: `template version` is the manifest schema version, and
-`.agent-kit/releases/` is not installed. Report the files that changed, not a version.
-
-A recorded source that no longer exists (a deleted local clone): `check --source <path|url>`.
+`IN SYNC` means stop and say so. A recorded source that no longer exists (a deleted local clone):
+`check --source <path|url>`.
 
 ## 2. Show it before writing
 
-`agent-kit pull --dry-run` prints the planned rows and a unified diff each. Report one line per
-row and what capability it brings. The owner decides before step 4.
+`agent-kit pull --ref v1.0.2 --dry-run` prints the planned rows and a unified diff each. Pass the
+same `--ref` here and in step 4: without it the diff is against the tag you already have, which is
+empty. Report one line per row and what capability it brings. The owner decides before step 4.
 
 ## 3. Open the task
 
@@ -26,9 +27,11 @@ row and what capability it brings. The owner decides before step 4.
 
 ## 4. Pull
 
-`agent-kit pull` writes `UPGRADE` and `MISSING` only. It skips `DRIFT` (your edit) and
-`SEED-UPDATED` (your authored file) unless `--force` / `--seeds`, which overwrite work — so the
-owner's yes comes first, and `--force` only after the step 2 diff. It ends by running `doctor`.
+`agent-kit pull --ref v1.0.2` writes `UPGRADE` and `MISSING` only, then records `ref`, `release`
+and `commit` in `template.json`. Without `--ref` it stays on the tag it tracks — or, on an
+`UNPINNED` install, pins the newest tag. It skips `DRIFT` (your edit) and `SEED-UPDATED` (your
+authored file) unless `--force` / `--seeds`, which overwrite work — so the owner's yes comes
+first, and `--force` only after the step 2 diff. It ends by running `doctor`.
 
 ## 5. Prove and log
 

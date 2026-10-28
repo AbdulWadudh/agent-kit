@@ -16,6 +16,7 @@ an empty item, source or next step.
 | `B-07` | `not-important` | runtime telemetry for rule cost (tokens read, time per rule) | 2026-10-28 owner ask, kit-review limits | nothing: the kit already stores characters, exit codes and `LOOP n`; a token count estimates a harness read the kit cannot see. Revisit only if a harness exposes real counts |
 | `B-08` | `later` | `doctor` names the recent task that looped, instead of waiting for a session to notice | 2026-10-28 owner ask; every archived card carries `<!-- LOOP {"n":…} -->` | open a task: a WARN row over the last ten archived cards where `n >= 2`, naming the task and its failing set; `selftest` plants a card with `n:2` and asserts WARN |
 | `B-09` | `not-important` | let an installed repo patch its own `.agent-kit/` machinery | 2026-10-28 owner ask | nothing: `pull --force` reverts machinery and `check` reports the drift, so upstream is the only path that survives. Revisit only if the manifest gains a per-file override |
+| `B-10` | `not-now` | publish the kit to npm so `npx agent-kit@1.0.2 setup .` works | 2026-10-28 owner ask | a shim that maps the npm version to the git tag and runs the same `setup --ref`, so there is still one provenance; decide after the tag model has one install outside this repo. Publishing the tree as a package would add a second provenance `check` cannot verify |
 
 ## Statuses
 

@@ -139,7 +139,7 @@ What to ask instead of typing:
 | "`AGENTS.md` has grown too big" | run `.agent-kit/prompts/trim-agents-md.md`; each fact moves to its home and the report shows the character delta |
 | "which agents can drive this repo?" | `harnesses`, then wire each skill folder it names |
 | "is this repo actually healthy?" | `doctor --strict` and reports the failing row |
-| "what changed since the template?" | `check`, then `pull --dry-run` |
+| "what changed since the template?" | `check` (names the release tag and any newer one), then `pull --ref <tag>` |
 | "how much did rtk save?" | `rtk gain`, reported under the active task ID |
 
 The only commands in this document that are yours to run are the ones inside a chat message.
@@ -242,7 +242,7 @@ schema change. Choosing per task is what keeps the gates honest.
 | `verify` | do the `always` commands exit 0, and is this the fourth identical red run? `--full` adds the `milestone` rows, so the slow build is checked before close, not every pass |
 | `task close` | did the diff stay inside the declared write set, is the full suite green, and is the outcome written down? A subtask closes on the quick suite (lint included); the main task's close runs build. It also prints the commit message in the hook's shape |
 | `doctor` | do the docs name real paths, is every kit directory indexed, do the commands exist, are the task and logs lists current, is rtk installed, is the encoding clean, is every rule checkable and indexed, is the backlog triaged, is every blocked task carrying its question? |
-| `check` | has the template moved since install, and did you edit machinery you should not have? |
+| `check` | is a newer release tag published, and has the template moved under the tag this repo tracks, and did you edit machinery you should not have? |
 
 Every one of them can fail. `selftest` asserts that by building a throwaway repo and
 deliberately tripping each gate — from a red baseline to a scope breach.
@@ -286,10 +286,16 @@ new check failing before it can be trusted.
 
 ## Staying current
 
+An install follows a **release tag**, not the branch. `setup --ref v1.0.0` clones that tag;
+omitting `--ref` takes the newest one, so an install never receives unreleased commits.
+`.agent-kit/template.json` records `ref`, `release` and `commit`.
+
 `check` never writes and prints one row per file: `CURRENT`, `UPGRADE`, `DRIFT`, `MISSING`,
-`PRUNE`, `SEED-UPDATED`. `pull` applies the safe rows, refuses to overwrite a file you
-modified unless you pass `--force`, and never deletes without a `prune` entry. Provenance and
-per-file hashes live in `.agent-kit/template.json`.
+`PRUNE`, `SEED-UPDATED`, plus a `release` row — `CURRENT`, `BEHIND` with the tag to move to, or
+`UNPINNED` for an install that still tracks a branch. `pull` applies the safe rows, refuses to
+overwrite a file you modified unless you pass `--force`, and never deletes without a `prune`
+entry. `pull --ref v1.0.1` moves the install; `--ref` accepts any tag, so a jump backwards is a
+choice, not an accident. Provenance and per-file hashes live in `.agent-kit/template.json`.
 
 ## What is deliberately not here
 

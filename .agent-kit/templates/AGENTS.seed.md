@@ -87,7 +87,7 @@ under one change file and one commit message.
 | `verify` | the inner loop: runs the `always` rows and writes the evidence table; `--full` adds the `milestone` rows, which the baseline and `task close` already run; at three identical red runs it refuses until the Plan changes |
 | `task guard [--message <file>]` | the hooks: `pre-commit` refuses a commit outside the declared write set (silent when no task is open); `commit-msg` warns — never blocks — on a subject that is not `type (TASK-ID): summary` or a body with no summary. **Opt-in per clone** via `git config core.hooksPath .agent-kit/githooks` |
 | `learnings archive` | move entries past the 30 cap into `.agent-kit/learnings/archive/`; the live list is the part a session reads |
-| `check` / `pull --dry-run` / `pull` | drift against the template; `pull` never overwrites a locally modified file without `--force` |
+| `check` / `pull --dry-run` / `pull [--ref <tag>]` | the release tag this repo tracks and whether a newer one exists, plus drift against it; `pull` never overwrites a locally modified file without `--force` |
 
 The owner is not expected to type any of this. The agent runs `task new` and `task close`, and
 `task close` is where the write set is checked — that check always runs. The hooks are a

@@ -24,8 +24,12 @@ history, not correctness.
 From the **target repo root**:
 
 ```bash
-bun "$TMPDIR/agent-kit/.agent-kit/agent-kit.mjs" setup . --source https://github.com/AbdulWadudh/agent-kit
+bun "$TMPDIR/agent-kit/.agent-kit/agent-kit.mjs" setup . --source https://github.com/AbdulWadudh/agent-kit --ref v1.0.0
 ```
+
+`--ref` is the release you install: `setup` clones exactly that tag. Omit it and you get the
+newest release tag, never the branch tip. `git ls-remote --tags https://github.com/AbdulWadudh/agent-kit`
+lists what you can choose from.
 
 Fallback if Bun is absent: `node` instead of `bun`. Same file, same behaviour.
 
@@ -42,7 +46,8 @@ What it does, in order:
    driven by several agents; the machine is the source. Where the repo already keeps a harness's
    folder (`.claude/`, `.opencode/`), it writes that harness's skill pointer, and prints
    `Skill pointer: <path>`; the rest are left in a `Wire the skill for each:` line.
-6. Writes `.agent-kit/template.json`: source, version, date, and a hash baseline per file.
+6. Writes `.agent-kit/template.json`: source, the release tag it installed (`ref`, `release`,
+   `commit`), the manifest version, the date, and a hash baseline per file.
 7. Prints the fill list.
 
 Expected output: `N copied, M kept, template v1`, a per-file table including `PRESENT` or
@@ -269,9 +274,11 @@ Tell the owner, in plain words:
 `setup` again: fills in anything missing, keeps everything present, refreshes the hash
 baseline. Safe.
 
-Later, to take template improvements: `check` (never writes), `pull --dry-run` (prints the
-diff per row), then `pull`. `pull` will not overwrite a file you modified unless you pass
-`--force`, and reports `SEED-UPDATED` when an upstream seed changed after you authored from it.
+Later, to take template improvements: `check` (never writes) names the release tag this repo
+tracks, whether a newer tag exists, and any file drift. `pull --dry-run` prints the diff per row,
+then `pull --ref <tag>` moves the install. `pull` will not overwrite a file you modified unless
+you pass `--force`, and reports `SEED-UPDATED` when an upstream seed changed after you authored
+from it. The full procedure is `.agent-kit/prompts/upgrade.md`.
 
 ## What is deliberately checked in
 
