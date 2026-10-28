@@ -257,7 +257,7 @@ ID, and the change file carries the same ID, so a number in the report points at
 
 | | QUICK | PLANNED |
 |---|---|---|
-| When | three files or fewer, reversible, no contract change | everything else |
+| When | reversible, one domain, no contract change | everything else |
 | Halts | none; verify and record | one before the first edit, one before close |
 | Always halts | destructive actions, new dependencies, schema changes, scope breaches | same |
 

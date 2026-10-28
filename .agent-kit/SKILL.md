@@ -64,8 +64,8 @@ the change file written at close carries the same ID. `rtk gain` is the source.
 
 ## 2. Classify
 
-QUICK: at most three files, reversible, no public interface, schema, dependency or data
-change. Everything else is PLANNED. When unsure, take PLANNED: a short plan, not a rewrite.
+QUICK: reversible, one domain, no public interface, schema, dependency or data change.
+Everything else is PLANNED. When unsure, take PLANNED: a short plan, not a rewrite.
 
 ## 3. Open
 

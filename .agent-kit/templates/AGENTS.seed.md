@@ -50,7 +50,7 @@ You are working in <PROJECT NAME>. Read this file once per session, then follow 
 
 5. **Context discipline.** Every directory the kit owns carries an `INDEX.md`: read the index, then the one file it points at — never list a folder into context. Search narrowly; read at most three source files at a time. History (`.agent-kit/tasks/archive/`, `.agent-kit/logs/MM-YYYY/`) is read only when the user asks; `agent-kit start` prints the five newest closes.
 6. **One home per fact.** A rule lives in exactly one file; everywhere else cites it.
-7. **Planning.** Anything beyond the QUICK lane (three files or fewer, reversible, no contract change) needs a task file in `.agent-kit/tasks/active/`, with the plan approved before the first edit.
+7. **Planning.** Anything beyond the QUICK lane (reversible, one domain, no contract change) needs a task file in `.agent-kit/tasks/active/`, with the plan approved before the first edit.
 8. **Subagents.** Every subagent prompt names the files to read and the deliverable. It never restates the plan.
 9. **Shell output.** Prefix commands with `rtk` (`rtk git status`, `rtk npm test`); `rtk bypass <cmd>` when the full output is the evidence. Name the active task ID with any savings you report — the detail is in `.agent-kit/SKILL.md` §Shell output.
 

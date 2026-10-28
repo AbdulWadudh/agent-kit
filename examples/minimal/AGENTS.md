@@ -39,7 +39,7 @@ session, then follow it.
 
 5. **Context discipline.** Search narrowly. Read at most three source files at a time.
 6. **One home per fact.** A rule lives in exactly one file; everywhere else cites it.
-7. **Planning.** Anything beyond the QUICK lane (three files or fewer, reversible, no contract
+7. **Planning.** Anything beyond the QUICK lane (reversible, one domain, no contract
    change) needs a task file in `.agent-kit/tasks/active/`, with the plan approved before the first edit.
 8. **Subagents.** Every subagent prompt names the files to read and the deliverable. It never
    restates the plan.

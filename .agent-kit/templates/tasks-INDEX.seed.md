@@ -58,10 +58,10 @@ write set is the main task's files plus every subtask's.
 
 | | QUICK | PLANNED |
 |---|---|---|
-| **Eligible when** | three files or fewer, one domain, reversible with `git revert`, no contract change | everything else |
+| **Eligible when** | reversible with `git revert`, one domain, no contract change | everything else |
 | **G1 — plan** | record intent in the task and proceed | **halt** for approval before the first edit |
 | **G2 — result** | `task close` runs the full suite and closes (a subtask closes on the quick suite, lint included; its main task runs build) | **halt** for approval after the suite, before close |
-| **Typical** | typo, doc fix, one-file bug, a test | feature, refactor, schema, interface change |
+| **Typical** | typo, doc fix, a small bug fix, a test | feature, refactor, schema, interface change |
 
 ## Gates
 
