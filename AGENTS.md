@@ -93,8 +93,9 @@ file; ship a seed whose example paths would be read as real.
 
 ## Core rules
 
-1. **The kit is the only executable surface.** One script, zero dependencies, Bun or Node.
-   Do not add a second entry point; add a subcommand.
+1. **The kit is the only executable surface.** One entry point — `agent-kit.mjs` — importing
+   modules from `.agent-kit/lib/`; zero dependencies, Bun or Node. Do not add a second entry
+   point; add a subcommand to the module that owns it.
 2. **One home per fact.** Commands live in `project.md`. Rules live in one file. Indexes
    cite, they do not summarise.
 3. **Seeds, not copies.** Anything a target repo must author lives in `.agent-kit/templates/`
@@ -111,7 +112,9 @@ SETUP.md                      the install contract
 examples/                     INDEX -> minimal/: what a filled repo looks like (not installed)
 .agent-kit/
   INDEX.md                    the map of .agent-kit; read before browsing
-  agent-kit.mjs               the only executable: setup | check | pull | doctor | start | verify | harnesses | task | learnings | release | selftest
+  agent-kit.mjs               the only entry point: argv parsing and dispatch; usage sits at the top
+  lib/                        INDEX: a module or folder per command area, imported by the entry;
+                              past 300 lines the module becomes a folder with an index.mjs
   SKILL.md                    the work loop: classify, open, gate, verify, close
   sync-manifest.json          machinery / seeds / owned / prune
   project.md                  generated per repo: stack + commands (single source)

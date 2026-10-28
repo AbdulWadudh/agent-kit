@@ -26,7 +26,8 @@ fast enough for every run; a target repo's build is the row that would be `miles
 
 ## Entry points
 
-- `.agent-kit/agent-kit.mjs`
+- `.agent-kit/agent-kit.mjs` — dispatch only; its modules live in `.agent-kit/lib/` and are not
+  entry points
 
 ## Never edit (generated)
 
@@ -36,8 +37,8 @@ fast enough for every run; a target repo's build is the row that would be `miles
 
 - This repo is a template. `.agent-kit/templates/` holds the seeds a target repo authors from;
   editing a seed changes every future install, and `check` reports it as `SEED-UPDATED`.
-- Nothing here is allowed to become a second entry point. A new capability is a subcommand
-  in `.agent-kit/agent-kit.mjs`, with an assertion in `selftest`.
+- Nothing here is allowed to become a second entry point. A new capability is a subcommand whose
+  module lives in `.agent-kit/lib/`, with an assertion in `selftest`.
 - The template's own `.agent-kit/docs/` is both the seed source and the installed destination
   (see `.agent-kit/sync-manifest.json`).
   That is why it contains illustration blocks instead of this repo's history: it has none.

@@ -37,8 +37,8 @@ What it does, in order:
 
 1. Reads the target's manifests and writes `.agent-kit/project.md` — languages, package manager,
    `install`/`build`/`typecheck`/`lint`/`test`, entry points, generated directories.
-2. Copies the machinery (the script, the manifest, the directory indexes, the seeds, the rule
-   router, the prompts).
+2. Copies the machinery (the entry point and its modules, the manifest, the directory indexes,
+   the seeds, the rule router, the prompts).
 3. Copies each seed to its authored path **only if the path is absent**.
 4. Installs `rtk` (the token saver) when it is missing, unless `--no-rtk` is passed.
 5. Detects the coding agents installed on this machine — HOME config folders, `PATH`, and repo
@@ -161,6 +161,8 @@ are not a reason to keep editing.
 |---|---|
 | required files | a kit file is missing (including `.agent-kit/SKILL.md`) |
 | directory indexes | a directory under `.agent-kit/` has no `INDEX.md` |
+| kit modules covered | a `.mjs` under `.agent-kit/` is not covered by the manifest, so an install would miss it |
+| source ceiling | a kit `.mjs` is past 300 lines - split it by area, keeping related functions in one file |
 | skill pointers | a harness skill file is a copy of the loop instead of a pointer to `.agent-kit/SKILL.md` |
 | context budget | one of the files a session reads before it plans is past its cap (`AGENTS.md` 9000, `SKILL.md` 10000, `_behavior.md` 7500, `rules/INDEX.md` 1800 characters) - move the detail behind an index, or run `.agent-kit/prompts/trim-agents-md.md` |
 | token saver | WARN, not FAIL: `rtk gain` failed, so shell output is not being compressed |

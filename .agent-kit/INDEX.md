@@ -8,7 +8,8 @@ do not read the directory.
 
 | Path | Holds | Open when |
 |---|---|---|
-| `agent-kit.mjs` | every command and gate, zero dependencies | debugging a gate or changing the kit |
+| `agent-kit.mjs` | the only entry point: argv parsing and dispatch | a new subcommand or flag |
+| `lib/` | INDEX -> a module or folder per command area, imported by the entry | changing a command or debugging a gate |
 | `SKILL.md` | the work loop: classify, open, gate, verify, close, report | every session, first |
 | `project.md` | stack, entry points and the exact commands (the only home for commands) | every session |
 | `docs/INDEX.md` | the codebase map: architecture, API shape, entry points | a task touches code you have not read |

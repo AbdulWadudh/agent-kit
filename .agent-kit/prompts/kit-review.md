@@ -28,7 +28,7 @@ A **repo-owned** file — `.agent-kit/project.md`, `.agent-kit/docs/`, a domain 
 `learnings.md`, `BACKLOG.md`, `AGENTS.md` rules for this repo: apply it now, in this task, and
 log it. The owner reads about it in the report.
 
-**Machinery** — `.agent-kit/agent-kit.mjs`, `SKILL.md`, `rules/_behavior.md`, `commits.md`,
+**Machinery** — `.agent-kit/agent-kit.mjs`, `.agent-kit/lib/`, `SKILL.md`, `rules/_behavior.md`, `commits.md`,
 `releases.md`, the seeds, `prompts/`, the manifest:
 
 - in the template repo: apply it if it is small — three files or fewer, no new command, no gate

@@ -70,11 +70,11 @@ _Nothing in flight._
 ## Recent
 
 <!-- RECENT:START -->
+- `2026-10-28` [TASK-125](archive/2026-10/2026-10-28-TASK-125-split-kit-modules.md) — the entry point is one dispatch file over lib/ modules and folders, and a 300-line ceiling keeps it that way
 - `2026-10-28` [TASK-124](archive/2026-10/2026-10-28-TASK-124-tag-message-verbatim.md) — a release tag keeps the note's headings, so the whole note reaches the reader
 - `2026-10-28` [TASK-123](archive/2026-10/2026-10-28-TASK-123-release-tag-cli.md) — release --tag reads its version from the flag, so the documented command runs
 - `2026-10-28` [TASK-122](archive/2026-10/2026-10-28-TASK-122-unescape-frontmatter.md) — a quoted task summary no longer leaks YAML escapes into the release note
 - `2026-10-28` [TASK-121](archive/2026-10/2026-10-28-TASK-121-release-tags.md) — a release gets its tag automatically, and the tag message is the release note
-- `2026-10-28` [TASK-120](archive/2026-10/2026-10-28-TASK-120-tag-based-install.md) — an install follows a release tag, so it never receives unreleased commits and can pick its version
 <!-- RECENT:END -->
 
 ## History

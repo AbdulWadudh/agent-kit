@@ -33,7 +33,8 @@ verified.** Everything here serves that, and anything that stops serving it gets
 - `agent-kit harnesses` — lists the coding agents installed on the machine (HOME config, PATH,
   repo markers), so a repo with no harness files still gets the skill wired for each one.
 - `examples/minimal/` — what a filled repo looks like, for a fictional project.
-- `.agent-kit/agent-kit.mjs` — the only executable surface. Zero dependencies. Bun or Node.
+- `.agent-kit/agent-kit.mjs` — the only entry point; it imports a module or folder per command
+  area from `.agent-kit/lib/`. Zero dependencies. Bun or Node.
 
 ## Start here
 
