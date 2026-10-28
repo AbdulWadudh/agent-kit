@@ -39,6 +39,10 @@ the change title. A source file's ceiling is 300 lines, counted in lines because
 decide when to split one file, not to bound what a session reads: past the cap, the file becomes a
 folder and its functions split by area, never one file per function.
 
+A reference Markdown file has a 12,000-character ceiling (`DOC_LIMIT`): past it, the file becomes
+a folder with an `INDEX.md` and one file per section. Records — `tasks/`, `logs/`, `releases/`,
+`learnings.md`, `BACKLOG.md` — are exempt; they are the state, not a page read for guidance.
+
 A session pays for `AGENTS.md`, `.agent-kit/SKILL.md`, `.agent-kit/rules/INDEX.md` and this file
 before it plans anything, so those four are the budget and `doctor` fails a file past its cap. A
 new capability earns a file behind an index; it does not earn a paragraph in front of one.
