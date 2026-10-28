@@ -10,6 +10,7 @@ import { localIdScenarios } from "./ids.mjs";
 import { copyScenario, installScenarios, syncScenarios } from "./install.mjs";
 import { issueIdScenarios } from "./issue.mjs";
 import { loopScenarios } from "./loop.mjs";
+import { microScenarios } from "./micro.mjs";
 import { migrateScenarios, prerequisiteScenarios } from "./migrate.mjs";
 import {
 	changeLogScenario,
@@ -218,6 +219,7 @@ export async function cmdSelftest(dispatch) {
 		tagScenarios(ctx);
 		await localIdScenarios(ctx);
 		await issueIdScenarios(ctx);
+		await microScenarios(ctx);
 		await migrateScenarios(ctx);
 		prerequisiteScenarios(ctx);
 	} finally {

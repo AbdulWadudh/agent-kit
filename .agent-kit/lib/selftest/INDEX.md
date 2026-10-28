@@ -20,3 +20,4 @@ owns the area, not at a 1,700-line script. Scenarios share one throwaway repo, s
 | `release.mjs` | 13, 28, 33–34: change log, release note, tag pin | a release or tag is wrong |
 | `ids.mjs` | 35: local ids derive, a stale `.counter` is ignored, a collision renumbers, the mode is refused | the offline allocator is wrong |
 | `issue.mjs` | 36–37: issue ids over a stubbed API, a missing prerequisite | issue mode or the prerequisites row is wrong |
+| `micro.mjs` | 41: the micro lane — PATCH card, no build, no GitHub, release claim, guard | a micro gate drifts |
