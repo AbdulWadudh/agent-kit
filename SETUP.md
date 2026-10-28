@@ -157,6 +157,7 @@ are not a reason to keep editing.
 | required files | a kit file is missing (including `.agent-kit/SKILL.md`) |
 | directory indexes | a directory under `.agent-kit/` has no `INDEX.md` |
 | skill pointers | a harness skill file is a copy of the loop instead of a pointer to `.agent-kit/SKILL.md` |
+| context budget | one of the files a session reads before it plans is past its cap (`AGENTS.md` 9000, `SKILL.md` 10000, `_behavior.md` 7500, `rules/INDEX.md` 1800 characters) - move the detail behind an index, or run `.agent-kit/prompts/trim-agents-md.md` |
 | token saver | WARN, not FAIL: `rtk gain` failed, so shell output is not being compressed |
 | manifest integrity | an `owned` path is inside a `machinery` directory or is also a seed |
 | encoding | a file is not UTF-8, has a BOM, or shows mojibake (`--fix` repairs the mechanical part) |

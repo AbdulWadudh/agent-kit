@@ -38,6 +38,10 @@ every cap on text a session reads counts characters — the harness pointer, the
 the change title. A source file's ceiling counts lines: its job is to decide when to split one
 file, not to bound what a session reads.
 
+A session pays for `AGENTS.md`, `.agent-kit/SKILL.md`, `.agent-kit/rules/INDEX.md` and this file
+before it plans anything, so those four are the budget and `doctor` fails a file past its cap. A
+new capability earns a file behind an index; it does not earn a paragraph in front of one.
+
 ## 3. Plans contain no code, task files contain no narrative
 
 A plan states intent, steps, files, decisions and acceptance criteria. Code goes to the file,

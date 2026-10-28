@@ -1230,7 +1230,29 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 		rtk ? "PASS" : "WARN",
 		"token saver",
 		rtk ||
-			"rtk gain failed — install rtk-ai.rtk (winget) or brew install rtk; setup does it",
+			"rtk gain failed - install rtk-ai.rtk (winget) or brew install rtk; setup does it",
+	);
+
+	// A session pays for these four files before it plans anything, so they are the budget. A
+	// section that outgrows its cap moves to a file reached by an index, which is the JIT path.
+	const budget = [
+		["AGENTS.md", 9000],
+		[".agent-kit/SKILL.md", 10000],
+		[".agent-kit/rules/_behavior.md", 7500],
+		[".agent-kit/rules/INDEX.md", 1800],
+	];
+	const over = budget
+		.map(([rel, cap]) => {
+			const p = abs(base, rel);
+			return exists(p) ? { rel, cap, chars: read(p).length } : null;
+		})
+		.filter((r) => r && r.chars > r.cap);
+	add(
+		over.length ? "FAIL" : "PASS",
+		"context budget",
+		over.length
+			? `${over.map((r) => `${r.rel} ${r.chars}/${r.cap}`).join(", ")} - move detail behind an index, see .agent-kit/prompts/trim-agents-md.md`
+			: "",
 	);
 
 	if (exists(abs(base, ".git"))) {
@@ -4595,6 +4617,20 @@ function cmdSelftest() {
 		assert(
 			doctorRow("hook mode").status === "PASS",
 			"the execute bit clears the row, so the row can fail and can pass",
+		);
+
+		console.log("\n32. a session's fixed cost has a ceiling");
+		const agentsPath = abs(tmp, "AGENTS.md");
+		const agentsText = read(agentsPath);
+		write(agentsPath, `${agentsText}${"padding ".repeat(300)}`);
+		assert(
+			doctorRow("context budget").status === "FAIL",
+			"an entry file past its cap fails, so the cap can bind",
+		);
+		write(agentsPath, agentsText);
+		assert(
+			doctorRow("context budget").status === "PASS",
+			"the budget clears once the file is back under its cap",
 		);
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });
