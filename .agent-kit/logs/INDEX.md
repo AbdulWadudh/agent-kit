@@ -23,9 +23,9 @@ it), and nothing from the plan: the link is the pointer.
 ## Recent
 
 <!-- RECENT:START -->
+- `2026-10-28` [TASK-110](10-2026/2026-10-28-TASK-110-remove-ci-workflow-and-fix-hook-mode.md) — the CI workflow is gone, and the commit guard is executable on every clone
 - `2026-10-28` [TASK-109](10-2026/2026-10-28-TASK-109-setup-skill-pointer.md) — setup writes the harness skill pointer for a harness whose folder the repo already keeps
 - `2026-10-27` [TASK-108](10-2026/2026-10-27-TASK-108-move-kit-under-dot-agent-kit.md) — every installed path lives under .agent-kit, except the three a harness pins to a fixed location
 - `2026-10-27` [TASK-107](10-2026/2026-10-27-TASK-107-rules-split.md) — commit conventions and skill sources leave the always-read rule file
 - `2026-10-27` [TASK-106](10-2026/2026-10-27-TASK-106-character-cost.md) — a session pays for characters, not lines
-- `2026-10-27` [TASK-105](10-2026/2026-10-27-TASK-105-changelog-shape.md) — a changelog entry carries the task summary, and each version gets a release file
 <!-- RECENT:END -->

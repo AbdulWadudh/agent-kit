@@ -33,7 +33,8 @@ What it does, in order:
 
 1. Reads the target's manifests and writes `.agent-kit/project.md` — languages, package manager,
    `install`/`build`/`typecheck`/`lint`/`test`, entry points, generated directories.
-2. Copies the machinery (the script, the workflow, the manifest, the directory indexes, the seeds, the rule router).
+2. Copies the machinery (the script, the manifest, the directory indexes, the seeds, the rule
+   router).
 3. Copies each seed to its authored path **only if the path is absent**.
 4. Installs `rtk` (the token saver) when it is missing, unless `--no-rtk` is passed.
 5. Detects the coding agents installed on this machine — HOME config folders, `PATH`, and repo
@@ -240,6 +241,10 @@ the earlier warning, opt in once:
 ```bash
 git config core.hooksPath .agent-kit/githooks
 ```
+
+Git silently skips a hook it cannot execute, so both files are tracked as `100755`. Where a clone
+lost that bit, `git ls-files -s .agent-kit/githooks` shows `100644` and `doctor`'s `hook mode` row
+reports it; `git update-index --chmod=+x` on the two files repairs it.
 
 It is per clone and bypassable (`git commit --no-verify`), so it is a speed bump, not the check.
 `pre-commit` refuses a commit outside the write set, which `task close` also checks;

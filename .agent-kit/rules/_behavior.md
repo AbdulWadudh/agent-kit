@@ -127,11 +127,11 @@ identity, attribution, split, staging, subject, body and hooks live there, not h
 
 ## 12. Sources before memory
 
-Check installed skills and MCP servers first, and name the one you used; a skill that applies is part of the plan. where each pays off: 
- - ponytail — over-building; 
- - prompt-master — prompts as readable prose; 
- - caveman — session token cost; 
- - anthropic skills — documents, slides, PDFs,frontend; 
+Check installed skills and MCP servers first, and name the one you used; a skill that applies is part of the plan. where each pays off:
+ - ponytail — over-building;
+ - prompt-master — prompts as readable prose;
+ - caveman — session token cost;
+ - anthropic skills — documents, slides, PDFs,frontend;
  - agent-browser — real pages, opt-in and asked separately, because it can reach live
   sites and accounts.
 - Keep an installed skill current from its own source when asked; never re-add one the owner

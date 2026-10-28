@@ -92,7 +92,7 @@ file; ship a seed whose example paths would be read as real.
 3. **Seeds, not copies.** Anything a target repo must author lives in `.agent-kit/templates/`
    or is declared in the manifest's `seeds` map. Nothing else is duplicated.
 4. **Every invariant has a check, and every check must be able to fail.** `selftest`
-   proves it once; the CI workflow proves it on every push.
+   proves it once; a row that cannot fail on the fixture that breaks it is not a check.
 
 ## Layout
 
@@ -100,7 +100,6 @@ file; ship a seed whose example paths would be read as real.
 AGENTS.md                     this file (the template's own entry point)
 CLAUDE.md                     Claude Code's pointer to AGENTS.md
 SETUP.md                      the install contract
-.github/workflows/            INDEX + agent-kit.yml: the same gates on push
 examples/                     INDEX -> minimal/: what a filled repo looks like (not installed)
 .agent-kit/
   INDEX.md                    the map of .agent-kit; read before browsing

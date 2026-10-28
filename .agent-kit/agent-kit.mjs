@@ -1243,6 +1243,24 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 				: "optional: git config core.hooksPath .agent-kit/githooks (task close checks anyway)",
 		);
 
+		// Windows ignores the execute bit; a clone on Linux or macOS does not, and git skips a
+		// hook it cannot execute. Read the mode from the index, not the filesystem.
+		const hookFiles = [
+			".agent-kit/githooks/pre-commit",
+			".agent-kit/githooks/commit-msg",
+		];
+		const notExec = hookFiles.filter((rel) => {
+			const entry = (git(base, ["ls-files", "-s", "--", rel]) || "").trim();
+			return entry && !entry.startsWith("100755");
+		});
+		add(
+			notExec.length ? (wired ? "FAIL" : "WARN") : "PASS",
+			"hook mode",
+			notExec.length
+				? `${notExec.join(", ")} — git update-index --chmod=+x ${notExec.join(" ")}`
+				: "",
+		);
+
 		// Commits belong to the owner: no session identity, no AI trailer. A second human
 		// author is a WARN, not a FAIL — only the trailer is never acceptable.
 		const history = git(base, ["log", "--format=%an <%ae>%x00%B%x1e"]) || "";
@@ -1290,8 +1308,8 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 							normGlob(o).startsWith(`${normGlob(m)}/`)),
 				) || Object.keys(manifest.seeds).includes(o),
 		);
-		// The install surface is `.agent-kit/`, plus the files a harness or CI must find at a
-		// fixed root path: the two entry points and the workflow.
+		// The install surface is `.agent-kit/`, plus the two entry points a harness must find at
+		// a fixed root path.
 		const outside = [
 			...manifest.machinery,
 			...Object.keys(manifest.seeds),
@@ -1301,7 +1319,6 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 			return (
 				n !== "agents.md" &&
 				n !== "claude.md" &&
-				n !== ".github/workflows/agent-kit.yml" &&
 				!n.startsWith(".agent-kit/")
 			);
 		});
@@ -4562,6 +4579,21 @@ function cmdSelftest() {
 		assert(
 			read(ptr).includes("authored by the owner"),
 			"an authored pointer is not overwritten",
+		);
+
+		console.log("\n31. a hook git cannot execute is reported");
+		const hookRels = [
+			".agent-kit/githooks/pre-commit",
+			".agent-kit/githooks/commit-msg",
+		];
+		assert(
+			doctorRow("hook mode").status === "WARN",
+			"an unwired guard with no execute bit warns instead of failing",
+		);
+		git(tmp, ["update-index", "--chmod=+x", ...hookRels]);
+		assert(
+			doctorRow("hook mode").status === "PASS",
+			"the execute bit clears the row, so the row can fail and can pass",
 		);
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });

@@ -2,7 +2,6 @@
   "version": 1,
   "machinery": [
     ".agent-kit/agent-kit.mjs",
-    ".github/workflows/agent-kit.yml",
     ".agent-kit/githooks",
     ".agent-kit/SKILL.md",
     ".agent-kit/INDEX.md",
