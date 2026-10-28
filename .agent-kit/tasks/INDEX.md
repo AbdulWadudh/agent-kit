@@ -70,11 +70,11 @@ _Nothing in flight._
 ## Recent
 
 <!-- RECENT:START -->
+- `2026-10-28` [TASK-121](archive/2026-10/2026-10-28-TASK-121-release-tags.md) — a release gets its tag automatically, and the tag message is the release note
 - `2026-10-28` [TASK-120](archive/2026-10/2026-10-28-TASK-120-tag-based-install.md) — an install follows a release tag, so it never receives unreleased commits and can pick its version
 - `2026-10-28` [TASK-119](archive/2026-10/2026-10-28-TASK-119-upgrade-procedure.md) — "upgrade agent-kit" has a procedure: check the source, show the diff, pull as one task
 - `2026-10-28` [TASK-118](archive/2026-10/2026-10-28-TASK-118-park-the-three.md) — the three kit-review limits are decided in the backlog, so a later session does not re-open them
 - `2026-10-28` [TASK-117](archive/2026-10/2026-10-28-TASK-117-template-mindset.md) — a template change is judged by the install it reaches, not by this repo's tidiness
-- `2026-10-28` [TASK-116](archive/2026-10/2026-10-28-TASK-116-kit-review-prompt.md) — a kit review finds the rule that costs two sessions, then fixes or proposes it
 <!-- RECENT:END -->
 
 ## History

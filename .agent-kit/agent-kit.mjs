@@ -1851,11 +1851,26 @@ function cmdDoctor({ root, strict, fix, jsonOut }) {
 		misnamed.length ? "FAIL" : "PASS",
 		"release notes",
 		misnamed.length
-			? `${misnamed.join(", ")} — first line must be "# 🚀 Release v<version>" matching the filename`
+			? `${misnamed.join(", ")} — first line must be "# Release v<version>" matching the filename`
 			: releaseFiles.length
 				? `${releaseFiles.length} release(s)`
 				: "none yet",
 	);
+
+	// A note without a tag cannot be installed: `setup --ref` and `pull --ref` clone tags. WARN,
+	// because a release is briefly untagged between cutting the note and tagging it.
+	if (releaseFiles.length && exists(abs(base, ".git"))) {
+		const untagged = releaseFiles
+			.map((f) => f.replace(/\.md$/, ""))
+			.filter((v) => !git(base, ["tag", "-l", v]));
+		add(
+			untagged.length ? "WARN" : "PASS",
+			"release tags",
+			untagged.length
+				? `${untagged.join(", ")} has no tag — not installable; run agent-kit release --tag ${untagged[0]}`
+				: `${releaseFiles.length} release(s) tagged`,
+		);
+	}
 
 	const fails = rows.filter((r) => r[0] === "FAIL").length;
 	const warns = rows.filter((r) => r[0] === "WARN").length;
@@ -3010,17 +3025,52 @@ function unreleasedChanges(base) {
 
 /**
  * `.agent-kit/releases/vX.Y.Z.md` — the short, user-facing layer over the change files. It is written
- * once per version and read by git and people, not by an agent index. The command never runs
- * git: tagging, pushing and `gh release create` stay with the owner.
+ * once per version and read by git and people, not by an agent index. Cutting the note never runs
+ * git; `--tag` is the second half, and it refuses to tag a note that is not committed yet.
  */
-function cmdRelease({ root, version }) {
+function cmdRelease({ root, version, tag }) {
 	const base = path.resolve(root || process.cwd());
 	const raw = String(version || "").trim().replace(/^v/i, "");
 	if (!/^\d+\.\d+\.\d+$/.test(raw)) {
-		console.error("agent-kit: usage: release <version>  (X.Y.Z or vX.Y.Z)");
+		console.error(
+			"agent-kit: usage: release <version>  (X.Y.Z or vX.Y.Z) | release --tag <version>",
+		);
 		return 1;
 	}
 	const rel = `.agent-kit/releases/v${raw}.md`;
+
+	if (tag) {
+		if (!exists(abs(base, rel))) {
+			console.error(
+				`\nCannot tag: ${rel} does not exist — cut the note first.\n`,
+			);
+			return 1;
+		}
+		if (git(base, ["status", "--porcelain", "--", rel]) !== "") {
+			console.error(
+				`\nCannot tag: ${rel} is not committed. Commit it first, so the tag can carry it:\n  git add ${rel} && git commit -m "docs: release v${raw}"\n`,
+			);
+			return 1;
+		}
+		if (git(base, ["tag", "-l", `v${raw}`])) {
+			console.error(
+				`\nCannot tag: v${raw} already exists — a tag is never moved; bump the version.\n`,
+			);
+			return 1;
+		}
+		// The note becomes the tag message, so `git show vX.Y.Z` and every release page
+		// carry it without a second copy to keep in sync.
+		if (git(base, ["tag", "-a", `v${raw}`, "-F", abs(base, rel)]) === null) {
+			console.error(`\nCannot tag: git refused to create v${raw}.\n`);
+			return 1;
+		}
+		console.log(`\nTagged v${raw} — annotated with ${rel}\n`);
+		console.log(`Push    git push origin v${raw}`);
+		console.log(
+			`Publish gh release create v${raw} --notes-file ${rel}   (the tag must be pushed first)\n`,
+		);
+		return 0;
+	}
 	if (exists(abs(base, rel))) {
 		console.error(`\nCannot release: ${rel} already exists — bump the version.\n`);
 		return 1;
@@ -3052,10 +3102,13 @@ function cmdRelease({ root, version }) {
 	);
 	write(abs(base, rel), lines.join("\n"));
 	console.log(`\nWrote ${rel} — ${fresh.length} change(s)\n`);
+	console.log(`Commit  git add ${rel} && git commit -m "docs: release v${raw}"`);
 	console.log(
-		`Tag it  git tag -a v${raw} -m "Release v${raw}" && git push origin v${raw}`,
+		`Tag     agent-kit release --tag v${raw}   (the note becomes the tag message)`,
 	);
-	console.log(`Then    gh release create v${raw} --notes-file ${rel}\n`);
+	console.log(
+		`Push    git push origin v${raw} && gh release create v${raw} --notes-file ${rel}\n`,
+	);
 	return 0;
 }
 
@@ -4808,6 +4861,22 @@ function cmdSelftest() {
 			) === 0,
 			"check is green at the new tag",
 		);
+
+		console.log("\n34. a release note without its tag is reported");
+		assert(
+			exists(abs(tmp, ".agent-kit/releases/v0.1.0.md")),
+			"scenario 28 left a release note to check",
+		);
+		assert(
+			doctorRow("release tags").status === "WARN",
+			"a note no tag points at warns, because it cannot be installed",
+		);
+		git(tmp, ["tag", "-a", "v0.1.0", "-m", "Release v0.1.0"]);
+		assert(
+			doctorRow("release tags").status === "PASS",
+			"the tag clears the row, so it can fail and can pass",
+		);
+		git(tmp, ["tag", "-d", "v0.1.0"]);
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });
 		if (junkDir) fs.rmSync(junkDir, { recursive: true, force: true });
@@ -4937,7 +5006,11 @@ function main(argv) {
 			return cmdLearningsArchive({ root: process.cwd() });
 		}
 		case "release":
-			return cmdRelease({ root: process.cwd(), version: positional[0] });
+			return cmdRelease({
+				root: process.cwd(),
+				version: positional[0],
+				tag: flag("tag"),
+			});
 		case "selftest":
 			return cmdSelftest();
 		case "help":

@@ -27,18 +27,23 @@ The number is the owner's. Propose one with its reason and let them overrule it.
 
 ## Publish
 
-Stage the release file and the change files it claims, by path — never the tree. The commit and
-its message follow `commits.md`. The tag is what makes the release installable: `setup --ref` and
-`pull --ref` clone it, and `check` compares against it. So cut the note, commit it, then tag that
-commit:
+Cut the note, commit it, then tag it. The tag is what makes a release installable — `setup --ref`
+and `pull --ref` clone it, and `check` compares against it — and the tag's message **is** the note,
+so `git show vX.Y.Z` and the GitHub release page carry the change list with no second copy to keep
+in sync.
 
 ```bash
-git tag -a vX.Y.Z -m "Release vX.Y.Z" && git push origin vX.Y.Z
+agent-kit release vX.Y.Z                # writes the note and prints the next lines
+git add .agent-kit/releases/vX.Y.Z.md && git commit -m "docs: release vX.Y.Z"
+agent-kit release --tag vX.Y.Z          # annotated tag, message = the note
+git push origin vX.Y.Z
+gh release create vX.Y.Z --notes-file .agent-kit/releases/vX.Y.Z.md
 ```
 
-`gh release create vX.Y.Z --notes-file <file>` is the only step that touches GitHub, and it runs
-when the owner asks for it, not as part of the release command. `release` never runs git; it
-prints both lines.
+`release --tag` refuses a note that is not committed (the tag would carry a file its own tree lacks),
+a version that already has a tag, and a missing note. `doctor`'s `release tags` row warns while a
+note has no tag, so "cut but not tagged" cannot be forgotten. `gh release create` is the only step
+that touches GitHub, and it runs when the owner asks for it.
 
 A tag is a promise: never move one. A fix is a new patch tag, because an install pinned to the old
 tag must keep building what it installed.
