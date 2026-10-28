@@ -61,7 +61,7 @@ gone at the next session.
 - `.agent-kit/project.md` — confirm every detected command, delete the detection notes, and keep
   the domain notes to what the code cannot say.
 
-Remove every `<!-- FILL:... -->` marker and every uppercase placeholder in these files:
+Remove every `FILL:` comment marker and every uppercase placeholder in these files:
 `doctor --strict` treats a survivor as unfinished setup. If a page has nothing to say for this
 repo (a library has no boot sequence), write that in one line; an empty section is a gap the
 next session fills with a guess.

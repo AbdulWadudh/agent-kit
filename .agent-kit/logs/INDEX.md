@@ -23,9 +23,9 @@ it), and nothing from the plan: the link is the pointer.
 ## Recent
 
 <!-- RECENT:START -->
+- `2026-10-28` [TASK-113](10-2026/2026-10-28-TASK-113-prompts-folder.md) — prompts have their own folder, and AGENTS.md has a trim pass
 - `2026-10-28` [TASK-112](10-2026/2026-10-28-TASK-112-release-procedure-own-file.md) — the release procedure lives in its own rule file, one pointer in the loop
 - `2026-10-28` [TASK-111](10-2026/2026-10-28-TASK-111-release-version-rule-and-v1.md) — the release rule says who picks the number, and v1.0.0 is cut
 - `2026-10-28` [TASK-110](10-2026/2026-10-28-TASK-110-remove-ci-workflow-and-fix-hook-mode.md) — the CI workflow is gone, and the commit guard is executable on every clone
 - `2026-10-28` [TASK-109](10-2026/2026-10-28-TASK-109-setup-skill-pointer.md) — setup writes the harness skill pointer for a harness whose folder the repo already keeps
-- `2026-10-27` [TASK-108](10-2026/2026-10-27-TASK-108-move-kit-under-dot-agent-kit.md) — every installed path lives under .agent-kit, except the three a harness pins to a fixed location
 <!-- RECENT:END -->

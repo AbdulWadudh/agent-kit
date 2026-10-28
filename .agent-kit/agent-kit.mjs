@@ -908,7 +908,7 @@ function cmdSetup({ target, sourceRoot, sourceSpec, noRtk, home, pathEnv }) {
 		"  3. .agent-kit/docs/            ARCH_MAP, ENTRY_POINTS, API_SKELETON from the real tree;",
 	);
 	console.log(
-		"                      the full pass is .agent-kit/templates/docs-populate.md",
+		"                      the full pass is .agent-kit/prompts/docs-populate.md",
 	);
 	console.log(
 		"\nThen: agent-kit doctor --strict   (must exit 0 before you call setup done)\n",

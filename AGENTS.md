@@ -65,7 +65,7 @@ else lands here:
 | a new hallucination guard | `.agent-kit/rules/anti-patterns.md` | its row in `.agent-kit/rules/INDEX.md` |
 | a rule example for a domain | `.agent-kit/templates/rule-examples/<domain>.md` | `rule-examples/INDEX.md` |
 | a file every installed repo starts with | `.agent-kit/templates/<name>.seed.md` | manifest `seeds`, `.agent-kit/templates/INDEX.md`, `SETUP.md` |
-| a prompt an agent runs, not a file it authors | `.agent-kit/templates/<name>.md` | its row in `.agent-kit/templates/INDEX.md`, and the step that runs it |
+| a prompt an agent runs, not a file it authors | `.agent-kit/prompts/<name>.md` | its row in `.agent-kit/prompts/INDEX.md`, and the step that runs it |
 | a command or a check | `.agent-kit/agent-kit.mjs` | header and usage, the kit table in `AGENTS.seed.md`, `SETUP.md` if setup runs it, a `selftest` scenario, `README.md` if the owner runs it |
 | a directory the kit owns | the directory | `.agent-kit/sync-manifest.json` (`machinery` or `owned`), its `INDEX.md` |
 
@@ -113,5 +113,6 @@ examples/                     INDEX -> minimal/: what a filled repo looks like (
   logs/                       INDEX (model + last five) -> MM-YYYY/: one file per change
   releases/                   vX.Y.Z.md: release notes rolled up from the change files
   githooks/                   INDEX + pre-commit (scope) + commit-msg (message): optional guard
+  prompts/                    INDEX -> the long jobs a session runs, one file each
   templates/                  INDEX -> the seeds and copyable rule examples
 ```

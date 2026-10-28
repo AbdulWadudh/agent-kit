@@ -34,7 +34,7 @@ What it does, in order:
 1. Reads the target's manifests and writes `.agent-kit/project.md` — languages, package manager,
    `install`/`build`/`typecheck`/`lint`/`test`, entry points, generated directories.
 2. Copies the machinery (the script, the manifest, the directory indexes, the seeds, the rule
-   router).
+   router, the prompts).
 3. Copies each seed to its authored path **only if the path is absent**.
 4. Installs `rtk` (the token saver) when it is missing, unless `--no-rtk` is passed.
 5. Detects the coding agents installed on this machine — HOME config folders, `PATH`, and repo
@@ -75,12 +75,12 @@ This is the only work that needs judgement. Four items, in this order:
 |---|---|
 | `AGENTS.md` | every `<!-- FILL:... -->` replaced; every `<UPPERCASE PLACEHOLDER>` replaced; rules 1-4 are constraints that are true **only** in this repo |
 | `.agent-kit/project.md` | the detected commands are correct; the detection notes are confirmed or deleted; domain notes say what the code cannot |
-| `.agent-kit/docs/ARCH_MAP.md`, `.agent-kit/docs/ENTRY_POINTS.md`, `.agent-kit/docs/API_SKELETON.md` | one real row or signature per entry; no invented layer. The full pass is `.agent-kit/templates/docs-populate.md` |
+| `.agent-kit/docs/ARCH_MAP.md`, `.agent-kit/docs/ENTRY_POINTS.md`, `.agent-kit/docs/API_SKELETON.md` | one real row or signature per entry; no invented layer. The full pass is `.agent-kit/prompts/docs-populate.md` |
 | `.agent-kit/rules/` | one file per domain this repo actually has, copied from `.agent-kit/templates/rule-examples/` when one matches. `code` (the TypeScript example) earns its file in any TypeScript repo; `config` and `api` only where the repo has tunables or HTTP routes. Simplicity needs no file — it is `_behavior.md` §8, and `_behavior.md` ships with the machinery. No file, no rule: do not install a rule about a language the repo does not use |
 
 `examples/minimal/` in the template shows all four after the fill, for a fictional repo.
 
-**Populating the docs in full.** `.agent-kit/templates/docs-populate.md` is the pass that fills
+**Populating the docs in full.** `.agent-kit/prompts/docs-populate.md` is the pass that fills
 these pages from evidence: it inventories the tree with `path:line`, asks three to five
 questions only where the code cannot answer, writes an exception comment's reason into
 `.agent-kit/rules/learnings.md`, and parks every `TODO` in `.agent-kit/tasks/BACKLOG.md` with a

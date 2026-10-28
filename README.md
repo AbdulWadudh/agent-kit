@@ -20,8 +20,10 @@ verified.** Everything here serves that, and anything that stops serving it gets
   examples for TypeScript, Bun, Biome, API versioning, config and library docs sit in
   `.agent-kit/templates/rule-examples/`; you install only the ones that are true.
 - `.agent-kit/docs/` — the knowledge seed: architecture map, API skeleton, entry points, and
-  `.agent-kit/templates/docs-populate.md`, the pass that fills them from `path:line` evidence,
+  `.agent-kit/prompts/docs-populate.md`, the pass that fills them from `path:line` evidence,
   interviews the gaps, moves exception comments into learnings and TODOs into the backlog.
+- `.agent-kit/prompts/` — the long jobs a session runs instead of improvising them: filling the
+  docs from evidence, trimming `AGENTS.md` back to its constraints. One file per job, run as a task.
 - Indexed directories — every directory the kit owns has an `INDEX.md` saying what lives there,
   why, and when to open it. A session reads one index and one file, never a folder listing, so
   the always-on context stays small. `doctor` fails an unindexed directory.
@@ -133,7 +135,8 @@ What to ask instead of typing:
 | "we're stuck on a decision" | `task block "<the question>"`; the answer goes in chat, then `task resume` |
 | "this is too big for one sitting" | split it: `task new --parent TASK-N` per piece; each closes quick with lint, and the main close runs build |
 | "what's parked?" | read `.agent-kit/tasks/BACKLOG.md`; picking a row means `task new` and then deleting it |
-| "populate the docs" | run `.agent-kit/templates/docs-populate.md`; it opens a PLANNED task and fills the pages, learnings and backlog |
+| "populate the docs" | run `.agent-kit/prompts/docs-populate.md`; it opens a PLANNED task and fills the pages, learnings and backlog |
+| "`AGENTS.md` has grown too big" | run `.agent-kit/prompts/trim-agents-md.md`; each fact moves to its home and the report shows the character delta |
 | "which agents can drive this repo?" | `harnesses`, then wire each skill folder it names |
 | "is this repo actually healthy?" | `doctor --strict` and reports the failing row |
 | "what changed since the template?" | `check`, then `pull --dry-run` |

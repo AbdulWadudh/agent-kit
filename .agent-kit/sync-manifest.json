@@ -7,6 +7,7 @@
     ".agent-kit/INDEX.md",
     ".agent-kit/sync-manifest.json",
     ".agent-kit/templates",
+    ".agent-kit/prompts",
     ".agent-kit/rules/INDEX.md",
     ".agent-kit/rules/_behavior.md",
     ".agent-kit/rules/commits.md",
