@@ -161,6 +161,8 @@ follow-up suggestions unless asked.
   the `path:line` and a next step. Do not leave it only in the report or a comment, and do not
   open a task for it. Picking it up later means `task new`, then delete the row.
 - **The change outgrows QUICK.** Stop, reopen it as PLANNED, take the gate.
+- **The process is the friction.** A rule or gate that cost two sessions is a kit task: cite the
+  two changes, then follow `.agent-kit/prompts/kit-review.md`. It is not a product task.
 
 ## Not yours
 

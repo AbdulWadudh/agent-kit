@@ -10,6 +10,7 @@ one prompt and run it as a task; do not read the folder.
 | Path | Runs | Open when |
 |---|---|---|
 | `docs-populate.md` | fills `.agent-kit/docs/`, learnings and backlog from `path:line` evidence | asked to populate or refresh the docs |
+| `kit-review.md` | finds the rule or gate that keeps costing a session, then fixes or proposes it | the process is the friction, with evidence |
 | `trim-agents-md.md` | rewrites `AGENTS.md` against the seed, moving each fact to its home | the entry file costs more than it earns |
 
 A prompt is not a rule. It says how to run one job; the constraints it obeys are in

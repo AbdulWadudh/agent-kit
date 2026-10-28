@@ -23,9 +23,9 @@ it), and nothing from the plan: the link is the pointer.
 ## Recent
 
 <!-- RECENT:START -->
+- `2026-10-28` [TASK-116](10-2026/2026-10-28-TASK-116-kit-review-prompt.md) — a kit review finds the rule that costs two sessions, then fixes or proposes it
 - `2026-10-28` [TASK-115](10-2026/2026-10-28-TASK-115-context-budget-gate.md) — the files a session reads before it plans now have a cap, and doctor fails past it
 - `2026-10-28` [TASK-114](10-2026/2026-10-28-TASK-114-trim-prompt-wires-homes.md) — the trim moves each fact to its home and wires the pointer that reaches it
 - `2026-10-28` [TASK-113](10-2026/2026-10-28-TASK-113-prompts-folder.md) — prompts have their own folder, and AGENTS.md has a trim pass
 - `2026-10-28` [TASK-112](10-2026/2026-10-28-TASK-112-release-procedure-own-file.md) — the release procedure lives in its own rule file, one pointer in the loop
-- `2026-10-28` [TASK-111](10-2026/2026-10-28-TASK-111-release-version-rule-and-v1.md) — the release rule says who picks the number, and v1.0.0 is cut
 <!-- RECENT:END -->
