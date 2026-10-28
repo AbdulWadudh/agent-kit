@@ -2934,7 +2934,8 @@ function cmdRelease({ root, version }) {
 		const group = fresh.filter((e) => e.type === type);
 		if (!group.length) continue;
 		lines.push(`### ${label}`, "");
-		for (const e of group) lines.push(`- ${e.summary} (${e.id})`, "");
+		for (const e of group) lines.push(`- ${e.summary} (${e.id})`);
+		lines.push("");
 	}
 	lines.push(
 		"---",
