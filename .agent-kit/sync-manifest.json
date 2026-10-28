@@ -10,6 +10,7 @@
     ".agent-kit/rules/INDEX.md",
     ".agent-kit/rules/_behavior.md",
     ".agent-kit/rules/commits.md",
+    ".agent-kit/rules/releases.md",
     ".agent-kit/rules/anti-patterns.md"
   ],
   "seeds": {

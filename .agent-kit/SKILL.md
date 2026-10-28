@@ -134,17 +134,9 @@ every subtask's, and the commit message is under the main id.
 
 Before committing, read `.agent-kit/rules/commits.md` — the split, subject, body and staging.
 
-`agent-kit release <version>` rolls every card no earlier release claims into
-`.agent-kit/releases/<version>.md` — `# Release vX.Y.Z`, the date, then `### Added`, `### Changed`,
-`### Fixed` and `### Removed`, one line per task. It writes the file and prints the
-`gh release create --notes-file` line; running git stays with the owner. Stage those files, never
-the tree; `.agent-kit/githooks/commit-msg` warns when the shape misses and never blocks.
-
-The number is the owner's; propose one with its reason and let them overrule it. `v1.0.0` is the
-first release of the install surface, then **major** when an installed repo must edit a path or a
-command it already wired, **minor** for a new command, check or rule, **patch** for fixes and docs.
-A release claims the change files that exist when it is cut, so the notes never disagree with the
-log.
+Cutting a release is its own procedure: read `.agent-kit/rules/releases.md`. `agent-kit release
+<version>` writes the note from every card no earlier release claims; running git stays with the
+owner.
 
 ## 9. Report
 

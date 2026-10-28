@@ -13,6 +13,7 @@ matches.
 | Repo memory | `learnings.md` | before planning anything |
 | Hallucination guards | `anti-patterns.md` | adding an import, endpoint or dependency |
 | Commits | `commits.md` | before the first commit of a task |
+| Releases | `releases.md` | cutting a release, or proposing its version |
 
 The files above ship with every repo. Add one more per domain you actually
 have — `typescript`, `database`, `payments`, `auth`, `mobile` — by copying the matching
