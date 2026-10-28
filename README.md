@@ -186,14 +186,16 @@ check prints the expected shape and exits 0 — it never blocks a human's commit
 quiet until the repo's first task exists. Turn it on where an agent commits unattended; skip
 it if your team would rather not have a hook.
 
-A commit is one task and one kind of change. Its subject is
-`fix (TASK-118): rate-limit the invite endpoint`; the body is the change file's
-`## What changed` paragraph.
+A commit is one change — a feature, a fix, a doc update or a test. Its subject is
+`fix (TASK-118): rate-limit the invite endpoint`; the body is what that commit changed and why.
+A task carries as many commits as it has features and fixes, each grouped by the feature or the
+issue it serves, and every one names the same task ID. There is no bulk commit of a sitting's
+work.
 
 ## What the changelog is
 
 It is a folder, not a ledger: `.agent-kit/logs/MM-YYYY/YYYY-MM-DD-TASK-N-slug.md`, one file per
-commit, written by `task close`. The card is the completion record — what the task did, in the
+task, written by `task close`. The card is the completion record — what the task did, in the
 close-out paragraph, and where the plan lives:
 
 ```

@@ -116,12 +116,11 @@ Report what changed and the evidence, in the user's words. Wait for a yes, then 
 `task close` runs the full suite, refuses a red result, checks the diff against `touches`,
 inventories the files, archives the plan and writes the change file (`.agent-kit/logs/MM-YYYY/`).
 The card is the completion record: a `**Task:**` link to the archived plan, `**Scope:**`, then
-`## What changed` with the close-out paragraph. No date (the front matter has it), no file list
-(the task's `FILES` block has it); the plan, evidence and follow-ups stay in the task the link
-points at.
-It prints the commit message in the hook's shape; `--pr` adds a PR body from the change file and
-evidence. `--amend "<why>"` accepts a declared breach and writes the reason into the plan —
-only with the user's reason, never as a way past a red suite.
+`## What changed` with the close-out paragraph. No date, no file list (front matter and `FILES`
+carry them); the plan, evidence and follow-ups stay in the task it links.
+It prints the closing commit's message in the hook's shape; `--pr` adds a PR body from the
+change file and evidence. `--amend "<why>"` accepts a declared breach and writes the reason
+into the plan — only with the user's reason, never as a way past a red suite.
 
 A subtask closes differently: `task close` runs the quick suite (lint included), marks it DONE
 and leaves it in `active/`, and prints its own commit message. It writes no change file and
@@ -131,7 +130,7 @@ The main task's close is the milestone. It refuses while a subtask is open, then
 suite, build included. A red build stops the close with its rows recorded: fix those errors
 now, in this task, and close again; the suite re-runs. Green, the main task and its DONE
 subtasks archive together, the change file is one, the write set is the main task's files plus
-every subtask's, and the commit message is under the main id.
+every subtask's, and every commit names the main id.
 
 Before committing, read `.agent-kit/rules/commits.md` — the split, subject, body and staging.
 
