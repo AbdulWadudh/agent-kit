@@ -16,6 +16,11 @@ verified.** Everything here serves that, and anything that stops serving it gets
   changed files from git. A task can park on an owner question (`task block`) without holding
   the single in-progress slot. A parked candidate lives in `BACKLOG.md` with a status; it is
   not a task until `task new` opens it.
+- Task ids — one allocator per repo, chosen at setup. `ids: local` takes the next number on
+  disk, entirely offline; `ids: issue` mints a GitHub issue and uses its number, so
+  collaborators share one board and there is never a `TASK-131` beside an `#131`. In issue mode
+  `task publish` sends the approved plan, `task close --sync` closes the issue with the final
+  record, and `task new --from 42` imports an issue someone else opened.
 - `.agent-kit/rules/` — a router plus short rule files. One home per rule; indexes cite. Ready-made
   examples for TypeScript, Bun, Biome, API versioning, config and library docs sit in
   `.agent-kit/templates/rule-examples/`; you install only the ones that are true.
@@ -39,7 +44,7 @@ verified.** Everything here serves that, and anything that stops serving it gets
 ## Start here
 
 Copy the block below into a fresh agent session **in the repository you want to set up**, then
-answer its five questions. The template URL is already in it.
+answer its six questions. The template URL is already in it.
 
 ```text
 Set up agent-kit in this workspace: https://github.com/AbdulWadudh/agent-kit
@@ -51,17 +56,24 @@ installed. Repo harness config is a hint, not the list: after setup, run
 several while the repo shows none. Setup writes the pointer where the repo already keeps that
 harness's folder; wire the rest, and say which are left.
 
-Then ask me these five questions, and wait for the answers before changing anything:
+Then ask me these six questions, and wait for the answers before changing anything:
 
 1. Harnesses: after setup I will detect them from HOME, PATH and the repo. Is there one
    installed somewhere unusual that the detection may miss?
-2. Should the commit guard be wired on this clone? It refuses a commit that leaves the
+2. Task ids: will other people open tasks in this repo too? If the repo is on GitHub I can
+   take each task id from its issue number — one number everywhere, and the board shows what
+   everyone is doing. That needs `gh auth login` (recommended) or a `GH_TOKEN` with Issues
+   read/write, and setup validates it once. If it is just me, or I want everything offline,
+   ids are allocated locally and nothing touches the network. Which one — and if issue, is
+   the repo yours to open issues in? If I say issue, run setup with `--ids issue`; otherwise
+   `--ids local`.
+3. Should the commit guard be wired on this clone? It refuses a commit that leaves the
    active task's write set, and warns — never blocks — on a message that does not name the
    task and carry a summary. It is git config, so it is off by default.
-3. What is off-limits: directories, generated or vendored paths, secrets, anything you must
+4. What is off-limits: directories, generated or vendored paths, secrets, anything you must
    ask before changing?
-4. What is the first task you want to hand over?
-5. Skills: shall I install the recommended ones — ponytail, prompt-master, caveman and the
+5. What is the first task you want to hand over?
+6. Skills: shall I install the recommended ones — ponytail, prompt-master, caveman and the
    anthropic skills? Ask me, install only what I say yes to, and say what each is for.
    Separately, on its own: agent-browser drives a real browser, including live sites and
    accounts, so it is opt-in — ask me that one apart from the rest.
@@ -70,10 +82,11 @@ Then run every step yourself; I am in chat, not a terminal. Follow SETUP.md from
 template exactly — it wins if it disagrees with this message:
 
 1. git clone --depth 1 https://github.com/AbdulWadudh/agent-kit "$TMPDIR/agent-kit"
-   bun "$TMPDIR/agent-kit/.agent-kit/agent-kit.mjs" setup . --source https://github.com/AbdulWadudh/agent-kit
+   bun "$TMPDIR/agent-kit/.agent-kit/agent-kit.mjs" setup . --source https://github.com/AbdulWadudh/agent-kit --ids <the answer to question 2>
    (node instead of bun if Bun is absent; download the archive and pass the unpacked
-   path as --source if git is unavailable. Setup also installs rtk, the token saver,
-   unless it is already present or I pass --no-rtk.)
+   path as --source if git is unavailable. Setup installs rtk, the token saver, when it is
+   missing — rtk, git and Node 18+ (or Bun) are prerequisites, and setup exits non-zero
+   without them, so fix one rather than passing --no-rtk. Do not add --no-rtk to get past it.)
 2. Fill AGENTS.md, .agent-kit/project.md, .agent-kit/docs/ARCH_MAP.md, .agent-kit/docs/ENTRY_POINTS.md and
    .agent-kit/docs/API_SKELETON.md from the real tree. Ask, do not invent: propose candidates for
    rules 1-4 from my answers and the code, get a yes, then write them. Install the rule
@@ -91,18 +104,21 @@ template exactly — it wins if it disagrees with this message:
 6. Run bun .agent-kit/agent-kit.mjs verify --full and report the baseline honestly.
 
 Report: the harnesses found and wired, the files you wrote, the detected stack, the commands
-you found and any you could not, the `rtk` row, what you filled, the doctor table, and the
-next action. Do not claim a step passed without showing its output. Do not start the first
-task until I say go.
+you found and any you could not, the `rtk` row, the task-id mode (and in issue mode the repo
+and whether gh or a token answered — never the token itself), what you filled, the doctor
+table, and the next action. Do not claim a step passed without showing its output. Do not
+start the first task until I say go.
 ```
 
 `SETUP.md` is the contract; if this prompt and that file ever disagree, `SETUP.md` wins.
 
 ## What setup does
 
-`setup` detects your stack, writes `.agent-kit/project.md`, copies the kit, installs
-`rtk` (the token saver) when it is missing, and lists the coding agents found in HOME and on
-PATH. It never overwrites a file that already exists.
+`setup` checks its prerequisites (Node 18+ or Bun, git, `rtk`; plus GitHub access in issue
+mode), detects your stack, writes `.agent-kit/project.md` — including the task-id mode — copies
+the kit, installs `rtk` when it is missing, and lists the coding agents found in HOME and on
+PATH. It never overwrites a file that already exists, and it exits non-zero while a
+prerequisite is missing.
 `doctor --strict` exits non-zero until the fill work is done — that is the definition of
 "set up", and the point of the whole thing.
 
@@ -135,6 +151,10 @@ What to ask instead of typing:
 | "what's in flight?" | `task show` |
 | "we're stuck on a decision" | `task block "<the question>"`; the answer goes in chat, then `task resume` |
 | "this is too big for one sitting" | split it: `task new --parent TASK-N` per piece; each closes quick with lint, and the main close runs build |
+| "put this plan on the issue" | `task publish` (issue mode; `--id TASK-N` if more than one is open) — the approved plan, without the front matter |
+| "close it out on GitHub too" | `task close --sync` — closes the issue and comments the change card |
+| "work the issue a teammate opened" | `task new --from 42 --lane planned` — imports it; the id is the issue number |
+| "two of us took the same number" | `task renumber TASK-131 --next` (local mode) — rewrites the id, the file name and every reference |
 | "what's parked?" | read `.agent-kit/tasks/BACKLOG.md`; picking a row means `task new` and then deleting it |
 | "populate the docs" | run `.agent-kit/prompts/docs-populate.md`; it opens a PLANNED task and fills the pages, learnings and backlog |
 | "`AGENTS.md` has grown too big" | run `.agent-kit/prompts/trim-agents-md.md`; each fact moves to its home and the report shows the character delta |
@@ -242,7 +262,7 @@ schema change. Choosing per task is what keeps the gates honest.
 | `start` | what is the state of this repo right now — branch, commands and tiers, tasks, gate, last evidence, loop, stale flag, and the one next action? (read-only; it never writes) |
 | `verify` | do the `always` commands exit 0, and is this the fourth identical red run? `--full` adds the `milestone` rows, so the slow build is checked before close, not every pass |
 | `task close` | did the diff stay inside the declared write set, is the full suite green, and is the outcome written down? A subtask closes on the quick suite (lint included); the main task's close runs build. It also prints the commit message in the hook's shape |
-| `doctor` | do the docs name real paths, is every kit directory indexed, do the commands exist, are the task and logs lists current, is rtk installed, is the encoding clean, is every rule checkable and indexed, is the backlog triaged, is every blocked task carrying its question? |
+| `doctor` | do the docs name real paths, is every kit directory indexed, do the commands and prerequisites exist, are the task and logs lists current, is the id mode recorded and every id unique, is the encoding clean, is every rule checkable and indexed, is the backlog triaged, is every blocked task carrying its question? |
 | `check` | is a newer release tag published, and has the template moved under the tag this repo tracks, and did you edit machinery you should not have? |
 
 Every one of them can fail. `selftest` asserts that by building a throwaway repo and

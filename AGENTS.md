@@ -22,9 +22,14 @@ Do not improvise a file layout. Run the kit:
 
 ```bash
 git clone --depth 1 https://github.com/AbdulWadudh/agent-kit "$TMPDIR/agent-kit"
-bun "$TMPDIR/agent-kit/.agent-kit/agent-kit.mjs" setup . --source https://github.com/AbdulWadudh/agent-kit
+bun "$TMPDIR/agent-kit/.agent-kit/agent-kit.mjs" setup . --source https://github.com/AbdulWadudh/agent-kit --ids local|issue
 bun .agent-kit/agent-kit.mjs doctor --strict
 ```
+
+Ask the owner which id mode before that first line (`SETUP.md` §1.1): `local` stays offline,
+`issue` takes each task id from its GitHub issue. `setup` refuses to finish while a
+prerequisite is missing (runtime, git, `rtk`; in issue mode also the credential — `gh` first,
+a token as fallback).
 
 `SETUP.md` is the contract: what to detect, what to fill, and the exact output each step
 must produce. Follow it in order; it is idempotent and never overwrites an authored file.
@@ -117,10 +122,10 @@ examples/                     INDEX -> minimal/: what a filled repo looks like (
                               past 300 lines the module becomes a folder with an index.mjs
   SKILL.md                    the work loop: classify, open, gate, verify, close
   sync-manifest.json          machinery / seeds / owned / prune
-  project.md                  generated per repo: stack + commands (single source)
+  project.md                  generated per repo: stack, commands and the task id mode (single source)
   docs/                       INDEX: the knowledge seed a target repo authors from
   rules/                      INDEX (which file, when) + _behavior + one per domain
-  tasks/                      INDEX (lanes, gates) + active/, archive/, .counter
+  tasks/                      INDEX (lanes, gates) + active/, archive/
   logs/                       INDEX (model + last five) -> MM-YYYY/: one file per change
   releases/                   vX.Y.Z.md: release notes rolled up from the change files
   githooks/                   INDEX + pre-commit (scope) + commit-msg (message): optional guard

@@ -24,6 +24,16 @@ verification gate cite it; none of them restates it.
 `bun` runs the same file unchanged. No build step: the script is the artifact. Both rows are
 fast enough for every run; a target repo's build is the row that would be `milestone`.
 
+## Tasks
+
+Who allocates a task id. `local` derives the next number from this repo's own task
+files and change cards; `issue` takes the GitHub issue number, so two sessions on two
+clones cannot mint the same id. `task renumber` moves a local id; it refuses in issue mode.
+
+| Fact | Value |
+|---|---|
+| ids | local |
+
 ## Entry points
 
 - `.agent-kit/agent-kit.mjs` — dispatch only; its modules live in `.agent-kit/lib/` and are not

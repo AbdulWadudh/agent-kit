@@ -65,16 +65,16 @@ the change file written at close carries the same ID. `rtk gain` is the source.
 ## 2. Classify
 
 QUICK: at most three files, reversible, no public interface, schema, dependency or data
-change. Everything else is PLANNED. When unsure, take PLANNED — the cost is a short plan, not
-a rewrite.
+change. Everything else is PLANNED. When unsure, take PLANNED: a short plan, not a rewrite.
 
 ## 3. Open
 
 `task new <slug> --lane quick|planned`. It records the baseline run itself — a full one, so the
-milestone rows are on record before you touch anything. Before the first edit, fill the task's
-intent, scope and `touches` — the exact paths you will write. Keep it minimal: intent, scope,
-the decisions a later session would re-open (each with its pointer), the plan, the proof and
-the summary. If an explanation changes no later action, it is not recorded.
+milestone rows are on record before you touch anything. The id comes from the `ids` row in
+`project.md` — never type one; `ids: issue` also mints the issue, and `--from <n>` imports one.
+Before the first edit, fill the task's intent, scope and `touches` — the exact paths you will
+write. Keep it minimal: the decisions a later session would re-open (each with its pointer), the
+plan, the proof and the summary. If an explanation changes no later action, it is not recorded.
 
 A task too big for one sitting splits into subtasks: `task new <slug> --lane quick|planned
 --parent TASK-N` opens `TASK-N.M`, queues the main task, and records a quick baseline. One
@@ -84,7 +84,8 @@ Do not use a subtask to dodge G1: the plan and the gate are the main task's.
 ## 4. G1 — plan approval (PLANNED only)
 
 Put the plan in chat: the files, the steps, the risks, and the command that will prove it.
-Wait for a yes. No edits before it.
+Wait for a yes. No edits before it. In `ids: issue`, the yes is also when `task publish` sends
+the plan to the issue.
 
 ## 5. Work
 
@@ -94,8 +95,8 @@ a file you did not declare? Say why, amend `touches` first. Never widen silently
 ## 6. Prove it
 
 `verify` mid-flight: it runs the `always` rows and holds the `milestone` ones for the baseline,
-`verify --full` and `task close`. So the inner loop stays short and the slow build is still on
-record before the task can close. Real exit codes go in the evidence table, each row with its
+`verify --full` and `task close` — the inner loop stays short, and build is on record before
+close. Real exit codes go in the evidence table, each row with its
 scope. If `task show` says `Evidence: STALE`, the task's files moved after the green run —
 verify again before quoting it. Compare against the baseline: a red that was already red is not
 progress, and a green you did not cause is not a fix. Three identical red runs over the same
@@ -117,8 +118,7 @@ The card is the completion record: a `**Task:**` link to the archived plan, `**S
 `## What changed` with the close-out paragraph. No date (the front matter has it), no file list
 (the task's `FILES` block has it); the plan, evidence and follow-ups stay in the task the link
 points at.
-It prints the commit message already in the hook's shape — subject and body — so closing and
-committing do not drift apart. `--pr` also prints a PR body built from the change file and the
+It prints the commit message in the hook's shape, so closing and committing do not drift apart. `--pr` also prints a PR body built from the change file and the
 evidence. `--amend "<why>"` accepts a declared breach and writes the reason into the plan —
 only with the user's reason, never as a way past a red suite.
 

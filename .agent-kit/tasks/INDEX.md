@@ -22,6 +22,21 @@ the one task it names; not the folders.
 5. **Never work from memory.** The task file is the state; if a fact is not in it, it did not
    happen.
 
+## Task ids
+
+The id source is one row in `.agent-kit/project.md` (`| ids | local |`), written by
+`setup --ids`. Never invent an id: `task new` asks the allocator.
+
+- **`local`** — the next number after the highest one on disk (`tasks/active/`, `tasks/archive/`
+  and the change cards), floor `TASK-100`. Fully offline. Two branches that took the same
+  number collide at merge; `task renumber TASK-N --next` moves the one that lost and rewrites
+  its file name, its children and every `depends_on`.
+- **`issue`** — the id is the GitHub issue number: `task new` mints the issue, `--from <n>`
+  imports one a teammate opened, `task publish` sends the approved plan at G1, and
+  `task close --sync` closes the issue with the final record. No other path touches the network.
+
+`doctor`'s `task ids` and `task ids unique` rows check the mode, and one id per file and card.
+
 ## Subtasks
 
 A subtask is the same task file with a dotted id and a `parent:` line. The main task is QUEUED
@@ -70,11 +85,11 @@ _Nothing in flight._
 ## Recent
 
 <!-- RECENT:START -->
+- `2026-10-28` [TASK-126](archive/2026-10/2026-10-28-TASK-126-collaborative-task-ids.md) — One allocator per repo — offline by default, the issue number on request
 - `2026-10-28` [TASK-125](archive/2026-10/2026-10-28-TASK-125-split-kit-modules.md) — the entry point is one dispatch file over lib/ modules and folders, and a 300-line ceiling keeps it that way
 - `2026-10-28` [TASK-124](archive/2026-10/2026-10-28-TASK-124-tag-message-verbatim.md) — a release tag keeps the note's headings, so the whole note reaches the reader
 - `2026-10-28` [TASK-123](archive/2026-10/2026-10-28-TASK-123-release-tag-cli.md) — release --tag reads its version from the flag, so the documented command runs
 - `2026-10-28` [TASK-122](archive/2026-10/2026-10-28-TASK-122-unescape-frontmatter.md) — a quoted task summary no longer leaks YAML escapes into the release note
-- `2026-10-28` [TASK-121](archive/2026-10/2026-10-28-TASK-121-release-tags.md) — a release gets its tag automatically, and the tag message is the release note
 <!-- RECENT:END -->
 
 ## History

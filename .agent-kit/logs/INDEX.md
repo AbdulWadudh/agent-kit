@@ -23,9 +23,9 @@ it), and nothing from the plan: the link is the pointer.
 ## Recent
 
 <!-- RECENT:START -->
+- `2026-10-28` [TASK-126](10-2026/2026-10-28-TASK-126-collaborative-task-ids.md) — One allocator per repo — offline by default, the issue number on request
 - `2026-10-28` [TASK-125](10-2026/2026-10-28-TASK-125-split-kit-modules.md) — the entry point is one dispatch file over lib/ modules and folders, and a 300-line ceiling keeps it that way
 - `2026-10-28` [TASK-124](10-2026/2026-10-28-TASK-124-tag-message-verbatim.md) — a release tag keeps the note's headings, so the whole note reaches the reader
 - `2026-10-28` [TASK-123](10-2026/2026-10-28-TASK-123-release-tag-cli.md) — release --tag reads its version from the flag, so the documented command runs
 - `2026-10-28` [TASK-122](10-2026/2026-10-28-TASK-122-unescape-frontmatter.md) — a quoted task summary no longer leaks YAML escapes into the release note
-- `2026-10-28` [TASK-121](10-2026/2026-10-28-TASK-121-release-tags.md) — a release gets its tag automatically, and the tag message is the release note
 <!-- RECENT:END -->
