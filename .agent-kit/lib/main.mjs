@@ -101,6 +101,8 @@ export function main(argv) {
 					root: process.cwd(),
 					slug: args[2],
 					lane: value("lane"),
+					summary: value("summary"),
+					intent: value("intent"),
 					force: flag("force"),
 					noBaseline: flag("no-baseline"),
 					parent: value("parent"),
@@ -141,7 +143,7 @@ export function main(argv) {
 					message: value("message"),
 				});
 			return die(
-				'usage: task new <slug> [--parent TASK-N] [--from <issue>] | task show | task block "<question>" | task resume | task close [--id TASK-N] [--amend "<why>"] [--pr] [--sync] | task publish [--id TASK-N] | task renumber <TASK-N> <TASK-M>|--next [--file <name>] | task guard [--message <file>]',
+				'usage: task new <slug> [--summary "<one clause>"] [--intent "<paragraph>"] [--parent TASK-N] [--from <issue>] | task show | task block "<question>" | task resume | task close [--id TASK-N] [--amend "<why>"] [--pr] [--sync] | task publish [--id TASK-N] | task renumber <TASK-N> <TASK-M>|--next [--file <name>] | task guard [--message <file>]',
 			);
 		}
 		case "learnings": {

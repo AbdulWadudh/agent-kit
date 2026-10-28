@@ -37,6 +37,22 @@ export function changeLogScenario(ctx) {
 export function releaseScenarios(ctx) {
 	const { tmp, assert, quiet, doctorRow } = ctx;
 	console.log("\n28. a release collects the change files no release claims");
+	const card = expand(tmp, LOG_DIR).find(
+		(rel) => rel.includes("TASK-101") && rel.endsWith(".md"),
+	);
+	write(abs(tmp, card), `${read(abs(tmp, card))}\n`);
+	git(tmp, ["add", "-A", LOG_DIR]);
+	git(tmp, [
+		"-c",
+		"user.email=t@t",
+		"-c",
+		"user.name=t",
+		"commit",
+		"-m",
+		"close TASK-101",
+	]);
+	const sha = (git(tmp, ["rev-parse", "--short", "HEAD"]) || "").trim();
+	assert(!!card && sha.length >= 7, "the card is committed before the note is cut");
 	assert(
 		quiet(() => cmdRelease({ root: tmp, version: "v0.1.0" })) === 0,
 		"release writes the version file",
@@ -53,9 +69,13 @@ export function releaseScenarios(ctx) {
 	);
 	assert(
 		releaseText.includes("### Changed") &&
-			releaseText.includes("- fixture change (TASK-101)") &&
+			releaseText.includes(`**fixture change** (TASK-101 · ${sha})`) &&
+			releaseText.includes(
+				"The fixture changed one file, and the change file says so.",
+			) &&
+			!releaseText.includes("- fixture change (TASK-101)") &&
 			!releaseText.includes("Touched Modules"),
-		"the release lists each task under its category, with no file inventory",
+		"the note quotes the card's paragraph under a bold title that names its commit",
 	);
 	assert(
 		/<!-- RELEASED:START -->[\s\S]*TASK-101[\s\S]*<!-- RELEASED:END -->/.test(

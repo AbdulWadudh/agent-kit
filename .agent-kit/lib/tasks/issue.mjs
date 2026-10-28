@@ -4,10 +4,10 @@ import { die } from "../io.mjs";
 import { usedIds } from "../taskfile.mjs";
 
 /** The issue exists before the task file, because its number is the id. */
-export async function mintTask(base, slug) {
+export async function mintTask(base, { summary, intent }) {
 	const issue = await mintIssue(base, {
-		title: slug.replace(/-/g, " "),
-		body: "Opened from agent-kit. The approved plan is published here with `task publish`, and the close is synced back with `task close --sync`.",
+		title: summary,
+		body: intent || summary,
 	});
 	if (!Number.isInteger(issue.number))
 		throw new Error(

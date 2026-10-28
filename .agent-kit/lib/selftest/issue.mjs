@@ -60,7 +60,13 @@ export async function issueIdScenarios(ctx) {
 
 		fail = true;
 		const refused = await ctx.spokenAsync(() =>
-			cmdTaskNew({ root: dir, slug: "nope", lane: "quick", noBaseline: true }),
+			cmdTaskNew({
+				root: dir,
+				slug: "nope",
+				lane: "quick",
+				noBaseline: true,
+				summary: "a refused mint",
+			}),
 		);
 		assert(refused.code === 1, "a refused mint returns 1");
 		assert(
@@ -74,6 +80,19 @@ export async function issueIdScenarios(ctx) {
 		);
 		fail = false;
 
+		const postCount = () => spy.calls.filter((c) => c.method === "POST").length;
+		const posts = postCount();
+		const missing = await ctx.spokenAsync(() =>
+			cmdTaskNew({ root: dir, slug: "no-title", lane: "quick", noBaseline: true }),
+		);
+		assert(
+			missing.code === 1 &&
+				missing.out.includes("--summary") &&
+				postCount() === posts &&
+				activeTasks(dir).length === 0,
+			"a mint without --summary refuses before any request",
+		);
+
 		assert(
 			(await ctx.quietAsync(() =>
 				cmdTaskNew({
@@ -81,18 +100,35 @@ export async function issueIdScenarios(ctx) {
 					slug: "issue-task",
 					lane: "quick",
 					noBaseline: true,
+					summary: "Detail layouts overlap at 1024px",
+					intent:
+						"At 1024px the detail column overlaps the sidebar; keep the two apart.",
 				}),
 			)) === 0,
 			"task new mints the issue",
 		);
 		const minted = activeTasks(dir)[0];
 		assert(minted.fm.id === "TASK-501", "the issue number is the task id");
-		assert(
-			spy.calls.some(
+		const mintCall = spy.calls
+			.filter(
 				(c) =>
-					c.method === "POST" && c.body && c.body.title === "issue task",
-			),
-			"the mint carries the slug as the title",
+					c.method === "POST" &&
+					c.body &&
+					typeof c.body === "object" &&
+					"title" in c.body,
+			)
+			.at(-1);
+		assert(
+			mintCall?.body?.title === "Detail layouts overlap at 1024px" &&
+				mintCall.body.body ===
+					"At 1024px the detail column overlaps the sidebar; keep the two apart." &&
+				!/agent-kit/.test(mintCall.body.body),
+			"the mint is titled by the summary and described by the intent",
+		);
+		assert(
+			minted.fm.summary === "Detail layouts overlap at 1024px" &&
+				minted.text.includes("the detail column overlaps the sidebar"),
+			"the same summary and intent land in the task file",
 		);
 
 		assert(
@@ -115,6 +151,13 @@ export async function issueIdScenarios(ctx) {
 			"the issue's first paragraph seeds the intent",
 		);
 
+		write(
+			minted.path,
+			read(minted.path).replace(
+				/^summary: .*$/m,
+				'summary: "Overlap fixed at 1024px"',
+			),
+		);
 		assert(
 			(await ctx.quietAsync(() =>
 				cmdTaskPublish({ root: dir, id: "TASK-501" }),
@@ -125,9 +168,10 @@ export async function issueIdScenarios(ctx) {
 			.filter((c) => c.method === "PATCH" && c.url.endsWith("/issues/501"))
 			.at(-1);
 		assert(
-			published?.body?.body?.includes("Published from") &&
+			published?.body?.title === "Overlap fixed at 1024px" &&
+				published.body.body.includes("Published from") &&
 				!published.body.body.includes("touches:"),
-			"the plan travels and the front matter stays in the repo",
+			"the plan and the sharpened title travel; the front matter stays in the repo",
 		);
 
 		// The sync runs after the local close is written: a failure reports, and the close stands.
@@ -135,7 +179,10 @@ export async function issueIdScenarios(ctx) {
 			minted.path,
 			read(minted.path)
 				.replace(/touches: \[\]/, 'touches: ["src/index.ts"]')
-				.replace(/summary: ""/, 'summary: "prove a failed sync keeps the close"')
+				.replace(
+					/^summary: .*$/m,
+					'summary: "prove a failed sync keeps the close"',
+				)
 				.replace(/<!--\s*FILL:[\s\S]*?-->/g, "filled by selftest"),
 		);
 		fail = true;
@@ -155,7 +202,10 @@ export async function issueIdScenarios(ctx) {
 			imported.path,
 			read(imported.path)
 				.replace(/touches: \[\]/, 'touches: ["src/synced.txt"]')
-				.replace(/summary: ""/, 'summary: "prove the close syncs the issue"')
+				.replace(
+					/^summary: .*$/m,
+					'summary: "prove the close syncs the issue"',
+				)
 				.replace(/<!--\s*FILL:[\s\S]*?-->/g, "filled by selftest"),
 		);
 		write(abs(dir, "src/synced.txt"), "synced\n");
@@ -170,8 +220,9 @@ export async function issueIdScenarios(ctx) {
 			.at(-1);
 		assert(
 			closedIssue?.body?.state === "closed" &&
+				closedIssue.body.title === "prove the close syncs the issue" &&
 				closedIssue.body.body.includes("**Summary**"),
-			"the final record travels with the close",
+			"the final record and its title travel with the close",
 		);
 		const cardPath = spy.calls
 			.filter(

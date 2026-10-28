@@ -71,7 +71,8 @@ change. Everything else is PLANNED. When unsure, take PLANNED: a short plan, not
 
 `task new <slug> --lane quick|planned`. It records the baseline run itself — a full one, so the
 milestone rows are on record before you touch anything. The id comes from the `ids` row in
-`project.md` — never type one; `ids: issue` also mints the issue, and `--from <n>` imports one.
+`project.md` — never type one; `ids: issue` also mints the issue, where `--summary` is its title
+and `--intent` its body; `--from <n>` imports one.
 Before the first edit, fill the task's intent, scope and `touches` — the exact paths you will
 write. Keep it minimal: the decisions a later session would re-open (each with its pointer), the
 plan, the proof and the summary. If an explanation changes no later action, it is not recorded.
@@ -118,7 +119,7 @@ The card is the completion record: a `**Task:**` link to the archived plan, `**S
 `## What changed` with the close-out paragraph. No date (the front matter has it), no file list
 (the task's `FILES` block has it); the plan, evidence and follow-ups stay in the task the link
 points at.
-It prints the commit message in the hook's shape, so closing and committing do not drift apart. `--pr` also prints a PR body built from the change file and the
+It prints the commit message in the hook's shape; `--pr` adds a PR body from the change file and
 evidence. `--amend "<why>"` accepts a declared breach and writes the reason into the plan —
 only with the user's reason, never as a way past a red suite.
 

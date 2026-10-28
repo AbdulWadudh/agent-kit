@@ -20,6 +20,8 @@
  *   verify [--full|--baseline]             run the always-tier commands; --full adds milestone rows
  *   harnesses                              list the coding agents on this machine (HOME, PATH, repo)
  *   task new <slug> [--lane quick|planned] open a task and record the baseline run
+ *            [--summary "<one clause>"]    its card title; the issue title in ids: issue (required)
+ *            [--intent "<paragraph>"]      seeds the Intent block; the issue body at mint
  *            [--parent TASK-N]             ... as TASK-N.M, closing on the quick suite
  *            [--from <issue>]              ... from an existing issue, whose number is the id
  *   task show [--id TASK-N]                the active task's scope, plan, evidence and staleness

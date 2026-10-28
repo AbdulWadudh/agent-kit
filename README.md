@@ -18,9 +18,10 @@ verified.** Everything here serves that, and anything that stops serving it gets
   not a task until `task new` opens it.
 - Task ids — one allocator per repo, chosen at setup. `ids: local` takes the next number on
   disk, entirely offline; `ids: issue` mints a GitHub issue and uses its number, so
-  collaborators share one board and there is never a `TASK-131` beside an `#131`. In issue mode
-  `task publish` sends the approved plan, `task close --sync` closes the issue with the final
-  record, and `task new --from 42` imports an issue someone else opened.
+  collaborators share one board and there is never a `TASK-131` beside an `#131`. `task new
+  --summary "…" --intent "…"` writes the issue's title and body (the title is the card's summary
+  too), `task publish` sends the approved plan, `task close --sync` closes the issue with the
+  final record, and `task new --from 42` imports an issue someone else opened.
 - `.agent-kit/rules/` — a router plus short rule files. One home per rule; indexes cite. Ready-made
   examples for TypeScript, Bun, Biome, API versioning, config and library docs sit in
   `.agent-kit/templates/rule-examples/`; you install only the ones that are true.
@@ -218,8 +219,10 @@ archived task with no file.
 
 A version can be rolled up for people and git: `release v0.2.0` writes `.agent-kit/releases/v0.2.0.md`
 from every card no earlier release claims — `# Release v0.2.0`, the date, then `### Added`,
-`### Changed`, `### Fixed` and `### Removed`, one line per task. It prints the
-`gh release create --notes-file` line and never runs git itself.
+`### Changed`, `### Fixed` and `### Removed`. Each task is a bold title with the commit that
+shipped it (`TASK-127 · 544f2dc`) and the card's `## What changed` paragraph beneath it, so the
+note reads like prose and points at the code. It prints the `gh release create --notes-file` line
+and never runs git itself.
 
 `start` prints the five newest closes, derived from the cards, so nobody scans a month folder
 and no close has to rewrite an index to keep a list true. A close writes the archived task and

@@ -266,8 +266,10 @@ A failure here is the repo's problem, not the kit's: report it, do not work over
 
 In `ids: issue` this command also mints the GitHub issue and takes its number as the id; a
 refused mint (bad credential, no access, Issues disabled) exits 1 and writes no task file.
-`task publish` after the plan gate sends the approved plan to that issue, and `task close --sync`
-closes it with the final record. `--from <n>` imports an issue someone else opened.
+`--summary "<one clause>"` is required there — it is the issue title and the card's — and
+`--intent "<paragraph>"` is the issue body. `task publish` after the plan gate sends the approved
+plan to that issue, and `task close --sync` closes it with the final record. `--from <n>` imports
+an issue someone else opened.
 
 The baseline is a **full** run. The `When` cell in `project.md` splits the rows:
 
