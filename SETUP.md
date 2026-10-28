@@ -167,202 +167,29 @@ is an illustration and is ignored by the checker.
 
 ## 3. Skills and MCP
 
-`setup` installs none of these. **Ask the owner; install only what comes back yes.** One
-message, in these words or close to them:
-
-> Shall I install the recommended skills — ponytail, prompt-master, caveman and the anthropic
-> skills? I have said what each one fixes below. And separately: agent-browser drives a real
-> browser, including live sites and accounts, so it is opt-in — install that too, or leave it?
-
-Then read the answer as a list: each yes is installed and reported, each no is dropped for this
-repo and not asked again unprompted. Sources are in the table.
-
-| Skill | Gap the kit's own loop does not close | Source |
-|---|---|---|
-| ponytail | over-building: the smallest change that works, and the check that proves it | https://github.com/DietrichGebert/ponytail |
-| prompt-master | a prompt written for one tool instead of prose the owner can read | https://github.com/nidhinjs/prompt-master |
-| caveman | token cost of long sessions | https://github.com/juliusbrussee/caveman |
-| anthropic skills | documents, spreadsheets, slides, PDFs, frontend polish | https://github.com/anthropics/skills |
-
-`agent-browser` is **opt-in and asked separately**. It drives a real browser: live sites,
-accounts, local pages. Never install it because it looked useful; ask whether this repo needs
-an agent that can load and click pages, and take a no. Source:
-https://github.com/vercel-labs/agent-browser (skill at https://agent-browser.dev/skills).
-
-Install with the harness's own mechanism (its skill folder, or its plugin command). Leave it
-as a pointer, never a copy: `doctor`'s `skill pointers` row fails a copy of an installed
-skill, because the first edit to either side would make the two disagree.
-
-### Harnesses — ask the machine
-
-A repo can show no harness files and still be driven by four agents; looking only at the tree
-misses them. `setup` ends with `Harnesses found: ...`, and `agent-kit harnesses` prints the
-same list with the evidence: known HOME config folders, binaries on `PATH`, and harness
-markers in the repo.
-
-Say the list in the report. Wire `.agent-kit/SKILL.md` for each harness with a repo skill folder — the
-command prints those paths (Claude Code and OpenCode today). For the rest, the kit's entry
-point is `AGENTS.md`; where a harness reads a different file, put the trigger there. A
-pointer, never a copy: `doctor`'s `skill pointers` row fails a copy.
-
-The list is a report, not a check. `doctor` cannot see the machine's harnesses, and a repo
-with none of them is not broken.
-
-Then say what MCP servers the harness already has, and use those before writing the
-equivalent by hand. `doctor` cannot see MCP; that is a report line, not a check.
+Ask the owner; install only what comes back yes. The skills, the gaps they close, the opt-in
+`agent-browser`, and the harness list are in [setup/3-skills.md](setup/3-skills.md).
 
 ## 4. Verify
 
-```bash
-bun .agent-kit/agent-kit.mjs doctor --strict
-```
-
-Expected, before the fill: `FAIL — N failure(s)`, naming `unfilled markers` and any doc path
-that does not exist.
-
-Expected, after the fill: `PASS — 0 failure(s)`. Warnings are allowed and are listed; they
-are not a reason to keep editing.
-
-| Check | Fails when |
-|---|---|
-| required files | a kit file is missing (including `.agent-kit/SKILL.md`) |
-| directory indexes | a directory under `.agent-kit/` has no `INDEX.md` |
-| kit modules covered | a `.mjs` under `.agent-kit/` is not covered by the manifest, so an install would miss it |
-| source ceiling | a kit `.mjs` is past 300 lines - split it by area, keeping related functions in one file |
-| skill pointers | a harness skill file is a copy of the loop instead of a pointer to `.agent-kit/SKILL.md` |
-| context budget | one of the files a session reads before it plans is past its cap (`AGENTS.md` 9000, `SKILL.md` 10000, `_behavior.md` 7500, `rules/INDEX.md` 1800 characters) - move the detail behind an index, or run `.agent-kit/prompts/trim-agents-md.md` |
-| prerequisites | a tool every repo needs is missing — runtime, git or `rtk`; in issue mode also the GitHub credential (§1.2). Presence only: the row never calls the network |
-| task ids | `project.md` has no `| ids |` row (WARN), or its value is not `local` or `issue` (FAIL) |
-| task ids unique | two active or archived task files share an id, an id disagrees with its filename, or two change cards name the same id |
-| manifest integrity | an `owned` path is inside a `machinery` directory or is also a seed |
-| encoding | a file is not UTF-8, has a BOM, or shows mojibake (`--fix` repairs the mechanical part) |
-| unfilled markers | a `FILL` marker or uppercase placeholder survived (`--strict` only) |
-| doc paths resolve | a path written in `.agent-kit/docs/`, `.agent-kit/` or the skill does not exist |
-| markdown links resolve | an index link points at a missing file |
-| declared commands | `project.md` names a package script that `package.json` does not have, or a `When` value is not `always` or `milestone` |
-| active tasks indexed | a task file in `active/` is not in the task index |
-| write-set collisions | two active tasks declare overlapping `touches` (a main task and its subtasks are one family and may overlap) |
-| blocked tasks | a `BLOCKED` task carries no question, or a task carries the block marker without the status |
-| subtasks | a subtask has no parent or its parent is not active, a main task is in progress with a subtask open, or a queued main task has every subtask done |
-| task queue | a `## Queue` row has an unknown status, a reused `#`, an empty request, or names a subtask that is not this task's active subtask |
-| backlog | a row in `.agent-kit/tasks/BACKLOG.md` has an unknown status, a reused ID, a missing cell, or an empty item, source or next step |
-| rules are checkable | a rule file contains advice ("be careful", "try to", "consider") instead of a rule |
-| rules indexed | a file in `.agent-kit/rules/` has no row in its `INDEX.md`, or a row names a missing file |
-| archived tasks changelogged | a task is in `archive/` but has no file under `.agent-kit/logs/MM-YYYY/` |
-| release notes | a file under `.agent-kit/releases/` does not start with `# Release vX.Y.Z` matching its filename; no folder is fine |
-| release tags | WARN, not FAIL: a release note has no tag, so nothing can install that version (`agent-kit release --tag vX.Y.Z`) |
-| commit guard | WARN, not FAIL: the optional `pre-commit` and `commit-msg` hooks are not wired in this clone |
-| commit identity | a commit message carries AI attribution (FAIL); a commit author is not the configured identity (WARN) |
-
-`harnesses` is not in this table: it reads the machine, so CI cannot reproduce it. Its output
-is a report to the owner, not a gate.
-
-`--json` prints the same rows as `{ ok, fails, warns, rows }` for a CI comment or a gate.
+`doctor --strict` must exit 0 after the fill. The full check table, including the markdown
+ceiling, is in [setup/4-verify.md](setup/4-verify.md).
 
 ## 5. First verification baseline
 
-`task new` records the baseline itself. The "was it already broken?" run happens at the moment
-the task opens, so it cannot be forgotten:
-
-```bash
-bun .agent-kit/agent-kit.mjs task new bootstrap --lane quick
-```
-
-Expected: the task id, then one line per declared command and `PASS (full) — n/n command(s) exited 0`.
-A failure here is the repo's problem, not the kit's: report it, do not work over it.
-`--no-baseline` skips the run; it also throws away the only way to tell an old red from a new one.
-
-In `ids: issue` this command also mints the GitHub issue and takes its number as the id; a
-refused mint (bad credential, no access, Issues disabled) exits 1 and writes no task file.
-`--summary "<one clause>"` is required there — it is the issue title and the card's — and
-`--intent "<paragraph>"` is the issue body. `task publish` after the plan gate sends the approved
-plan to that issue, and `task close --sync` closes it with the final record. `--from <n>` imports
-an issue someone else opened.
-
-The baseline is a **full** run. The `When` cell in `project.md` splits the rows:
-
-- `always` — `verify` and every close run it. Setup marks test, typecheck and lint here.
-- `milestone` — only the baseline, `verify --full` and a top-level task's close run it. Setup
-  marks build here: a full build is what makes an iteration slow, and it is worth paying for
-  once, at the end. A subtask's close is quick, so it does not run the milestone rows.
-
-So the inner loop is `verify` (quick), and the expensive row cannot be skipped at close:
-`task close` on a top-level task runs the full suite itself. Move a command between tiers in
-`project.md`, not in the kit, and mark the slowest commands `milestone` while filling the file.
-
-A request that arrives while a task is open goes in its `## Queue` and becomes its subtask:
-`task new <slug> --parent TASK-N` opens `TASK-N.M` and queues the main task; only a separate
-delivery earns a new task, and the owner decides that. A subtask closes on the quick suite, so
-test, typecheck and lint run per subtask. The main task's close is where build runs: it refuses
-while a subtask is open, runs the full suite, and an error found there is fixed in that moment
-and the close re-run. The family then archives under the main id with one change file.
-
-`task show` and `start` say when the quick run is the whole story and when the milestone rows
-still wait. `start` is the read-only brief to begin a session with: branch, commands and tiers,
-the five newest closes, active tasks, gate, last evidence, and one next action.
-
-`verify` also counts attempts: a red run with the same failing set over the same declared files
-is the same attempt repeated. At three, it refuses — and `task close` with it — until the Plan
-section changes. `task show` prints `Loop: n/3`.
-
-Commit the fill work **before** opening the first task. `task new` records the current `HEAD`
-as the baseline, and `task close` derives the changed-file inventory from it — a repo with no
-commit at all has no baseline to diff against.
-
-Commit it as the repo's own identity: never `-c user.name`/`-c user.email`, never the harness
-or session name, and never a `Co-Authored-By` or "Generated with" trailer. `doctor`'s
-`commit identity` row fails a trailer and warns when the author is not the configured identity.
-If git has no identity here, stop and ask — do not invent one.
-
-The fill commit is the one commit that needs no task ID, because no task exists yet. From the
-first task on, every commit names its task: the subject is `type (TASK-ID): summary`, and the
-body is what that commit changed and why. A task carries as many commits as it has features and
-fixes, grouped by the feature or issue each serves; close writes one change file per task. The
-rule, the split and its type list are `.agent-kit/rules/commits.md`.
-
-`setup` does not touch git config. If an agent will commit unattended in this clone and you want
-the earlier warning, opt in once:
-
-```bash
-git config core.hooksPath .agent-kit/githooks
-```
-
-Git silently skips a hook it cannot execute, so both files are tracked as `100755`. Where a clone
-lost that bit, `git ls-files -s .agent-kit/githooks` shows `100644` and `doctor`'s `hook mode` row
-reports it; `git update-index --chmod=+x` on the two files repairs it.
-
-It is per clone and bypassable (`git commit --no-verify`), so it is a speed bump, not the check.
-`pre-commit` refuses a commit outside the write set, which `task close` also checks;
-`commit-msg` prints the expected shape for a message that is not `type (TASK-ID): summary` or
-carries no body summary, and exits 0 — it warns, never blocks. The message rule is the
-session's instruction, not a hook's gate. Skip the hooks if the team would rather not have
-them; `doctor` reports them as a WARN with that command, not a failure.
+`task new` records the baseline; command tiers, issue minting, the queue, commits and hooks are
+in [setup/5-baseline.md](setup/5-baseline.md).
 
 ## 6. Report
 
-Tell the owner, in plain words:
-
-- what stack was detected and which commands were found (or which are missing);
-- the id mode (`local` or `issue`), and in issue mode the repo and which credential source
-  answered — `gh` or a token, never the token itself;
-- which harnesses were found, and which of them now point at `.agent-kit/SKILL.md`;
-- which files were filled and which placeholders you had to leave and why;
-- the `doctor --strict` result;
-- the next action: open a task with `agent-kit task new <slug> --lane planned`.
+The report lines and the re-run/upgrade path are in
+[setup/6-report.md](setup/6-report.md).
 
 ## Re-running
 
-`setup` again: fills in anything missing, keeps everything present, refreshes the hash
-baseline. Safe.
-
-Later, to take template improvements: `check` (never writes) names the release tag this repo
-tracks, whether a newer tag exists, and any file drift. `pull --dry-run` prints the diff per row,
-then `pull --ref <tag>` moves the install. `pull` will not overwrite a file you modified unless
-you pass `--force`, and reports `SEED-UPDATED` when an upstream seed changed after you authored
-from it. The full procedure is `.agent-kit/prompts/upgrade.md`.
+See [setup/6-report.md](setup/6-report.md#re-running).
 
 ## What is deliberately checked in
 
-`.agent-kit/tasks/active/` is committed. A task in flight is part of the repo's state, and a
-future session resumes from it. The archive is committed too — it is the only record of why
-a change happened.
+`tasks/active/` and the archive are committed; see
+[setup/6-report.md](setup/6-report.md#what-is-deliberately-checked-in).
