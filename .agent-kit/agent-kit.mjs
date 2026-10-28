@@ -238,9 +238,13 @@ function frontMatter(text) {
 		const raw = line.slice(i + 1).trim();
 		// Quotes are YAML syntax, not content: `summary: "x # y"` keeps the hash, `a # b` does not.
 		const quoted = raw.match(/^(["'])([\s\S]*)\1$/);
-		out[line.slice(0, i).trim()] = quoted
-			? quoted[2]
-			: raw.replace(/\s+#.*$/, "").trim();
+		let value;
+		if (!quoted) value = raw.replace(/\s+#.*$/, "").trim();
+		// A double-quoted YAML scalar escapes its own quote; a release note is read by people, so
+		// `\"` must not survive into the tag message.
+		else if (quoted[1] === '"') value = quoted[2].replace(/\\(["\\])/g, "$1");
+		else value = quoted[2];
+		out[line.slice(0, i).trim()] = value;
 	}
 	return out;
 }
@@ -4877,6 +4881,10 @@ function cmdSelftest() {
 			"the tag clears the row, so it can fail and can pass",
 		);
 		git(tmp, ["tag", "-d", "v0.1.0"]);
+		assert(
+			frontMatter('---\nsummary: "a \\"b\\" c"\n---\n').summary === 'a "b" c',
+			"a quoted summary loses its YAML escapes, so a release note reads clean",
+		);
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });
 		if (junkDir) fs.rmSync(junkDir, { recursive: true, force: true });
