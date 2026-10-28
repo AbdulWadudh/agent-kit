@@ -12,6 +12,7 @@ one prompt and run it as a task; do not read the folder.
 | `docs-populate.md` | fills `.agent-kit/docs/`, learnings and backlog from `path:line` evidence | asked to populate or refresh the docs |
 | `kit-review.md` | finds the rule or gate that keeps costing a session, then fixes or proposes it | the process is the friction, with evidence |
 | `trim-agents-md.md` | rewrites `AGENTS.md` against the seed, moving each fact to its home | the entry file costs more than it earns |
+| `upgrade.md` | checks the recorded template source, shows the diff, then pulls it as one task | the owner says upgrade agent-kit, or asks what changed in the template |
 
 A prompt is not a rule. It says how to run one job; the constraints it obeys are in
 `.agent-kit/rules/`, and a prompt that contradicts them is the bug.
