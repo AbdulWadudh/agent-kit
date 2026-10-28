@@ -45,7 +45,8 @@ Read the repo before you ask anything: manifests, entry points, and which rule e
 the template fit this codebase; a rule about a language this repo does not use does not get
 installed. Repo harness config is a hint, not the list: after setup, run
 `.agent-kit/agent-kit.mjs harnesses` and say which harnesses you found — the machine may have
-several while the repo shows none. I will wire the skill for each.
+several while the repo shows none. Setup writes the pointer where the repo already keeps that
+harness's folder; wire the rest, and say which are left.
 
 Then ask me these five questions, and wait for the answers before changing anything:
 
@@ -76,11 +77,12 @@ template exactly — it wins if it disagrees with this message:
    examples that are true here — code, config, api — and say which ones you skipped and why.
 3. Install the skills I approved for each harness (SETUP.md §3), and list the files you wrote.
    If I said yes to agent-browser, install it and its skill; if I said no, do not.
-4. Run `.agent-kit/agent-kit.mjs harnesses`, say the list, then install the skill for every
-   harness it found. Take the frontmatter (name and description) from .agent-kit/SKILL.md, put it in
-   that harness's skill folder, and make the body one line: "Read .agent-kit/SKILL.md at the repository
-   root." A pointer, never a copy. If a harness has no skill mechanism, put the trigger in
-   the file it does read. List the files you wrote.
+4. Run `.agent-kit/agent-kit.mjs harnesses`, say the list, then wire the skill for every harness
+   setup left in a `Wire the skill for each:` line. Take the frontmatter (name and description)
+   from .agent-kit/SKILL.md, put it in that harness's skill folder, and make the body one line:
+   "Read .agent-kit/SKILL.md at the repository root." A pointer, never a copy. Do not rewrite a
+   pointer setup already wrote. If a harness has no skill mechanism, put the trigger in the file
+   it does read. List the files you wrote.
 5. Record the off-limits answers in AGENTS.md (Ask first and rules 1-4). Wire the guard if
    I said yes. Then run bun .agent-kit/agent-kit.mjs doctor --strict until it exits 0.
 6. Run bun .agent-kit/agent-kit.mjs verify --full and report the baseline honestly.
@@ -255,8 +257,9 @@ It is procedure, not knowledge. The repo's facts stay in `.agent-kit/project.md`
 So install is not the skill's job — it happens once, before any of this exists, from the
 README prompt. That is also why one file is enough for every harness: `AGENTS.md` lists it as
 step 1 of "start here", so an agent reads the loop even where no skill mechanism exists. A
-harness with its own skill folder gets a four-line pointer, not a copy; `agent-kit harnesses`
-finds them even when the repo shows no harness config.
+harness with its own skill folder gets a four-line pointer, not a copy; `setup` writes it when
+the repo already keeps that folder, and `agent-kit harnesses` finds them even when the repo
+shows no harness config.
 
 Companion skills are recommended, not bundled: ponytail, prompt-master, caveman and the
 anthropic skills — and `agent-browser` only if you say yes, because it drives a real browser

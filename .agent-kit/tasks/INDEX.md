@@ -70,11 +70,11 @@ _Nothing in flight._
 ## Recent
 
 <!-- RECENT:START -->
+- `2026-10-28` [TASK-109](archive/2026-10/2026-10-28-TASK-109-setup-skill-pointer.md) — setup writes the harness skill pointer for a harness whose folder the repo already keeps
 - `2026-10-27` [TASK-108](archive/2026-10/2026-10-27-TASK-108-move-kit-under-dot-agent-kit.md) — every installed path lives under .agent-kit, except the three a harness pins to a fixed location
 - `2026-10-27` [TASK-107](archive/2026-10/2026-10-27-TASK-107-rules-split.md) — commit conventions and skill sources leave the always-read rule file
 - `2026-10-27` [TASK-106](archive/2026-10/2026-10-27-TASK-106-character-cost.md) — a session pays for characters, not lines
 - `2026-10-27` [TASK-105](archive/2026-10/2026-10-27-TASK-105-changelog-shape.md) — a changelog entry carries the task summary, and each version gets a release file
-- `2026-10-27` [TASK-104](archive/2026-10/2026-10-26-TASK-104-subtask-close.md) — subtasks close quick with lint; the main task runs build at close
 <!-- RECENT:END -->
 
 ## History

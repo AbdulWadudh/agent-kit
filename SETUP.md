@@ -38,12 +38,15 @@ What it does, in order:
 4. Installs `rtk` (the token saver) when it is missing, unless `--no-rtk` is passed.
 5. Detects the coding agents installed on this machine — HOME config folders, `PATH`, and repo
    markers — and prints `Harnesses found: ...`. A repo with no harness config can still be
-   driven by several agents; the machine is the source.
+   driven by several agents; the machine is the source. Where the repo already keeps a harness's
+   folder (`.claude/`, `.opencode/`), it writes that harness's skill pointer, and prints
+   `Skill pointer: <path>`; the rest are left in a `Wire the skill for each:` line.
 6. Writes `.agent-kit/template.json`: source, version, date, and a hash baseline per file.
 7. Prints the fill list.
 
 Expected output: `N copied, M kept, template v1`, a per-file table including `PRESENT` or
-`INSTALLED` for `rtk`, a `Harnesses found:` line, then the four fill steps.
+`INSTALLED` for `rtk`, a `Harnesses found:` line (with `Skill pointer:` and `Wire the skill for
+each:` where they apply), then the four fill steps.
 
 Guard rails: it never overwrites an existing file, and it refuses a directory whose
 `template.json` says `"role": "template"` unless that directory is also the source (the

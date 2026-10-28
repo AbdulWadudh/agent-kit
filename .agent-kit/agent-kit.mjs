@@ -724,8 +724,38 @@ function detectHarnesses(repoRoot, home, pathEnv = process.env.PATH || "") {
 	return found;
 }
 
+/**
+ * The pointer a harness discovers: the loop's own frontmatter, a one-line body, no copy.
+ * `doctor` fails anything over 700 characters that does not name `.agent-kit/SKILL.md`.
+ */
+function skillPointer(root) {
+	const src = read(abs(root, ".agent-kit/SKILL.md")) || "";
+	const fm = /^---\r?\n([\s\S]*?)\r?\n---/.exec(src);
+	return `---\n${fm ? fm[1].trim() : "name: agent-kit"}\n---\n\nRead \`.agent-kit/SKILL.md\` at the repository root. It is the one copy of the loop.\n`;
+}
+
+/**
+ * A harness that already keeps its folder in the repo gets a pointer, so its skill list
+ * carries the loop without anyone reading the entry file first. It never creates the folder
+ * (a repo that does not use that harness stays clean) and never overwrites an authored file.
+ */
+function writeSkillPointers(root, found) {
+	const handled = [];
+	for (const h of found) {
+		if (!h.skill) continue;
+		if (exists(abs(root, h.skill))) {
+			handled.push(h.skill);
+			continue;
+		}
+		if (!isDir(abs(root, h.skill.split("/")[0]))) continue;
+		write(abs(root, h.skill), skillPointer(root));
+		handled.push(h.skill);
+	}
+	return handled;
+}
+
 /** The sentence setup and `harnesses` both print. One home for the finding and the wiring. */
-function harnessLines(found) {
+function harnessLines(found, wired = []) {
 	if (!found.length)
 		return [
 			"Harnesses found: none in HOME, PATH or the repo.",
@@ -735,7 +765,8 @@ function harnessLines(found) {
 		`Harnesses found: ${found.map((h) => h.name).join(", ")}`,
 		"  Say this list. The repo may show none of them: detection reads HOME config and PATH.",
 	];
-	const pointers = found.filter((h) => h.skill);
+	if (wired.length) lines.push(`  Skill pointer: ${wired.join(", ")}`);
+	const pointers = found.filter((h) => h.skill && !wired.includes(h.skill));
 	if (pointers.length)
 		lines.push(
 			`  Wire the skill for each: ${pointers.map((h) => h.skill).join(", ")}`,
@@ -851,8 +882,9 @@ function cmdSetup({ target, sourceRoot, sourceSpec, noRtk, home, pathEnv }) {
 	if (rtk[0] === "MISSING" || rtk[0] === "CONFLICT")
 		console.log(`\nToken saver: ${rtk[2]}`);
 	console.log("");
-	for (const line of harnessLines(detectHarnesses(root, home, pathEnv)))
-		console.log(line);
+	const found = detectHarnesses(root, home, pathEnv);
+	const wired = writeSkillPointers(root, found);
+	for (const line of harnessLines(found, wired)) console.log(line);
 	console.log(
 		"\n  Optional commit guard (off by default, per clone, bypassable):",
 		"\n    git config core.hooksPath .agent-kit/githooks",
@@ -4492,6 +4524,44 @@ function cmdSelftest() {
 		assert(
 			doctorRow("write-set collisions").status === "PASS",
 			"doctor drops a blocked task's write set",
+		);
+
+		console.log("\n30. setup writes the pointer a harness discovers");
+		const ptrTarget = abs(tmp, "pointer-target");
+		fs.mkdirSync(abs(ptrTarget, ".claude"), { recursive: true });
+		fs.mkdirSync(abs(tmp, "fake-home-2/.config/opencode"), { recursive: true });
+		const ptrSetup = () =>
+			quiet(() =>
+				cmdSetup({
+					target: ptrTarget,
+					sourceRoot: SCRIPT_ROOT,
+					noRtk: true,
+					home: abs(tmp, "fake-home-2"),
+					pathEnv: "",
+				}),
+			);
+		ptrSetup();
+		const ptr = abs(ptrTarget, ".claude/skills/agent-kit/SKILL.md");
+		assert(exists(ptr), "a harness folder the repo keeps gets the pointer");
+		assert(
+			read(ptr).includes(".agent-kit/SKILL.md") &&
+				read(ptr).includes("classify, open a task"),
+			"the pointer carries the loop's frontmatter and names the file",
+		);
+		assert(
+			!exists(abs(ptrTarget, ".opencode")),
+			"a harness the repo does not use gets no folder",
+		);
+		assert(
+			JSON.parse(captured(() => cmdDoctor({ root: ptrTarget, jsonOut: true })))
+				.rows.find((r) => r.name === "skill pointers").status === "PASS",
+			"doctor accepts the pointer setup wrote",
+		);
+		write(ptr, "---\nname: mine\n---\n\nauthored by the owner\n");
+		ptrSetup();
+		assert(
+			read(ptr).includes("authored by the owner"),
+			"an authored pointer is not overwritten",
 		);
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });
