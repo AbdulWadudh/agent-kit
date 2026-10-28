@@ -1,10 +1,47 @@
 /** release.mjs — `release`: the note built from unclaimed change files */
 import path from "node:path";
 import { CATEGORIES, LOG_DIR } from "./consts.mjs";
-import { abs, exists, expand, frontMatter, git, read, write } from "./io.mjs";
-import { CHILD_ID } from "./taskfile.mjs";
+import { repoSlug } from "./github.mjs";
+import { abs, exists, expand, frontMatter, git, posix, read, run, write } from "./io.mjs";
+import { CHILD_ID, idsMode } from "./taskfile.mjs";
 
 
+/** The archived task a card points at, repo-relative, or "" when the card has no link. */
+function taskRelOf(cardRel, text) {
+	const m = text.match(/^\*\*Task:\*\*\s+\[[^\]]+\]\(([^)]+)\)/m);
+	if (!m) return "";
+	const rel = path.posix.normalize(
+		path.posix.join(path.posix.dirname(cardRel), m[1]),
+	);
+	return rel.startsWith("..") ? "" : posix(rel);
+}
+
+/**
+ * Issue number by task id. A task minted under issue ids is `TASK-<issue>`; a task that was
+ * backfilled from a local id has that id in its issue title. `gh` is the same credential the
+ * mint uses, and a failure leaves the note without issue links rather than stopping the cut.
+ */
+function issueNumbers(base) {
+	const r = run(
+		"gh issue list --state all --limit 500 --json number,title",
+		base,
+		30000,
+	);
+	if (r.code !== 0) return new Map();
+	try {
+		const map = new Map();
+		for (const issue of JSON.parse(r.out)) {
+			const n = Number(issue.number);
+			if (!Number.isInteger(n)) continue;
+			map.set(`TASK-${n}`, n);
+			const m = String(issue.title || "").match(/^(TASK-\d+)\b/);
+			if (m) map.set(m[1], n);
+		}
+		return map;
+	} catch {
+		return new Map();
+	}
+}
 /** The close wrote this paragraph; the note quotes it instead of asking for a second text. */
 export function cardNote(text) {
 	const section = text.split(/^## /m).find((s) => s.startsWith("What changed"));
@@ -37,6 +74,7 @@ export function unreleasedChanges(base) {
 				date: fm.date || "",
 				note: cardNote(text),
 				commit: shippedIn(base, rel),
+				taskRel: taskRelOf(rel, text),
 			};
 		})
 		.filter((e) => e.id && !CHILD_ID.test(e.id) && !claimed.has(e.id))
@@ -116,13 +154,29 @@ export function cmdRelease({ root, version, tag }) {
 	}
 
 	const day = new Date().toISOString().slice(0, 10);
+	const slug = repoSlug(base);
+	const issueById = idsMode(base) === "issue" ? issueNumbers(base) : new Map();
+	const tagName = `v${raw}`;
+	const taskLink = (e) =>
+		slug && e.taskRel
+			? `[${e.id}](https://github.com/${slug}/blob/${tagName}/${e.taskRel})`
+			: e.id;
+	const issueLink = (e) => {
+		const n = slug ? issueById.get(e.id) : null;
+		return n
+			? ` · [issue #${n}](https://github.com/${slug}/issues/${n})`
+			: "";
+	};
 	const lines = [`# Release v${raw}`, "", `**Date:** ${day}`, ""];
 	for (const [type, label] of CATEGORIES) {
 		const group = fresh.filter((e) => e.type === type);
 		if (!group.length) continue;
 		lines.push(`### ${label}`, "");
 		for (const e of group) {
-			lines.push(`**${e.summary}** (${e.id}${e.commit ? ` · ${e.commit}` : ""})`, "");
+			lines.push(
+				`**${e.summary}** (${taskLink(e)}${e.commit ? ` · ${e.commit}` : ""})`,
+				"",
+			);
 			if (e.note && e.note !== e.summary) lines.push(e.note, "");
 		}
 	}
@@ -130,7 +184,7 @@ export function cmdRelease({ root, version, tag }) {
 		"---",
 		"",
 		"<!-- RELEASED:START -->",
-		...fresh.map((e) => `- ${e.id}`),
+		...fresh.map((e) => `- ${taskLink(e)}${issueLink(e)}`),
 		"<!-- RELEASED:END -->",
 		"",
 	);
