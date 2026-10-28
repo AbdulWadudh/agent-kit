@@ -17,7 +17,7 @@ that opted in; `task close` runs the scope check either way.
 - The scope gate is silent when no task is active; the message gate is silent until the first
   task exists. Neither blocks a repo that never opened one.
 - Refuses a staged file outside the active task's `touches`; prints the uncovered paths.
-- Warns, never refuses, on a subject that is not `type (TASK-ID): summary` or a body with no
+- Warns, never refuses, on a subject that is not `type (TASK-ID|PATCH-ID): summary` or a body with no
   summary: it prints the expected shape and exits 0. The rule binds the session; the hook only
   reports it, so a human's commit is never blocked. No task exists yet at the setup fill
   commit, so the check stays silent there.

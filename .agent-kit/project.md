@@ -13,8 +13,9 @@ verification gate cite it; none of them restates it.
 
 ## Commands
 
-`always` runs on every `verify`; `milestone` runs on the baseline, `verify --full` and
-`task close`. Mark a slow command `milestone` so the inner loop stays short.
+`always` runs on every `verify`; `milestone` runs on the full baseline, `verify --full` and a
+quick/planned `task close` — a subtask's or micro close is always-tier only. Mark a slow command
+`milestone` so the inner loop stays short.
 
 | Action | Command | When |
 |---|---|---|

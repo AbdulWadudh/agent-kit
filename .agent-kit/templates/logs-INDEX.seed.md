@@ -9,11 +9,13 @@ Nothing is folded into a running document, so nothing has to be kept in sync.
 ## The shape
 
 One folder per month, `MM-YYYY/`, one file per closed task:
-`YYYY-MM-DD-TASK-N-slug.md`. Front matter holds `id`, `type`, `date` and `summary`. The body
-is the completion record: `# TASK-N — <summary>`, `**Task:**` (a relative link to the archived
+`YYYY-MM-DD-TASK-N-slug.md` (a micro close writes `YYYY-MM-DD-PATCH-N-slug.md`). Front matter
+holds `id`, `type`, `date` and `summary`. The body is the completion record:
+`# TASK-N — <summary>` (or `# PATCH-N — <summary>`), `**Task:**` (a relative link to the archived
 plan), `**Scope:**` (the top-level areas touched), then `## What changed` — the close-out
-paragraph. No date line (the front matter has it), no file list (the task's `FILES` block has
-it), and nothing from the plan: the link is the pointer.
+paragraph. `TASK-N` and the micro lane's `PATCH-N` share this one namespace; there is no second
+ledger. No date line (the front matter has it), no file list (the task's `FILES` block has it),
+and nothing from the plan: the link is the pointer.
 
 - `agent-kit task close` writes the file. Do not hand-write one, and do not add a second ledger.
 - A month folder is an archive, not a directory to list. Open the one file a `start` line names.

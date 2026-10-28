@@ -10,15 +10,17 @@ Read before the first commit of a task. The subject has a hook; the split is kep
 - One commit is one change — a feature, a fix, a doc update or a test — never a sitting's bulk
   work. Group by the feature or the issue each commit serves, so one commit can be reverted
   without the other. Work for a different feature or issue does not share a commit.
-- A task carries as many commits as it has changes. Every commit names the same `TASK-ID`; the
+- A task carries as many commits as it has changes. Every commit names the same task id; the
   task file is the delivery, its commits are the steps. Do not hold the work back for one bulk
   commit at close.
+- A micro fix names its `PATCH-N` id in the same position. The lane changes the ceremony, not
+  the record: one task file, one change card, however many commits.
 - Stage by path. `git add -A`, `git add .` and `git commit -a` sweep in work that belongs to
   another commit; a path that is not part of this commit stays unstaged.
 - The subject carries the type and the task:
-  `type (TASK-ID): imperative summary` — lower-case type, one space before the parenthesis,
-  no full stop. Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `build`,
-  `ci`, `style`, `revert`.
+  `type (TASK-ID|PATCH-ID): imperative summary` — lower-case type, one space before the
+  parenthesis, no full stop. Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`,
+  `build`, `ci`, `style`, `revert`.
 - The body states what that commit changed and why, after one blank line, in plain words. At
   close, the change file's `## What changed` paragraph is the closing commit's body. A commit
   with no body is not finished.

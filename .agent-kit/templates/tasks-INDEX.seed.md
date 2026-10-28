@@ -16,8 +16,8 @@ the one task it names; not the folders.
    A `BLOCKED` task does not hold the slot: its question waits in the file until
    `agent-kit task resume` (the owner has answered), and only then is it the session's work
    again.
-3. **Otherwise open a task:** `agent-kit task new <slug> --lane quick|planned`. A request that
-   arrives while a task is open, or work too large for one sitting, becomes a subtask: add
+3. **Otherwise open a task:** `agent-kit task new <slug> --lane micro|quick|planned`. A request
+   that arrives while a task is open, or work too large for one sitting, becomes a subtask: add
    `--parent TASK-N` and it opens `TASK-N.M` (see Subtasks).
 4. **Looking for what is next?** Read `BACKLOG.md` — parked candidates, not tasks. A row
    becomes work only when the owner picks it, and then it is deleted.
@@ -41,8 +41,11 @@ The id source is one row in `.agent-kit/project.md` (`| ids | local |`), written
 - **Backfill** — `task migrate` opens one closed issue per archived task, titled `TASK-N — summary`
   and carrying the card's paragraph, so a repo that ran on local ids first shows its history on
   GitHub. Titles starting with an id are the match: a second run adds nothing.
+- **`PATCH-N`** — the micro lane's id: allocated from `active/`, `archive/` and the change cards,
+  never from GitHub. A micro fix mints no issue and behaves the same in `local` and `issue` mode.
 
-`doctor`'s `task ids` and `task ids unique` rows check the mode, and one id per file and card.
+`doctor`'s `task ids`, `task ids unique` and `task lanes` rows check the mode, the vocabulary,
+and one id per file and card.
 
 ## Subtasks
 
@@ -71,17 +74,17 @@ recommendation; the default is the subtask.
 
 ## Lanes
 
-| | QUICK | PLANNED |
+| | MICRO | QUICK | PLANNED |
 |---|---|---|
-| **Eligible when** | reversible with `git revert`, one domain, no contract change | everything else |
-| **G1 — plan** | record intent in the task and proceed | **halt** for approval before the first edit |
-| **G2 — result** | `task close` runs the full suite and closes (a subtask closes on the quick suite, lint included; its main task runs build) | **halt** for approval after the suite, before close |
-| **Typical** | typo, doc fix, a small bug fix, a test | feature, refactor, schema, interface change |
+| **Eligible when** | one file, reversible with `git revert`, one domain, no public interface, schema, dependency, env, security or `.agent-kit/` change | reversible with `git revert`, one domain, no contract change | everything else |
+| **G1 — plan** | none: the task file records intent and scope, then proceed | record intent in the task and proceed | **halt** for approval before the first edit |
+| **G2 — result** | none: `task close` typechecks, lints, scope-checks and writes the `PATCH-N` card | `task close` runs the full suite and closes (a subtask closes on the quick suite, lint included; its main task runs build) | **halt** for approval after the suite, before close |
+| **Typical** | hotfix, one-line guard | doc fix, a small bug fix, a test | feature, refactor, schema, interface change |
 
 ## Gates
 
-- **G1** and **G2** are the only two halts. A halt means: stop, present, wait. Not "proceed
-  and note it".
+- **G1** and **G2** are the only two halts, and only PLANNED takes both: QUICK records intent
+  and proceeds, MICRO has neither. A halt means: stop, present, wait. Not "proceed and note it".
 - **Always halt, in every lane:** a destructive or irreversible action, a new dependency, a
   schema or migration change, deleting files outside the declared write set, or a red
   verification baseline.
@@ -105,6 +108,7 @@ _Nothing in flight._
 ## History
 
 Closed tasks move to `.agent-kit/tasks/archive/YYYY-MM/`, and each leaves one change file in
-`.agent-kit/logs/MM-YYYY/`. A DONE subtask waits in `active/` until its main task closes, then
-archives with it under the main task's single change file. `agent-kit start` prints the five
-newest closes; open anything older only when the user asks about it.
+`.agent-kit/logs/MM-YYYY/` — a micro task's card carries its `PATCH-N` id. A DONE subtask waits
+in `active/` until its main task closes, then archives with it under the main task's single
+change file. `agent-kit start` prints the five newest closes; open anything older only when the
+user asks about it.

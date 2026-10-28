@@ -55,10 +55,10 @@ or session name, and never a `Co-Authored-By` or "Generated with" trailer. `doct
 If git has no identity here, stop and ask — do not invent one.
 
 The fill commit is the one commit that needs no task ID, because no task exists yet. From the
-first task on, every commit names its task: the subject is `type (TASK-ID): summary`, and the
-body is what that commit changed and why. A task carries as many commits as it has features and
-fixes, grouped by the feature or issue each serves; close writes one change file per task. The
-rule, the split and its type list are `.agent-kit/rules/commits.md`.
+first task on, every commit names its task: the subject is `type (TASK-ID|PATCH-ID): summary`,
+and the body is what that commit changed and why. A task carries as many commits as it has
+features and fixes, grouped by the feature or issue each serves; close writes one change file per
+task. The rule, the split and its type list are `.agent-kit/rules/commits.md`.
 
 `setup` does not touch git config. If an agent will commit unattended in this clone and you want
 the earlier warning, opt in once:
@@ -73,7 +73,7 @@ reports it; `git update-index --chmod=+x` on the two files repairs it.
 
 It is per clone and bypassable (`git commit --no-verify`), so it is a speed bump, not the check.
 `pre-commit` refuses a commit outside the write set, which `task close` also checks;
-`commit-msg` prints the expected shape for a message that is not `type (TASK-ID): summary` or
-carries no body summary, and exits 0 — it warns, never blocks. The message rule is the
+`commit-msg` prints the expected shape for a message that is not `type (TASK-ID|PATCH-ID): summary`
+or carries no body summary, and exits 0 — it warns, never blocks. The message rule is the
 session's instruction, not a hook's gate. Skip the hooks if the team would rather not have
 them; `doctor` reports them as a WARN with that command, not a failure.

@@ -19,24 +19,21 @@ Every directory the kit owns has an `INDEX.md`: open it, then the one file it na
 
 ## Skills and tools, before you plan
 
-List what the harness exposes — installed skills, configured MCP servers and their tools, and
-CLIs on `PATH` — then name the one that covers the task in the plan. A skill that matches is part
-of the plan, not a preference: read it and follow it; several fit, take the narrowest; none
-fits, say so and write the smallest step by hand. Use a configured MCP server before a
-hand-written script that does the same, and an existing CLI or repo script before a one-off.
-Re-check when the task changes shape. Installing a skill or wiring an MCP server is the owner's
-yes, not a mid-task fix; the rule is `.agent-kit/rules/_behavior.md` §12.
+List what the harness exposes — skills, MCP servers and their tools, CLIs on `PATH` — then name
+the one that covers the task in the plan. A matching skill is part of the plan: read it, follow
+it; several fit, take the narrowest; none fits, say so and write the smallest step by hand. Prefer
+a configured MCP server to a hand-written script, and an existing CLI or repo script to a
+one-off. Installing a skill or wiring an MCP server is the owner's yes, not a mid-task fix
+(`rules/_behavior.md` §12).
 
-`agent-kit harnesses` lists the coding agents installed on this machine — HOME config, PATH,
-repo markers. The repo may show none of them. Say the list when you set up or report on a
-repo, and wire `.agent-kit/SKILL.md` for each harness that has a skill folder; the command prints those
-paths. It is a report, not a gate.
+`agent-kit harnesses` lists the coding agents on this machine — HOME config, PATH, repo
+markers; a repo may show none. Say the list when you set up or report, and wire
+`.agent-kit/SKILL.md` for each harness with a skill folder. A report, not a gate.
 
 ## Browser access — use `agent-browser`
 
-Reach for `agent-browser` only when the task needs the UI: clicking, forms, a session, a
-rendered page, or building and checking one. No UI needed, plain `curl` or `fetch` is the
-right tool. No Playwright, no headless driver of your own.
+Reach for `agent-browser` only when the task needs the UI: clicks, forms, a session, a rendered
+page. No UI, use `curl`/`fetch`; never Playwright or your own driver.
 
 ## Shell output — run it through rtk
 
@@ -49,28 +46,32 @@ commands whose output you inspect:
 | `rg`, `find`, `ls`, `cat` | `rtk grep`, `rtk find`, `rtk ls`, `rtk read` |
 | `npm test`, `cargo test`, `pytest` | `rtk npm test`, `rtk cargo test`, `rtk pytest` |
 
-- `rtk bypass <cmd>` when the full text is the evidence: a stack trace worth reading line by
-  line, machine-readable output (`--porcelain`, `--json`), or a command the task must quote.
-- File reads the edit needs go through the editor's Read tool, not `rtk read`: the filter
-  trades bodies for signatures, which is wrong when you are editing the body.
-- `verify` and `task close` run the declared commands themselves, unfiltered, so exit codes are
-  untouched.
+- `rtk bypass <cmd>` when the full text is evidence: a stack trace, machine-readable output
+  (`--porcelain`, `--json`), or output the task must quote.
+- Edits read through the editor's Read tool, not `rtk read`: the filter trades bodies for
+  signatures.
+- `verify` and `task close` run the declared commands unfiltered, so exit codes stand.
 
-`rtk` history is machine-wide and has no task label. The task file is the reference: quote the
-active task ID with any savings figure — `TASK-118 — rtk saved 82% across 14 commands` — and
-the change file written at close carries the same ID. `rtk gain` is the source.
+`rtk` history has no task label: quote the active task ID with any savings figure
+(`TASK-118 — rtk saved 82% across 14 commands`); the card carries the same ID. `rtk gain` is
+the source.
 
 ## 2. Classify
 
+MICRO: one file, reversible with `git revert`, one domain, and no public interface, schema,
+dependency, env, security or `.agent-kit/` change. Anything else is not micro.
 QUICK: reversible, one domain, no public interface, schema, dependency or data change.
-Everything else is PLANNED. When unsure, take PLANNED: a short plan, not a rewrite.
+PLANNED: everything else. When unsure, take PLANNED: a short plan, not a rewrite.
 
 ## 3. Open
 
-`task new <slug> --lane quick|planned`. It records the baseline run itself — a full one, so the
+`task new <slug> --lane micro|quick|planned`. It records the baseline run itself — a full one, so the
 milestone rows are on record before you touch anything. The id comes from the `ids` row in
 `project.md` — never type one; `ids: issue` also mints the issue, where `--summary` is its title
 and `--intent` its body; `--from <n>` imports one.
+MICRO records the same task file (intent, scope, touches) but runs only the always-tier
+baseline, never halts at G1/G2, and takes a local `PATCH-N` id in both `ids` modes — it never
+mints an issue.
 Before the first edit, fill the task's intent, scope and `touches` — the exact paths you will
 write. Keep it minimal: the decisions a later session would re-open (each with its pointer), the
 plan, the proof and the summary.
@@ -127,6 +128,10 @@ A subtask closes differently: `task close` runs the quick suite (lint included),
 and leaves it in `active/`, and prints its own commit message. It writes no change file and
 archives nothing. The last subtask close puts the main task back in progress.
 
+MICRO closes on the always-tier commands (typecheck, lint), the scope check and one `PATCH-N`
+change card; it never runs a milestone row, and it archives like a top-level task. Build proof
+happens once, at release.
+
 The main task's close is the milestone. It refuses while a subtask is open, then runs the full
 suite, build included. A red build stops the close with its rows recorded: fix those errors
 now, in this task, and close again; the suite re-runs. Green, the main task and its DONE
@@ -136,7 +141,8 @@ every subtask's, and every commit names the main id.
 Before committing, read `.agent-kit/rules/commits.md` — the split, subject, body and staging.
 
 Cutting a release is its own procedure: read `.agent-kit/rules/releases.md`. `agent-kit release
-<version>` writes the note from every card no earlier release claims; running git stays with the
+<version>` runs `verify --full` first and refuses a red suite (`--no-verify` only for a deliberate
+cut), then writes the note from every card no earlier release claims; running git stays with the
 owner.
 
 ## 9. Report
@@ -151,16 +157,15 @@ follow-up suggestions unless asked.
   task unless that is the task.
 - **The user changes the ask mid-flight.** Rewrite the scope section, keep the old text, and
   take a fresh G1 if it is PLANNED.
-- **The owner states a rule.** It is a task: find the home, write it so a diff can be judged,
-  add its row in `.agent-kit/rules/INDEX.md`, and check it. The steps are in
-  `.agent-kit/templates/INDEX.md`; a rule that stays in chat does not exist.
+- **The owner states a rule.** It is a task: find the home, add its row in
+  `.agent-kit/rules/INDEX.md`, check it (`.agent-kit/templates/INDEX.md`); a rule that stays in
+  chat does not exist.
 - **You cannot run the suite.** Say so and stop. Never close on an empty evidence table.
-- **You need an owner decision you cannot make.** `task block "<the question>"`. It stops being
-  the task in progress, the question waits in the file, and `start` shows it until the owner
-  answers; then `task resume` and continue. Do not guess and do not sit idle in the chat.
+- **You need an owner decision.** `task block "<the question>"` frees the slot; the question
+  waits in the file and `start` shows it. `task resume` when answered. Do not guess.
 - **You find work you will not do now.** Park it in `.agent-kit/tasks/BACKLOG.md` with a status,
-  the `path:line` and a next step. Do not leave it only in the report or a comment, and do not
-  open a task for it. Picking it up later means `task new`, then delete the row.
+  the `path:line` and a next step — never a task, the report or a comment. Later: `task new`,
+  then delete the row.
 - **The change outgrows QUICK.** Stop, reopen it as PLANNED, take the gate.
 - **The process is the friction.** A rule or gate that cost two sessions is a kit task: cite the
   two changes, then follow `.agent-kit/prompts/kit-review.md`. It is not a product task.

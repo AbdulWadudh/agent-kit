@@ -48,11 +48,11 @@ You are working in <PROJECT NAME>. Read this file once per session, then follow 
      Examples: component variants, theme tokens, data-flow boundaries,
      destructive-action confirms, tenancy or auth invariants. -->
 
-5. **Context discipline.** Every directory the kit owns carries an `INDEX.md`: read the index, then the one file it points at — never list a folder into context. Search narrowly; read at most three source files at a time. History (`.agent-kit/tasks/archive/`, `.agent-kit/logs/MM-YYYY/`) is read only when the user asks; `agent-kit start` prints the five newest closes.
-6. **One home per fact.** A rule lives in exactly one file; everywhere else cites it.
-7. **Planning.** Anything beyond the QUICK lane (reversible, one domain, no contract change) needs a task file in `.agent-kit/tasks/active/`, with the plan approved before the first edit.
+5. **Context discipline.** Every directory the kit owns carries an `INDEX.md`: read it, then the one file it points at — never list a folder. Search narrowly; read at most three source files at a time. History is read only when the user asks; `agent-kit start` prints the five newest closes.
+6. **One home per fact, one lane per change.** A rule lives in exactly one file; everywhere else cites it. MICRO is one file, reversible with `git revert`, one domain, and no public interface, schema, dependency, env, security or `.agent-kit/` change; QUICK is reversible, one domain, no contract change; everything else is PLANNED. QUICK keeps its task file; MICRO keeps the record (one task file, one `PATCH-N` card) and replaces the open/close ceremony, not the record.
+7. **Planning.** Anything beyond QUICK needs a task file in `.agent-kit/tasks/active/`, with the plan approved before the first edit.
 8. **Subagents.** Every subagent prompt names the files to read and the deliverable. It never restates the plan.
-9. **Shell output.** Prefix commands with `rtk` (`rtk git status`, `rtk npm test`); `rtk bypass <cmd>` when the full output is the evidence. Name the active task ID with any savings you report — the detail is in `.agent-kit/SKILL.md` §Shell output.
+9. **Shell output.** Prefix commands with `rtk` (`rtk git status`, `rtk npm test`); `rtk bypass <cmd>` when the full output is evidence. Name the task ID with any savings — detail in `.agent-kit/SKILL.md` §Shell output.
 
 ## Done means
 
@@ -76,27 +76,28 @@ there before it closes; green, it archives the family under one change file.
 
 | Command | Use |
 |---|---|
-| `doctor` | truth checks over docs, declarations and tasks; `--strict` also fails on unfilled markers; `--fix` repairs encoding only; `--json` for CI |
-| `harnesses` | list the coding agents installed on this machine (HOME, PATH, repo) — the repo may show none; a report, not a gate |
-| `start` | read-only session brief: branch, declared commands and their tiers, the five newest closes, active tasks, the gate, last evidence, loop and stale state, and one next action |
-| `task new <slug> --lane quick\|planned [--summary "<one clause>"] [--intent "<paragraph>"] [--parent TASK-N] [--from <issue>]` | open a task **and record the baseline run**, a full one (`--no-baseline` to skip); `--summary` is the card's title and, in `ids: issue`, the issue title (required there); `--intent` seeds the Intent block and the issue body; `--parent` opens `TASK-N.M`, queues the main task, and records a quick baseline; in `ids: issue` it also mints the issue and takes its number, and `--from` imports an existing issue instead |
-| `task show` | print the active task's scope, plan and evidence — the thing G1/G2 asks a human to read |
-| `task publish [--id TASK-N]` | issue ids only: send the task's approved plan to its issue (the front matter stays in the repo) |
-| `task migrate [--dry-run]` | backfill: one **closed** issue per archived task, titled `TASK-N — summary` with the change card's paragraph, for a repo that ran on local ids first; titles starting with an id are the record, so a second run adds nothing |
+| `doctor` | truth checks over docs, declarations and tasks; `--strict` also fails unfilled markers; `--fix` repairs encoding; `--json` for CI |
+| `harnesses` | list the coding agents installed here (HOME, PATH, repo); a report, not a gate |
+| `start` | read-only session brief: branch, commands and tiers, five newest closes, active tasks, gate, last evidence, stale state, next action |
+| `task new <slug> --lane micro\|quick\|planned [--summary "<one clause>"] [--intent "<paragraph>"] [--parent TASK-N] [--from <issue>]` | open a task **and record the baseline run** — full, or always-tier for `--lane micro` (`--no-baseline` skips it); `--summary` titles the card and, in `ids: issue`, the issue; `--intent` seeds Intent and the issue body; `--parent` opens `TASK-N.M` and queues the main task; in `ids: issue` it mints the issue, and `--from` imports one. `--lane micro` is a top-level `PATCH-N` task: no issue, no G1/G2 |
+| `task show` | print the active task's scope, plan and evidence — what G1/G2 asks a human to read |
+| `task publish [--id TASK-N]` | issue ids only: send the approved plan to its issue (front matter stays in the repo) |
+| `task migrate [--dry-run]` | backfill: one **closed** issue per archived task, titled `TASK-N — summary` with the card's paragraph, for a repo that ran on local ids first; a second run adds nothing |
 | `task renumber <old> <new> \| <old> --next [--file <name>]` | local ids only: move an id after a collision, rewriting the file name, a parent's children and every `depends_on`; `--file` picks one of two same-id files |
-| `task block "<question>"` | park the in-progress task on an owner decision; it stops holding the slot and the question waits in the file |
+| `task block "<question>"` | park the in-progress task on an owner decision; the question waits in the file and the slot frees |
 | `task resume [<id>]` | continue a blocked task; pass the id when more than one is waiting |
-| `task close` | a subtask runs the **quick** suite, is marked DONE and stays active for the main close; the main task refuses while a subtask is open, runs the **full** suite, scope-checks against git (its own write set plus every subtask's), records the inventory, archives the family, writes one change file under `.agent-kit/logs/MM-YYYY/`, and prints a ready commit message; `--pr` adds a PR body; `--amend "<why>"` accepts a declared breach and writes the reason into the plan; `--no-verify` only when the suite cannot run here; `--sync` (issue ids) closes the issue with the final record and comments the change card's path, after the local close is written |
-| `release <version>` | write `.agent-kit/releases/<version>.md` from the change files no earlier release claims; `release --tag <version>` creates the annotated tag whose message is that note |
-| `verify` | the inner loop: runs the `always` rows and writes the evidence table; `--full` adds the `milestone` rows, which the baseline and `task close` already run; at three identical red runs it refuses until the Plan changes |
-| `task guard [--message <file>]` | the hooks: `pre-commit` refuses a commit outside the declared write set (silent when no task is open); `commit-msg` warns — never blocks — on a subject that is not `type (TASK-ID): summary` or a body with no summary. **Opt-in per clone** via `git config core.hooksPath .agent-kit/githooks` |
-| `learnings archive` | move entries past the 30 cap into `.agent-kit/learnings/archive/`; the live list is the part a session reads |
-| `check` / `pull --dry-run` / `pull [--ref <tag>]` | the release tag this repo tracks and whether a newer one exists, plus drift against it; `pull` never overwrites a locally modified file without `--force` |
+| `task close` | a micro task runs the always-tier commands, scope-checks and writes a `PATCH-N` card; a subtask runs the **quick** suite and stays DONE in `active/`; the main task refuses while a subtask is open, runs the **full** suite, scope-checks against git (its write set plus every subtask's), archives the family, writes one card under `.agent-kit/logs/MM-YYYY/`, and prints the commit message; `--pr` adds a PR body; `--amend "<why>"` accepts a breach; `--no-verify` when the suite cannot run; `--sync` (issue ids) closes the issue after the local close |
+| `hotfix "<summary>" --files <a,b>` | one micro fix as open + verify + close, printing the commit message; no auto-commit and no new state |
+| `release <version>` | write `.agent-kit/releases/<version>.md` from the cards no earlier release claims; `verify --full` runs first and a red suite refuses the cut (`--no-verify` is the deliberate cut); `--tag <version>` makes the annotated tag whose message is the note |
+| `verify` | the inner loop: runs the `always` rows and writes the evidence table; `--full` adds the `milestone` rows; at three identical red runs it refuses until the Plan changes |
+| `task guard [--message <file>]` | the hooks: `pre-commit` refuses a commit outside the declared write set (silent when no task is open); `commit-msg` warns — never blocks — on a subject that is not `type (TASK-ID\|PATCH-ID): summary` or a body with no summary. **Opt-in per clone** via `git config core.hooksPath .agent-kit/githooks` |
+| `learnings archive` | move entries past the 30 cap into `.agent-kit/learnings/archive/`; the live list is what a session reads |
+| `check` / `pull --dry-run` / `pull [--ref <tag>]` | the release tag this repo tracks and whether a newer one exists, plus drift against it; `pull` never overwrites a local edit without `--force` |
 
 The owner is not expected to type any of this. The agent runs `task new` and `task close`, and
-`task close` is where the write set is checked — that check always runs. The hooks are a
-per-clone extra that warns earlier; they are off unless someone opts in, because it is git
-config and a shared repo must not rewrite a teammate's git behaviour on install.
+`task close` always checks the write set. The hooks are a per-clone extra that warns earlier;
+they are off unless someone opts in, because a shared repo must not rewrite a teammate's git
+config.
 
-`.agent-kit/SKILL.md` is the work loop; this file is the contract it runs under. A harness with its own
-skill folder gets a pointer to that one file, never a copy that drifts.
+`.agent-kit/SKILL.md` is the work loop; this file is the contract it runs under. A harness with a
+skill folder gets a pointer, never a copied loop.

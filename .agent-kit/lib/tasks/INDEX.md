@@ -15,4 +15,5 @@ owns the verb.
 | `publish.mjs` | `task publish`, `syncAfterClose` | the plan or the final record does not reach the issue |
 | `renumber.mjs` | `task renumber`: local only, rewrites every reference | two tasks collided after a merge |
 | `close.mjs` | `task close`: the gate, inventory, archive, change card, `--sync` | a close is refused or files the wrong inventory |
+| `hotfix.mjs` | `hotfix`: one micro fix as open + verify + close | the shortcut drifts from the three commands |
 | `start.mjs` | `start` | the day-start summary is wrong or missing |
