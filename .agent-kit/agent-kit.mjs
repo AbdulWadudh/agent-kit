@@ -4875,7 +4875,20 @@ function cmdSelftest() {
 			doctorRow("release tags").status === "WARN",
 			"a note no tag points at warns, because it cannot be installed",
 		);
-		git(tmp, ["tag", "-a", "v0.1.0", "-m", "Release v0.1.0"]);
+		git(tmp, ["add", ".agent-kit/releases/v0.1.0.md"]);
+		git(tmp, ["commit", "-q", "-m", "docs: release v0.1.0"]);
+		// Through `main`, so the flag that carries the version is part of what is tested.
+		const cwd34 = process.cwd();
+		try {
+			process.chdir(tmp);
+			quiet(() => main(["node", "agent-kit", "release", "--tag", "v0.1.0"]));
+		} finally {
+			process.chdir(cwd34);
+		}
+		assert(
+			git(tmp, ["tag", "-l", "v0.1.0"]) === "v0.1.0",
+			"release --tag makes the tag through the CLI",
+		);
 		assert(
 			doctorRow("release tags").status === "PASS",
 			"the tag clears the row, so it can fail and can pass",
@@ -5014,9 +5027,10 @@ function main(argv) {
 			return cmdLearningsArchive({ root: process.cwd() });
 		}
 		case "release":
+			// `--tag <version>` puts the version after a flag, so positional[0] is empty there.
 			return cmdRelease({
 				root: process.cwd(),
-				version: positional[0],
+				version: positional[0] || value("tag"),
 				tag: flag("tag"),
 			});
 		case "selftest":

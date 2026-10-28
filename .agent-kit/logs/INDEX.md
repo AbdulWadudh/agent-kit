@@ -23,9 +23,9 @@ it), and nothing from the plan: the link is the pointer.
 ## Recent
 
 <!-- RECENT:START -->
+- `2026-10-28` [TASK-123](10-2026/2026-10-28-TASK-123-release-tag-cli.md) — release --tag reads its version from the flag, so the documented command runs
 - `2026-10-28` [TASK-122](10-2026/2026-10-28-TASK-122-unescape-frontmatter.md) — a quoted task summary no longer leaks YAML escapes into the release note
 - `2026-10-28` [TASK-121](10-2026/2026-10-28-TASK-121-release-tags.md) — a release gets its tag automatically, and the tag message is the release note
 - `2026-10-28` [TASK-120](10-2026/2026-10-28-TASK-120-tag-based-install.md) — an install follows a release tag, so it never receives unreleased commits and can pick its version
 - `2026-10-28` [TASK-119](10-2026/2026-10-28-TASK-119-upgrade-procedure.md) — "upgrade agent-kit" has a procedure: check the source, show the diff, pull as one task
-- `2026-10-28` [TASK-118](10-2026/2026-10-28-TASK-118-park-the-three.md) — the three kit-review limits are decided in the backlog, so a later session does not re-open them
 <!-- RECENT:END -->
