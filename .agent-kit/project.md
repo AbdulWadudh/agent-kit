@@ -32,7 +32,7 @@ clones cannot mint the same id. `task renumber` moves a local id; it refuses in 
 
 | Fact | Value |
 |---|---|
-| ids | local |
+| ids | issue |
 
 ## Entry points
 
