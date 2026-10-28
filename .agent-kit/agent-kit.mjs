@@ -3063,8 +3063,18 @@ function cmdRelease({ root, version, tag }) {
 			return 1;
 		}
 		// The note becomes the tag message, so `git show vX.Y.Z` and every release page
-		// carry it without a second copy to keep in sync.
-		if (git(base, ["tag", "-a", `v${raw}`, "-F", abs(base, rel)]) === null) {
+		// carry it without a second copy to keep in sync. `verbatim` matters: git's default
+		// cleanup eats the `#` and `###` lines, which is the note's whole structure.
+		if (
+			git(base, [
+				"tag",
+				"-a",
+				`v${raw}`,
+				"-F",
+				abs(base, rel),
+				"--cleanup=verbatim",
+			]) === null
+		) {
 			console.error(`\nCannot tag: git refused to create v${raw}.\n`);
 			return 1;
 		}
@@ -4888,6 +4898,10 @@ function cmdSelftest() {
 		assert(
 			git(tmp, ["tag", "-l", "v0.1.0"]) === "v0.1.0",
 			"release --tag makes the tag through the CLI",
+		);
+		assert(
+			(git(tmp, ["tag", "-l", "-n99", "v0.1.0"]) || "").includes("Release v0.1.0"),
+			"the tag message keeps the note's heading, not just its body",
 		);
 		assert(
 			doctorRow("release tags").status === "PASS",
