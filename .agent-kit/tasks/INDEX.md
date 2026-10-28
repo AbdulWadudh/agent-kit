@@ -8,9 +8,9 @@ the one task it names; not the folders.
 
 ## Routing
 
-1. **Start with `agent-kit start`.** It prints the branch, the commands and their tiers, what
-   is in flight, the gate, the last evidence, and one next action — reading it replaces
-   guessing where the session stopped.
+1. **Start with `agent-kit start`.** It prints the branch, the commands and their tiers, the
+   five newest closes, what is in flight, the gate, the last evidence, and one next action —
+   reading it replaces guessing where the session stopped.
 2. **Check Active** below. If a task is in progress, open it and resume from its last recorded
    step. Do not start a second one. A `BLOCKED` task does not hold the slot: its question waits
    in the file until `agent-kit task resume` (the owner has answered), and only then is it the
@@ -82,19 +82,9 @@ the vocabulary, the IDs and the cells, so a malformed row fails before it wastes
 _Nothing in flight._
 <!-- ACTIVE:END -->
 
-## Recent
-
-<!-- RECENT:START -->
-- `2026-10-28` [TASK-126](archive/2026-10/2026-10-28-TASK-126-collaborative-task-ids.md) — One allocator per repo — offline by default, the issue number on request
-- `2026-10-28` [TASK-125](archive/2026-10/2026-10-28-TASK-125-split-kit-modules.md) — the entry point is one dispatch file over lib/ modules and folders, and a 300-line ceiling keeps it that way
-- `2026-10-28` [TASK-124](archive/2026-10/2026-10-28-TASK-124-tag-message-verbatim.md) — a release tag keeps the note's headings, so the whole note reaches the reader
-- `2026-10-28` [TASK-123](archive/2026-10/2026-10-28-TASK-123-release-tag-cli.md) — release --tag reads its version from the flag, so the documented command runs
-- `2026-10-28` [TASK-122](archive/2026-10/2026-10-28-TASK-122-unescape-frontmatter.md) — a quoted task summary no longer leaks YAML escapes into the release note
-<!-- RECENT:END -->
-
 ## History
 
 Closed tasks move to `.agent-kit/tasks/archive/YYYY-MM/`, and each leaves one change file in
 `.agent-kit/logs/MM-YYYY/`. A DONE subtask waits in `active/` until its main task closes, then
-archives with it under the main task's single change file. The five newest of both are listed
-above and in the logs index; open anything older only when the user asks about it.
+archives with it under the main task's single change file. `agent-kit start` prints the five
+newest closes; open anything older only when the user asks about it.

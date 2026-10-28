@@ -48,7 +48,7 @@ You are working in <PROJECT NAME>. Read this file once per session, then follow 
      Examples: component variants, theme tokens, data-flow boundaries,
      destructive-action confirms, tenancy or auth invariants. -->
 
-5. **Context discipline.** Every directory the kit owns carries an `INDEX.md`: read the index, then the one file it points at — never list a folder into context. Search narrowly; read at most three source files at a time. History (`.agent-kit/tasks/archive/`, `.agent-kit/logs/MM-YYYY/`) is read only when the user asks; the indexes list the five newest entries for you.
+5. **Context discipline.** Every directory the kit owns carries an `INDEX.md`: read the index, then the one file it points at — never list a folder into context. Search narrowly; read at most three source files at a time. History (`.agent-kit/tasks/archive/`, `.agent-kit/logs/MM-YYYY/`) is read only when the user asks; `agent-kit start` prints the five newest closes.
 6. **One home per fact.** A rule lives in exactly one file; everywhere else cites it.
 7. **Planning.** Anything beyond the QUICK lane (three files or fewer, reversible, no contract change) needs a task file in `.agent-kit/tasks/active/`, with the plan approved before the first edit.
 8. **Subagents.** Every subagent prompt names the files to read and the deliverable. It never restates the plan.
@@ -77,7 +77,7 @@ under one change file and one commit message.
 |---|---|
 | `doctor` | truth checks over docs, declarations and tasks; `--strict` also fails on unfilled markers; `--fix` repairs encoding only; `--json` for CI |
 | `harnesses` | list the coding agents installed on this machine (HOME, PATH, repo) — the repo may show none; a report, not a gate |
-| `start` | read-only session brief: branch, declared commands and their tiers, active tasks, the gate, last evidence, loop and stale state, and one next action |
+| `start` | read-only session brief: branch, declared commands and their tiers, the five newest closes, active tasks, the gate, last evidence, loop and stale state, and one next action |
 | `task new <slug> --lane quick\|planned [--parent TASK-N] [--from <issue>]` | open a task **and record the baseline run**, a full one (`--no-baseline` to skip); `--parent` opens `TASK-N.M`, queues the main task, and records a quick baseline; in `ids: issue` it also mints the issue and takes its number, and `--from` imports an existing issue instead |
 | `task show` | print the active task's scope, plan and evidence — the thing G1/G2 asks a human to read |
 | `task publish [--id TASK-N]` | issue ids only: send the task's approved plan to its issue (the front matter stays in the repo) |

@@ -11,9 +11,9 @@ boundaries and this repo's facts; if it disagrees with this file, it wins.
 ## 1. Start of session
 
 Read `AGENTS.md`, then `.agent-kit/project.md`. Run `agent-kit start`: it prints the branch, the
-declared commands and their tiers, what is in flight, the gate, the last evidence, and one next
-action. `task show` opens the active task in full. Resume what is in flight before opening
-anything new. Load only the rule files that match the files you will touch.
+declared commands and tiers, the five newest closes, what is in flight, the gate, the last
+evidence, and one next action. `task show` opens the active task in full. Resume what is in
+flight before anything new. Load only the rules that match the files you touch.
 
 Every directory the kit owns has an `INDEX.md`. Open the index of the next directory you need,
 then the one file it names; do not list a folder into context.

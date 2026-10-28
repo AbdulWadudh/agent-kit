@@ -1,7 +1,7 @@
 /** tasks/close.mjs — the close gate, inventory, archive and change card */
 import fs from "node:fs";
 import path from "node:path";
-import { refreshRecents, writeChange } from "../changelog.mjs";
+import { retireRecent, writeChange } from "../changelog.mjs";
 import { CATEGORIES, ENTRY_LIMIT, LOG_DIR, TASKS } from "../consts.mjs";
 import {
 	abs,
@@ -246,7 +246,7 @@ export function cmdTaskClose({ root, id, amend, noVerify, pr, sync }) {
 	});
 
 	refreshActive(base);
-	refreshRecents(base);
+	retireRecent(base);
 
 	console.log(`\nClosed ${fm.id}`);
 	console.log(`  archived  ${archive}/${file}`);

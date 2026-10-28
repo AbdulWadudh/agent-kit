@@ -20,7 +20,7 @@ directory.
 | `doctor/` | `doctor`: the fix pass, seven check groups, the summary | a truth check fails |
 | `verify/` | `verify`, evidence rows, loop guard | `verify`, or a task's evidence is stale |
 | `tasks/` | `task new/show/block/resume/publish/renumber/close`, `start` | opening or closing work |
-| `changelog.mjs` | change cards, recent lists | a close writes a card |
+| `changelog.mjs` | change cards; retiring a pre-127 recent block | a close writes a card |
 | `release.mjs` | `release` | cutting a note |
 | `guard.mjs` | `task guard` | the commit hooks |
 | `learnings.mjs` | `learnings archive` | the cap is hit |

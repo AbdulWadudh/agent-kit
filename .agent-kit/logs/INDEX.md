@@ -3,8 +3,8 @@
 **Why** — a change is recorded once, as its own small file, at the moment the task closes.
 Nothing is folded into a running document, so nothing has to be kept in sync.
 
-**Load it when** — someone asks what changed, or you are about to record a change. Recent
-answers most of it; open one file only when its line is not enough.
+**Load it when** — someone asks what changed, or you are about to record a change.
+`agent-kit start` prints the five newest; open one file only when its line is not enough.
 
 ## The shape
 
@@ -16,16 +16,6 @@ paragraph. No date line (the front matter has it), no file list (the task's `FIL
 it), and nothing from the plan: the link is the pointer.
 
 - `agent-kit task close` writes the file. Do not hand-write one, and do not add a second ledger.
-- A month folder is an archive, not a directory to list. Open the one file Recent links.
-- The last five closes are listed here as changes and in `.agent-kit/tasks/INDEX.md` as archived plans; neither index scans a folder.
+- A month folder is an archive, not a directory to list. Open the one file a `start` line names.
+- The five newest closes are derived by `agent-kit start`; no index stores a copy, so no close rewrites one.
 - `agent-kit release <version>` folds the cards no earlier release claims into `.agent-kit/releases/<version>.md`, a note for git and people; it never runs git itself.
-
-## Recent
-
-<!-- RECENT:START -->
-- `2026-10-28` [TASK-126](10-2026/2026-10-28-TASK-126-collaborative-task-ids.md) — One allocator per repo — offline by default, the issue number on request
-- `2026-10-28` [TASK-125](10-2026/2026-10-28-TASK-125-split-kit-modules.md) — the entry point is one dispatch file over lib/ modules and folders, and a 300-line ceiling keeps it that way
-- `2026-10-28` [TASK-124](10-2026/2026-10-28-TASK-124-tag-message-verbatim.md) — a release tag keeps the note's headings, so the whole note reaches the reader
-- `2026-10-28` [TASK-123](10-2026/2026-10-28-TASK-123-release-tag-cli.md) — release --tag reads its version from the flag, so the documented command runs
-- `2026-10-28` [TASK-122](10-2026/2026-10-28-TASK-122-unescape-frontmatter.md) — a quoted task summary no longer leaks YAML escapes into the release note
-<!-- RECENT:END -->

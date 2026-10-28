@@ -241,7 +241,6 @@ are not a reason to keep editing.
 | rules are checkable | a rule file contains advice ("be careful", "try to", "consider") instead of a rule |
 | rules indexed | a file in `.agent-kit/rules/` has no row in its `INDEX.md`, or a row names a missing file |
 | archived tasks changelogged | a task is in `archive/` but has no file under `.agent-kit/logs/MM-YYYY/` |
-| recent lists | a task or logs index is missing its `RECENT` block, or the last five entries are stale |
 | release notes | a file under `.agent-kit/releases/` does not start with `# Release vX.Y.Z` matching its filename; no folder is fine |
 | release tags | WARN, not FAIL: a release note has no tag, so nothing can install that version (`agent-kit release --tag vX.Y.Z`) |
 | commit guard | WARN, not FAIL: the optional `pre-commit` and `commit-msg` hooks are not wired in this clone |
@@ -290,7 +289,7 @@ message.
 
 `task show` and `start` say when the quick run is the whole story and when the milestone rows
 still wait. `start` is the read-only brief to begin a session with: branch, commands and tiers,
-active tasks, gate, last evidence, and one next action.
+the five newest closes, active tasks, gate, last evidence, and one next action.
 
 `verify` also counts attempts: a red run with the same failing set over the same declared files
 is the same attempt repeated. At three, it refuses — and `task close` with it — until the Plan

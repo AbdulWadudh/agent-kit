@@ -147,7 +147,7 @@ What to ask instead of typing:
 
 | You say | The agent runs |
 |---|---|
-| "where are we?" | `start` — branch, commands and tiers, what is in flight, the last evidence, one next action |
+| "where are we?" | `start` — branch, commands and tiers, the five newest closes, what is in flight, the last evidence, one next action |
 | "what's in flight?" | `task show` |
 | "we're stuck on a decision" | `task block "<the question>"`; the answer goes in chat, then `task resume` |
 | "this is too big for one sitting" | split it: `task new --parent TASK-N` per piece; each closes quick with lint, and the main close runs build |
@@ -221,8 +221,9 @@ from every card no earlier release claims — `# Release v0.2.0`, the date, then
 `### Changed`, `### Fixed` and `### Removed`, one line per task. It prints the
 `gh release create --notes-file` line and never runs git itself.
 
-Both indexes list the five newest entries, so nobody scans a month folder to find out what
-just happened: the task index links the archived plans, the logs index links the change files.
+`start` prints the five newest closes, derived from the cards, so nobody scans a month folder
+and no close has to rewrite an index to keep a list true. A close writes the archived task and
+its card; the index's `ACTIVE` block is the only list it maintains.
 
 ## Token economy
 
@@ -259,10 +260,10 @@ schema change. Choosing per task is what keeps the gates honest.
 
 | Command | Question |
 |---|---|
-| `start` | what is the state of this repo right now — branch, commands and tiers, tasks, gate, last evidence, loop, stale flag, and the one next action? (read-only; it never writes) |
+| `start` | what is the state of this repo right now — branch, commands and tiers, the five newest closes, tasks, gate, last evidence, loop, stale flag, and the one next action? (read-only; it never writes) |
 | `verify` | do the `always` commands exit 0, and is this the fourth identical red run? `--full` adds the `milestone` rows, so the slow build is checked before close, not every pass |
 | `task close` | did the diff stay inside the declared write set, is the full suite green, and is the outcome written down? A subtask closes on the quick suite (lint included); the main task's close runs build. It also prints the commit message in the hook's shape |
-| `doctor` | do the docs name real paths, is every kit directory indexed, do the commands and prerequisites exist, are the task and logs lists current, is the id mode recorded and every id unique, is the encoding clean, is every rule checkable and indexed, is the backlog triaged, is every blocked task carrying its question? |
+| `doctor` | do the docs name real paths, is every kit directory indexed, do the commands and prerequisites exist, is the id mode recorded and every id unique, is the encoding clean, is every rule checkable and indexed, is the backlog triaged, is every blocked task carrying its question? |
 | `check` | is a newer release tag published, and has the template moved under the tag this repo tracks, and did you edit machinery you should not have? |
 
 Every one of them can fail. `selftest` asserts that by building a throwaway repo and
