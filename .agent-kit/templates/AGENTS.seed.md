@@ -60,11 +60,12 @@ The quick suite and the full one are green (the full one is `verify --full`, whi
 runs itself), the task's evidence table holds real exit codes, `.agent-kit/tasks/INDEX.md` is
 current, and `agent-kit doctor` reports no failures. Then `agent-kit task close`.
 
-A task too big for one sitting splits into subtasks (`task new --parent TASK-N`). A subtask
-closes on the quick suite: `task close` marks it DONE and keeps it in `active/`. The main
-task's close is the milestone — it refuses while a subtask is open, runs the full suite, and
-build failures are fixed right there before it closes; green, it archives the family
-under one change file and one commit message.
+A request that arrives while a task is open goes in its `## Queue` and becomes its subtask
+(`task new --parent TASK-N`); only a separate delivery earns a new task, and the owner chooses
+that. Work too big for one sitting splits the same way. A subtask closes on the quick suite:
+`task close` marks it DONE and keeps it in `active/`. The main task's close is the milestone —
+it refuses while a subtask is open, runs the full suite, and build failures are fixed right
+there before it closes; green, it archives the family under one change file.
 
 ---
 

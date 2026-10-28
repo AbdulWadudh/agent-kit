@@ -71,7 +71,7 @@ export function cmdTaskNew({
 	const inProgress = tasks.filter((t) => t.fm.status === "IN_PROGRESS");
 	if (inProgress.length && !force)
 		die(
-			`a task is already in progress (${inProgress[0].file}). Close it, block it, or pass --force.`,
+			`a task is already in progress (${inProgress[0].file}). Fold this request in as its subtask (\`task new <slug> --parent ${inProgress[0].fm.id}\`), close it, block it, or pass --force.`,
 		);
 
 	// The repo's one id source. Both remote branches are async; the local one stays synchronous

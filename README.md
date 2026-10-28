@@ -140,11 +140,13 @@ Build is `milestone`, so it runs at the baseline, on `verify --full`, and at the
 not on every pass.
 The kit exists so that path is checkable — not so that you drive it.
 
-A task that is too large for one sitting splits into subtasks: `task new --parent TASK-N` opens
-`TASK-N.1`, `TASK-N.2`, and so on. Each subtask closes on the quick suite and stays in
-`active/`. The main task's close is the milestone — it refuses while a subtask is open, runs
-build, and any error it reports is fixed right there and the close re-run. Then the
-whole family archives under the main id with one change file.
+A request that arrives while a task is open joins its `## Queue` and becomes a subtask; a
+separate delivery is what earns a new task, and the owner decides that. Work too large for one
+sitting splits the same way: `task new --parent TASK-N` opens `TASK-N.1`, `TASK-N.2`, and so on.
+Each subtask closes on the quick suite and stays in `active/`. The main task's close is the
+milestone — it refuses while a subtask is open, runs build, and any error it reports is fixed
+right there and the close re-run. Then the whole family archives under the main id with one
+change file.
 
 What to ask instead of typing:
 

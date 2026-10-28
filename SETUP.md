@@ -244,6 +244,7 @@ are not a reason to keep editing.
 | write-set collisions | two active tasks declare overlapping `touches` (a main task and its subtasks are one family and may overlap) |
 | blocked tasks | a `BLOCKED` task carries no question, or a task carries the block marker without the status |
 | subtasks | a subtask has no parent or its parent is not active, a main task is in progress with a subtask open, or a queued main task has every subtask done |
+| task queue | a `## Queue` row has an unknown status, a reused `#`, an empty request, or names a subtask that is not this task's active subtask |
 | backlog | a row in `.agent-kit/tasks/BACKLOG.md` has an unknown status, a reused ID, a missing cell, or an empty item, source or next step |
 | rules are checkable | a rule file contains advice ("be careful", "try to", "consider") instead of a rule |
 | rules indexed | a file in `.agent-kit/rules/` has no row in its `INDEX.md`, or a row names a missing file |
@@ -289,12 +290,12 @@ So the inner loop is `verify` (quick), and the expensive row cannot be skipped a
 `task close` on a top-level task runs the full suite itself. Move a command between tiers in
 `project.md`, not in the kit, and mark the slowest commands `milestone` while filling the file.
 
-A task too large for one sitting splits into subtasks: `task new <slug> --parent TASK-N` opens
-`TASK-N.M` and queues the main task. A subtask closes on the quick suite, so test, typecheck
-and lint run per subtask. The main task's close is where build runs: it refuses while a
-subtask is open, runs the full suite, and an error found there is fixed in that moment and the
-close re-run. The family then archives under the main id with one change file and one commit
-message.
+A request that arrives while a task is open goes in its `## Queue` and becomes its subtask:
+`task new <slug> --parent TASK-N` opens `TASK-N.M` and queues the main task; only a separate
+delivery earns a new task, and the owner decides that. A subtask closes on the quick suite, so
+test, typecheck and lint run per subtask. The main task's close is where build runs: it refuses
+while a subtask is open, runs the full suite, and an error found there is fixed in that moment
+and the close re-run. The family then archives under the main id with one change file.
 
 `task show` and `start` say when the quick run is the whole story and when the milestone rows
 still wait. `start` is the read-only brief to begin a session with: branch, commands and tiers,

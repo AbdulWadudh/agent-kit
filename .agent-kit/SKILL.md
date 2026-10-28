@@ -12,22 +12,20 @@ boundaries and this repo's facts; if it disagrees with this file, it wins.
 
 Read `AGENTS.md`, then `.agent-kit/project.md`. Run `agent-kit start`: it prints the branch, the
 declared commands and tiers, the five newest closes, what is in flight, the gate, the last
-evidence, and one next action. `task show` opens the active task in full. Resume what is in
-flight before anything new. Load only the rules that match the files you touch.
+evidence, and one next action. `task show` opens the active task. Resume what is in flight before
+anything new. Load only the rules that match the files you touch.
 
-Every directory the kit owns has an `INDEX.md`. Open the index of the next directory you need,
-then the one file it names; do not list a folder into context.
+Every directory the kit owns has an `INDEX.md`: open it, then the one file it names.
 
 ## Skills and tools, before you plan
 
-List what the harness exposes — installed skills (its skill folder or plugin list), configured
-MCP servers and their tools, and CLIs on `PATH` — then name the one that covers the task in the
-plan. A skill that matches is part of the plan, not a preference: read it and follow it; several
-fit, take the narrowest; none fits, say so and write the smallest step by hand. Use a configured
-MCP server before a hand-written script that does the same, and an existing CLI or repo script
-before a one-off. Re-check when the task changes shape. Installing a skill or wiring an MCP
-server is the owner's yes — not a mid-task fix. The rule itself is
-`.agent-kit/rules/_behavior.md` §12.
+List what the harness exposes — installed skills, configured MCP servers and their tools, and
+CLIs on `PATH` — then name the one that covers the task in the plan. A skill that matches is part
+of the plan, not a preference: read it and follow it; several fit, take the narrowest; none
+fits, say so and write the smallest step by hand. Use a configured MCP server before a
+hand-written script that does the same, and an existing CLI or repo script before a one-off.
+Re-check when the task changes shape. Installing a skill or wiring an MCP server is the owner's
+yes, not a mid-task fix; the rule is `.agent-kit/rules/_behavior.md` §12.
 
 `agent-kit harnesses` lists the coding agents installed on this machine — HOME config, PATH,
 repo markers. The repo may show none of them. Say the list when you set up or report on a
@@ -42,8 +40,8 @@ right tool. No Playwright, no headless driver of your own.
 
 ## Shell output — run it through rtk
 
-`rtk` filters a command's output before you read it: same command, same exit code, less
-context spent. Prefix the shell commands whose output you inspect:
+`rtk` filters a command's output: same command, same exit code, less context spent. Prefix the
+commands whose output you inspect:
 
 | Instead of | Run |
 |---|---|
@@ -51,7 +49,7 @@ context spent. Prefix the shell commands whose output you inspect:
 | `rg`, `find`, `ls`, `cat` | `rtk grep`, `rtk find`, `rtk ls`, `rtk read` |
 | `npm test`, `cargo test`, `pytest` | `rtk npm test`, `rtk cargo test`, `rtk pytest` |
 
-- `rtk bypass <cmd>` when the full text is the evidence: a stack trace you must read line by
+- `rtk bypass <cmd>` when the full text is the evidence: a stack trace worth reading line by
   line, machine-readable output (`--porcelain`, `--json`), or a command the task must quote.
 - File reads the edit needs go through the editor's Read tool, not `rtk read`: the filter
   trades bodies for signatures, which is wrong when you are editing the body.
@@ -75,12 +73,15 @@ milestone rows are on record before you touch anything. The id comes from the `i
 and `--intent` its body; `--from <n>` imports one.
 Before the first edit, fill the task's intent, scope and `touches` — the exact paths you will
 write. Keep it minimal: the decisions a later session would re-open (each with its pointer), the
-plan, the proof and the summary. If an explanation changes no later action, it is not recorded.
+plan, the proof and the summary.
 
-A task too big for one sitting splits into subtasks: `task new <slug> --lane quick|planned
---parent TASK-N` opens `TASK-N.M`, queues the main task, and records a quick baseline. One
-subtask is in progress at a time. The main task stays QUEUED until its last subtask closes.
-Do not use a subtask to dodge G1: the plan and the gate are the main task's.
+A request that arrives while a task is open lands in its `## Queue` and is worked as a subtask,
+not a new task: `task new <slug> --lane quick|planned --parent TASK-N` opens `TASK-N.M`, queues
+the main task and records a quick baseline. Only a separate delivery — another domain, its own
+dependency or contract, or more than one sitting — earns a new task, and the owner chooses that.
+Close refuses while a queue row is open. One subtask runs at a time; the main task stays QUEUED
+until its last closes. Do not use a subtask to dodge G1: the plan and the gate are the main
+task's.
 
 ## 4. G1 — plan approval (PLANNED only)
 
