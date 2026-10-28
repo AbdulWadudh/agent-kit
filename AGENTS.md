@@ -35,6 +35,14 @@ deterministic. `doctor --strict` exiting 0 is the definition of "set up".
 
 ## If you were asked to change the template
 
+**Judge it from the install.** This repo is the installer; the product is what a target repo gets
+after `setup`. A change earns its place when it removes a failure an installed repo would hit — a
+stale pointer after `pull`, a gate that fires on work it should not, a step that needs a guess.
+Tidying this template is not a reason, and neither is making this repo's own tree nicer. Before
+the plan, name the target symptom, the step it breaks, and the check in the throwaway repo
+`selftest` builds that proves the fix; no symptom and no check means a proposal to the owner, not
+a patch.
+
 Read, in order:
 
 1. `SETUP.md` — the install contract the change must keep true.
