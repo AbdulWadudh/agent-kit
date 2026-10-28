@@ -20,6 +20,7 @@ import {
 	childrenOf,
 	closingNote,
 	currentTask,
+	isMicroLane,
 	parentId,
 	queueRows,
 	refreshActive,
@@ -38,6 +39,7 @@ export function cmdTaskClose({ root, id, amend, noVerify, pr, sync }) {
 	const today = new Date().toISOString().slice(0, 10);
 	const problems = [];
 	const isChild = CHILD_ID.test(fm.id || "");
+	const isMicro = isMicroLane(fm);
 	const parent = isChild ? parentId(fm) : "";
 	const kids = isChild ? [] : childrenOf(base, fm.id);
 	const openKids = kids.filter((t) => t.fm.status !== "DONE");
@@ -83,13 +85,14 @@ export function cmdTaskClose({ root, id, amend, noVerify, pr, sync }) {
 
 	// Close runs the suite itself: the last moment the tree is still "as delivered" is the
 	// only moment worth recording, and an agent cannot forget a step it never had to take.
+	const suiteNote = isMicro
+		? "micro closes on the always-tier commands; build runs once at release"
+		: isChild
+			? "a subtask closes on the quick suite; build runs at the main close"
+			: "close runs the full suite; `verify` is the mid-flight quick check";
 	if (!problems.length && !noVerify) {
-		console.log(
-			isChild
-				? "Verification (a subtask closes on the quick suite; build runs at the main close):"
-				: "Verification (close runs the full suite; `verify` is the mid-flight quick check):",
-		);
-		if (cmdVerify({ root: base, full: !isChild }) !== 0)
+		console.log(`Verification (${suiteNote}):`);
+		if (cmdVerify({ root: base, full: !isChild && !isMicro }) !== 0)
 			problems.push(
 				"verification failed — the recorded table in the task file holds the exit codes",
 			);
@@ -283,8 +286,8 @@ export function cmdTaskClose({ root, id, amend, noVerify, pr, sync }) {
 		].join("\n");
 		console.log(`PR body:\n\n${prBody}\n`);
 	}
-	// The local close is already on disk; a failed sync reports and exits 1 without undoing it.
-	if (sync)
+	// The local close is on disk; a failed sync reports without undoing it. Micro has no issue.
+	if (sync && !isMicro)
 		return syncAfterClose({
 			base,
 			fm,

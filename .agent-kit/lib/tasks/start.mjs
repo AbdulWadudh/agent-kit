@@ -3,7 +3,7 @@ import path from "node:path";
 import { entriesIn } from "../changelog.mjs";
 import { LOG_DIR, LOOP_LIMIT, PROJECT, RECENT_LIMIT } from "../consts.mjs";
 import { abs, git, list, readIf, sectionRows } from "../io.mjs";
-import { activeTasks, CHILD_ID, childrenOf, parentId } from "../taskfile.mjs";
+import { activeTasks, CHILD_ID, childrenOf, isMicroLane, parentId } from "../taskfile.mjs";
 import {
 	blockedState,
 	evidenceDetail,
@@ -41,7 +41,7 @@ export function cmdStart({ root } = {}) {
 	if (tasks.length === 0) {
 		console.log("\nTask    none in flight");
 		console.log(
-			"\nNext    open one: agent-kit task new <slug> --lane quick|planned\n",
+			"\nNext    open one: agent-kit task new <slug> --lane micro|quick|planned\n",
 		);
 		return 0;
 	}
@@ -63,6 +63,7 @@ export function cmdStart({ root } = {}) {
 		return 0;
 	}
 	const fm = target.fm;
+	const micro = isMicroLane(fm);
 	const blocked = blockedState(target.text);
 	console.log(
 		`\nTask    ${fm.id}  ${fm.lane || "?"}  ${fm.status || "?"}  ${fm.summary || "(no summary)"}`,
@@ -78,9 +79,11 @@ export function cmdStart({ root } = {}) {
 		`Plan    ${list(fm.touches).length} file(s) in touches · depends on ${list(fm.depends_on).join(", ") || "none"}`,
 	);
 	console.log(
-		fm.lane === "PLANNED"
-			? "Gate    PLANNED — G1 before the first edit; G2 before close"
-			: "Gate    QUICK — verify, then close",
+		micro
+			? "Gate    MICRO — no G1/G2; close runs typecheck, lint and the scope check"
+			: fm.lane === "PLANNED"
+				? "Gate    PLANNED — G1 before the first edit; G2 before close"
+				: "Gate    QUICK — verify, then close",
 	);
 	const rows = evidenceDetail(target.text);
 	if (rows.length)
@@ -111,6 +114,8 @@ export function cmdStart({ root } = {}) {
 		next = "verify — the task's files changed since the last run";
 	else if (red.length)
 		next = `fix ${red.map((r) => r.action).join(", ")}, then verify`;
+	else if (micro)
+		next = "task close — micro runs typecheck, lint and the scope check";
 	else if (milestone.length && !fullRun)
 		next = fm.parent
 			? "task close — a subtask closes on the quick suite; build runs at the main close"

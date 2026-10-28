@@ -9,6 +9,7 @@ import {
 	matchTasks,
 	nextChildId,
 	nextId,
+	nextPatchId,
 	parentId,
 	refreshActive,
 	slugify,
@@ -31,8 +32,16 @@ export function cmdTaskNew({
 	const base = path.resolve(root || process.cwd());
 	if (!slug && !from)
 		die(
-			'usage: task new <slug> [--lane quick|planned] [--summary "<one clause>"] [--intent "<paragraph>"] [--parent TASK-N] [--from <issue>]',
+			'usage: task new <slug> [--lane micro|quick|planned] [--summary "<one clause>"] [--intent "<paragraph>"] [--parent TASK-N] [--from <issue>]',
 		);
+	const wanted = String(lane || "planned").toLowerCase();
+	if (!["quick", "planned", "micro"].includes(wanted))
+		die(`--lane must be micro, quick or planned, not ${lane}`);
+	const micro = wanted === "micro";
+	if (micro && parent)
+		die("micro is a top-level lane; a subtask stays on its main task's lane");
+	if (micro && from)
+		die("micro never takes a GitHub issue id — drop --from");
 	const tasks = activeTasks(base);
 
 	if (parent) {
@@ -73,6 +82,19 @@ export function cmdTaskNew({
 		die(
 			`a task is already in progress (${inProgress[0].file}). Fold this request in as its subtask (\`task new <slug> --parent ${inProgress[0].fm.id}\`), close it, block it, or pass --force.`,
 		);
+
+	// A micro fix is local by definition: the id comes from this repo, so neither `ids` mode
+	// reaches the network, and the cheap lane stays cheap in an issue-id repo too.
+	if (micro)
+		return openTask(base, {
+			id: `PATCH-${nextPatchId(base)}`,
+			slug,
+			lane: "micro",
+			micro,
+			noBaseline,
+			summary,
+			intent,
+		});
 
 	// The repo's one id source. Both remote branches are async; the local one stays synchronous
 	// so every caller that does not mint keeps returning a number. A remote failure leaves no
@@ -119,7 +141,7 @@ export function cmdTaskNew({
 }
 
 /** Write the task file from the template, refresh the index, and record the baseline. */
-function openTask(base, { id, slug, lane, parent, noBaseline, intent, summary }) {
+function openTask(base, { id, slug, lane, parent, micro, noBaseline, intent, summary }) {
 	if (!exists(abs(base, TASK_TEMPLATE))) die(`missing ${TASK_TEMPLATE}`);
 	const today = new Date().toISOString().slice(0, 10);
 	const file = `${today}-${id}-${slugify(slug)}.md`;
@@ -148,7 +170,9 @@ function openTask(base, { id, slug, lane, parent, noBaseline, intent, summary })
 			`Subtask of ${parent}; it closes on the quick suite (lint included). The main close adds build.`,
 		);
 	console.log(
-		"Fill: touches, scope, plan. PLANNED halts for approval before the first edit.",
+		micro
+			? "Fill: touches and scope. Micro has no G1/G2; its close runs the always-tier commands and writes a PATCH-N card."
+			: "Fill: touches, scope, plan. PLANNED halts for approval before the first edit.",
 	);
 	if (noBaseline) {
 		console.log(
@@ -157,9 +181,11 @@ function openTask(base, { id, slug, lane, parent, noBaseline, intent, summary })
 		return 0;
 	}
 	console.log(
-		"Baseline run, so a red command is reported rather than blamed on this task:\n",
+		micro
+			? "Baseline run (always-tier commands only; build is proven once at release):\n"
+			: "Baseline run, so a red command is reported rather than blamed on this task:\n",
 	);
-	cmdVerify({ root: base, baseline: true, full: !parent });
+	cmdVerify({ root: base, baseline: true, full: !parent && !micro });
 	return 0;
 }
 

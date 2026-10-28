@@ -2,7 +2,7 @@
 import path from "node:path";
 import { LOOP_LIMIT, PROJECT, TASKS } from "../consts.mjs";
 import { abs, die, readIf, sectionRows } from "../io.mjs";
-import { activeTasks, childrenOf, matchTasks, parentId } from "../taskfile.mjs";
+import { activeTasks, childrenOf, isMicroLane, matchTasks, parentId } from "../taskfile.mjs";
 import {
 	blockedState,
 	evidenceDetail,
@@ -34,6 +34,7 @@ export function cmdTaskShow({ root, id }) {
 		);
 	const text = task.text;
 	const fm = task.fm;
+	const micro = isMicroLane(fm);
 	console.log(
 		`\n${fm.id}  ${fm.lane || "?"}  ${fm.status || "?"}  ${fm.summary || "(no summary)"}`,
 	);
@@ -58,9 +59,11 @@ export function cmdTaskShow({ root, id }) {
 	);
 	if (milestone.length && !rows.some((r) => r.scope === "full"))
 		console.log(
-			taskParent
-				? `Full suite: not run — ${milestone.length} milestone command(s) run at the main task's close`
-				: `Full suite: not run — ${milestone.length} milestone command(s) wait for \`verify --full\` or close`,
+			micro
+				? "Full suite: not run — micro closes on the always-tier commands; build proof lands at release"
+				: taskParent
+					? `Full suite: not run — ${milestone.length} milestone command(s) run at the main task's close`
+					: `Full suite: not run — ${milestone.length} milestone command(s) wait for \`verify --full\` or close`,
 		);
 	const es = evidenceState(base, text, fm);
 	if (es.state === "stale")
@@ -83,9 +86,11 @@ export function cmdTaskShow({ root, id }) {
 	const blocked = blockedState(text);
 	if (blocked) console.log(`Blocked: ${blocked.question}`);
 	console.log(
-		fm.lane === "PLANNED"
-			? "Gate: PLANNED needs approval before the first edit, and again before close.\n"
-			: "Gate: QUICK — verify, then close.\n",
+		micro
+			? "Gate: MICRO — no G1/G2; close runs typecheck, lint and the scope check.\n"
+			: fm.lane === "PLANNED"
+				? "Gate: PLANNED needs approval before the first edit, and again before close.\n"
+				: "Gate: QUICK — verify, then close.\n",
 	);
 	return 0;
 }

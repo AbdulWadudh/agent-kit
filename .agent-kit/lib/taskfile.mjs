@@ -25,6 +25,9 @@ export function slugify(s) {
 }
 
 export const ID_MODES = new Set(["local", "issue"]);
+// A task file's lane decides the ceremony, not the record: every lane writes a task file and
+// one change card. MICRO is the hotfix lane.
+export const LANES = new Set(["QUICK", "PLANNED", "MICRO"]);
 // Ids start at 101 so the template, its examples and every install so far keep their numbers.
 export const ID_FLOOR = 100;
 
@@ -73,6 +76,23 @@ export function nextId(root) {
 		if (m) max = Math.max(max, Number(m[1]));
 	}
 	return max + 1;
+}
+
+/**
+ * The micro lane's ids are always local: `PATCH-N` comes from this repo's task files and cards,
+ * never from an issue, so a hotfix costs no network call in either `ids` mode.
+ */
+export function nextPatchId(root) {
+	let max = 0;
+	for (const { id } of usedIds(root)) {
+		const m = String(id).match(/^PATCH-(\d+)$/);
+		if (m) max = Math.max(max, Number(m[1]));
+	}
+	return max + 1;
+}
+
+export function isMicroLane(fm) {
+	return String(fm?.lane || "").toUpperCase() === "MICRO";
 }
 
 /** Every active file with its parsed state. The status decides the slot, not the file count. */

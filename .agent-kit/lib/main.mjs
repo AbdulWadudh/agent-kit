@@ -12,6 +12,7 @@ import { cmdSelftest } from "./selftest/index.mjs";
 import { cmdSetup } from "./setup.mjs";
 import { cmdCheck, cmdPull } from "./sync.mjs";
 import {
+	cmdHotfix,
 	cmdStart,
 	cmdTaskBlock,
 	cmdTaskClose,
@@ -149,9 +150,15 @@ export function main(argv) {
 					message: value("message"),
 				});
 			return die(
-				'usage: task new <slug> [--summary "<one clause>"] [--intent "<paragraph>"] [--parent TASK-N] [--from <issue>] | task show | task block "<question>" | task resume | task close [--id TASK-N] [--amend "<why>"] [--pr] [--sync] | task publish [--id TASK-N] | task migrate [--dry-run] | task renumber <TASK-N> <TASK-M>|--next [--file <name>] | task guard [--message <file>]',
+				'usage: task new <slug> [--lane micro|quick|planned] [--summary "<one clause>"] [--intent "<paragraph>"] [--parent TASK-N] [--from <issue>] | task show | task block "<question>" | task resume | task close [--id TASK-N] [--amend "<why>"] [--pr] [--sync] | task publish [--id TASK-N] | task migrate [--dry-run] | task renumber <TASK-N> <TASK-M>|--next [--file <name>] | task guard [--message <file>]',
 			);
 		}
+		case "hotfix":
+			return cmdHotfix({
+				root: process.cwd(),
+				summary: positional[0],
+				files: value("files"),
+			});
 		case "learnings": {
 			if (args[1] !== "archive")
 				return die("usage: learnings archive  (moves entries past the 30 cap)");
@@ -163,6 +170,7 @@ export function main(argv) {
 				root: process.cwd(),
 				version: positional[0] || value("tag"),
 				tag: flag("tag"),
+				noVerify: flag("no-verify"),
 			});
 		case "selftest":
 			return cmdSelftest(main);
