@@ -111,6 +111,13 @@ reverse-syncs or runs on a schedule.
 The mode is a row in `project.md` (`| ids | local |`), which is `owned`: `pull` never resets it.
 Switching it while a task is open is refused.
 
+A repo that ran on local ids before switching keeps them: the archived ids are history, and a
+release note or commit subject already cites them. Run `setup --ids issue` once, then
+`task migrate` — it opens one closed issue per archived task, titled `TASK-N — summary` from that
+task's change card, and reads the issue list to skip what already exists. Since the issue numbers
+start low while the old ids are high, a future mint can reach a number an archived task carries;
+`task new` refuses that mint and names both, rather than writing two files under one id.
+
 ### 1.2 Prerequisites — mandatory
 
 One list, `prerequisites()` in `.agent-kit/lib/env.mjs`, read by `setup` (refuses to finish)

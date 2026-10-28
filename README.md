@@ -21,7 +21,9 @@ verified.** Everything here serves that, and anything that stops serving it gets
   collaborators share one board and there is never a `TASK-131` beside an `#131`. `task new
   --summary "…" --intent "…"` writes the issue's title and body (the title is the card's summary
   too), `task publish` sends the approved plan, `task close --sync` closes the issue with the
-  final record, and `task new --from 42` imports an issue someone else opened.
+  final record, and `task new --from 42` imports an issue someone else opened. A repo that ran
+  on local ids first keeps them: `task migrate` opens a closed issue for each archived task,
+  titled `TASK-N — summary`, so the history is visible too.
 - `.agent-kit/rules/` — a router plus short rule files. One home per rule; indexes cite. Ready-made
   examples for TypeScript, Bun, Biome, API versioning, config and library docs sit in
   `.agent-kit/templates/rule-examples/`; you install only the ones that are true.
@@ -153,6 +155,7 @@ What to ask instead of typing:
 | "we're stuck on a decision" | `task block "<the question>"`; the answer goes in chat, then `task resume` |
 | "this is too big for one sitting" | split it: `task new --parent TASK-N` per piece; each closes quick with lint, and the main close runs build |
 | "put this plan on the issue" | `task publish` (issue mode; `--id TASK-N` if more than one is open) — the approved plan, without the front matter |
+| "put the old tasks on GitHub too" | `task migrate [--dry-run]` (issue mode, after the switch) — one closed issue per archived task, titled `TASK-N — summary`; rerun it freely, the issue list is the record |
 | "close it out on GitHub too" | `task close --sync` — closes the issue and comments the change card |
 | "work the issue a teammate opened" | `task new --from 42 --lane planned` — imports it; the id is the issue number |
 | "two of us took the same number" | `task renumber TASK-131 --next` (local mode) — rewrites the id, the file name and every reference |

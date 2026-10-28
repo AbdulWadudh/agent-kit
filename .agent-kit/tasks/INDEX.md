@@ -34,7 +34,11 @@ The id source is one row in `.agent-kit/project.md` (`| ids | local |`), written
 - **`issue`** — the id is the GitHub issue number: `task new` mints the issue, `--summary` is its
   title and `--intent` its body, `--from <n>` imports one a teammate opened, `task publish` sends
   the approved plan at G1, and `task close --sync` closes the issue with the final record. No
-  other path touches the network.
+  other path touches the network. A mint that lands on a number an archived task already carries
+  refuses and names both.
+- **Backfill** — `task migrate` opens one closed issue per archived task, titled `TASK-N — summary`
+  and carrying the card's paragraph, so a repo that ran on local ids first shows its history on
+  GitHub. Titles starting with an id are the match: a second run adds nothing.
 
 `doctor`'s `task ids` and `task ids unique` rows check the mode, and one id per file and card.
 

@@ -81,6 +81,7 @@ under one change file and one commit message.
 | `task new <slug> --lane quick\|planned [--summary "<one clause>"] [--intent "<paragraph>"] [--parent TASK-N] [--from <issue>]` | open a task **and record the baseline run**, a full one (`--no-baseline` to skip); `--summary` is the card's title and, in `ids: issue`, the issue title (required there); `--intent` seeds the Intent block and the issue body; `--parent` opens `TASK-N.M`, queues the main task, and records a quick baseline; in `ids: issue` it also mints the issue and takes its number, and `--from` imports an existing issue instead |
 | `task show` | print the active task's scope, plan and evidence — the thing G1/G2 asks a human to read |
 | `task publish [--id TASK-N]` | issue ids only: send the task's approved plan to its issue (the front matter stays in the repo) |
+| `task migrate [--dry-run]` | backfill: one **closed** issue per archived task, titled `TASK-N — summary` with the change card's paragraph, for a repo that ran on local ids first; titles starting with an id are the record, so a second run adds nothing |
 | `task renumber <old> <new> \| <old> --next [--file <name>]` | local ids only: move an id after a collision, rewriting the file name, a parent's children and every `depends_on`; `--file` picks one of two same-id files |
 | `task block "<question>"` | park the in-progress task on an owner decision; it stops holding the slot and the question waits in the file |
 | `task resume [<id>]` | continue a blocked task; pass the id when more than one is waiting |

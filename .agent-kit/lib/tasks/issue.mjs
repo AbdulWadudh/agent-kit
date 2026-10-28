@@ -13,7 +13,15 @@ export async function mintTask(base, { summary, intent }) {
 		throw new Error(
 			"the issues API returned no number — is Issues enabled on this repo?",
 		);
-	return `TASK-${issue.number}`;
+	// A repo that used local ids first can reach a number its history already carries. The issue
+	// is open by now, so the message says what to do rather than pretending nothing happened.
+	const id = `TASK-${issue.number}`;
+	const taken = usedIds(base).find((u) => u.id === id);
+	if (taken)
+		throw new Error(
+			`issue #${issue.number} was opened, but ${id} is already used by ${taken.rel} — this repo's history predates issue ids. Close issue #${issue.number}, then open the task again: numbers are not reused, so the next mint is free`,
+		);
+	return id;
 }
 
 /** `--from 131` adopts an issue a collaborator opened; the id is that number. */

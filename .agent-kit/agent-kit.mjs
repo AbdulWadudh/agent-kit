@@ -30,6 +30,7 @@
  *   task close [--amend "<why>"] [--pr]    quick for a subtask, full suite + archive for the main
  *              [--sync]                   ... and close the task's issue with the final record
  *   task publish [--id TASK-N]             send the task file to its issue (ids: issue only)
+ *   task migrate [--dry-run]               give every archived task the closed issue it never got
  *   task renumber <TASK-N> <TASK-M>|--next change a local id and its references (--file: which one)
  *   task guard [--message <file>]          hook gate: scope (pre-commit), message (commit-msg)
  *   learnings archive                      move entries past the 30 cap into .agent-kit/learnings/

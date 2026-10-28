@@ -14,7 +14,8 @@ import { pointersScenario, identityScenario, machineScenarios, setupPointerScena
 import { loopScenarios } from "./loop.mjs";
 import { familyScenarios } from "./family.mjs";
 import { localIdScenarios } from "./ids.mjs";
-import { issueIdScenarios, prerequisiteScenarios } from "./issue.mjs";
+import { issueIdScenarios } from "./issue.mjs";
+import { migrateScenarios, prerequisiteScenarios } from "./migrate.mjs";
 
 /**
  * `setup` and `doctor` require rtk, and a suite that needs a tool on the host is a suite that
@@ -196,6 +197,7 @@ export async function cmdSelftest(dispatch) {
 		tagScenarios(ctx);
 		await localIdScenarios(ctx);
 		await issueIdScenarios(ctx);
+		await migrateScenarios(ctx);
 		prerequisiteScenarios(ctx);
 	} finally {
 		unshim();

@@ -1,10 +1,6 @@
 /** selftest/issue.mjs — ids from GitHub: the mint, the import, the publish and the sync */
 import { abs, exists, read, write } from "../io.mjs";
-import {
-	cmdTaskClose,
-	cmdTaskNew,
-	cmdTaskPublish,
-} from "../tasks/index.mjs";
+import { cmdTaskClose, cmdTaskNew, cmdTaskPublish } from "../tasks/index.mjs";
 import { activeTasks, idsMode } from "../taskfile.mjs";
 import { cli, fixture, row, stubFetch } from "./ids.mjs";
 
@@ -244,6 +240,28 @@ export async function issueIdScenarios(ctx) {
 			renumber.code === 1 && renumber.out.includes("ids: issue"),
 			"renumber refuses a repo whose ids belong to issues",
 		);
+
+		// A repo that ran on local ids first can reach a number its history already carries.
+		number = 131;
+		const clash = await ctx.spokenAsync(() =>
+			cmdTaskNew({
+				root: dir,
+				slug: "reused-number",
+				summary: "a number the history already carries",
+				lane: "quick",
+				noBaseline: true,
+			}),
+		);
+		assert(
+			clash.code === 1 &&
+				clash.out.includes("TASK-131") &&
+				clash.out.includes("not reused"),
+			"a mint that lands on a used id refuses and names both",
+		);
+		assert(
+			activeTasks(dir).length === 0,
+			"the refused mint leaves no task file",
+		);
 	} finally {
 		spy.restore();
 		for (const [name, value] of [
@@ -254,23 +272,4 @@ export async function issueIdScenarios(ctx) {
 			else process.env[name] = value;
 		}
 	}
-}
-
-export function prerequisiteScenarios(ctx) {
-	const { assert, doctorRow } = ctx;
-	console.log("\n37. a missing prerequisite fails the row");
-	const saved = process.env.PATH;
-	process.env.PATH = "";
-	try {
-		assert(
-			doctorRow("prerequisites").status === "FAIL",
-			"doctor fails while a tool every task needs is missing",
-		);
-	} finally {
-		process.env.PATH = saved;
-	}
-	assert(
-		doctorRow("prerequisites").status === "PASS",
-		"the row clears once the tools are back",
-	);
 }
