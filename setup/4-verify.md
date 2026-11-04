@@ -16,12 +16,19 @@ are not a reason to keep editing.
 | directory indexes | a directory under `.agent-kit/` has no `INDEX.md` |
 | kit modules covered | a `.mjs` under `.agent-kit/` is not covered by the manifest, so an install would miss it |
 | source ceiling | a kit `.mjs` is past 300 lines - split it by area, keeping related functions in one file |
+| declared roots | `project.md` names a source or test root that does not exist |
+| source cap | a file under a declared source root is past 300 lines (FAIL) or past 250 (WARN) - split it by responsibility |
+| folder density | a source folder holds more than 8 code files - split it into narrower subdomains |
+| feature barrels | a nested `index.*` under a source root only re-exports; a package entry and `config/index` are allowed |
+| test mirror | a test under a declared test root has no matching source file in a mirrored folder |
 | markdown ceiling | a reference `.md` is past 12,000 characters - split it into a folder with an `INDEX.md`, one file per section; task files, cards and release notes are exempt |
 | skill pointers | a harness skill file is a copy of the loop instead of a pointer to `.agent-kit/SKILL.md` |
-| context budget | one of the files a session reads before it plans is past its cap (`AGENTS.md` 9000, `SKILL.md` 10000, `_behavior.md` 7500, `rules/INDEX.md` 1800 characters) - move the detail behind an index, or run `.agent-kit/prompts/trim-agents-md.md` |
+| command pointers | a harness command file is a copy of a procedure instead of a pointer to `.agent-kit/skills/` |
+| invoke config | `.agent-kit/invoke.json` is invalid, names an unknown harness or job, or names a harness whose folder is missing (WARN: run `setup --wire`) |
+| context budget | one of the files a session reads before it plans is past its cap (`AGENTS.md` 9000, `SKILL.md` 11000, `_behavior.md` 8500, `rules/INDEX.md` 2000 characters) - move the detail behind an index, or run `.agent-kit/skills/k79-trim-agents-md.md` |
 | prerequisites | a tool every repo needs is missing — runtime, git or `rtk`; in issue mode also the GitHub credential (§1.2). Presence only: the row never calls the network |
 | task ids | `project.md` has no `| ids |` row (WARN), or its value is not `local` or `issue` (FAIL) |
-| task ids unique | two active or archived task files share an id, an id disagrees with its filename, or two change cards name the same id |
+| task ids unique | two active or archived task files share an id, or an id disagrees with its filename |
 | manifest integrity | an `owned` path is inside a `machinery` directory or is also a seed |
 | encoding | a file is not UTF-8, has a BOM, or shows mojibake (`--fix` repairs the mechanical part) |
 | unfilled markers | a `FILL` marker or uppercase placeholder survived (`--strict` only) |
@@ -36,7 +43,7 @@ are not a reason to keep editing.
 | backlog | a row in `.agent-kit/tasks/BACKLOG.md` has an unknown status, a reused ID, a missing cell, or an empty item, source or next step |
 | rules are checkable | a rule file contains advice ("be careful", "try to", "consider") instead of a rule |
 | rules indexed | a file in `.agent-kit/rules/` has no row in its `INDEX.md`, or a row names a missing file |
-| archived tasks changelogged | a task is in `archive/` but has no file under `.agent-kit/logs/MM-YYYY/` |
+| archived outcomes | a task is in `archive/` but carries neither a `**Summary**` paragraph nor a frontmatter summary |
 | release notes | a file under `.agent-kit/releases/` does not start with `# Release vX.Y.Z` matching its filename; no folder is fine |
 | release tags | WARN, not FAIL: a release note has no tag, so nothing can install that version (`agent-kit release --tag vX.Y.Z`) |
 | commit guard | WARN, not FAIL: the optional `pre-commit` and `commit-msg` hooks are not wired in this clone |

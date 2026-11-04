@@ -16,6 +16,12 @@ The tree is indexed so a session pays only for what it opens.
 4. If a file repeats another file's fact, the copy is the bug. Keep the home, replace the copy
    with a pointer.
 
+## Invokable jobs
+
+`/k79-commit`, `/k79-release`, `/k79-debug` and `/k79-spec` are pointers to `.agent-kit/skills/`.
+A message that is only `k79-commit` (or another job id) means the same: run
+`agent-kit prompt <job>` yourself and follow it. Never ask the owner to type the command.
+
 ## If you were asked to set this up in another repo
 
 Do not improvise a file layout. Run the kit:
@@ -78,7 +84,7 @@ else lands here:
 | a new hallucination guard | `.agent-kit/rules/anti-patterns.md` | its row in `.agent-kit/rules/INDEX.md` |
 | a rule example for a domain | `.agent-kit/templates/rule-examples/<domain>.md` | `rule-examples/INDEX.md` |
 | a file every installed repo starts with | `.agent-kit/templates/<name>.seed.md` | manifest `seeds`, `.agent-kit/templates/INDEX.md`, `SETUP.md` |
-| a prompt an agent runs, not a file it authors | `.agent-kit/prompts/<name>.md` | its row in `.agent-kit/prompts/INDEX.md`, and the step that runs it |
+| a skill an agent runs, not a file it authors | `.agent-kit/skills/<name>.md` | its row in `.agent-kit/skills/INDEX.md`, and the step that runs it |
 | a command or a check | `.agent-kit/agent-kit.mjs` | header and usage, the kit table in `AGENTS.seed.md`, `SETUP.md` if setup runs it, a `selftest` scenario, `README.md` if the owner runs it |
 | a directory the kit owns | the directory | `.agent-kit/sync-manifest.json` (`machinery` or `owned`), its `INDEX.md` |
 
@@ -129,9 +135,8 @@ examples/                     INDEX -> minimal/: what a filled repo looks like (
   docs/                       INDEX: the knowledge seed a target repo authors from
   rules/                      INDEX (which file, when) + _behavior + one per domain
   tasks/                      INDEX (lanes, gates) + active/, archive/
-  logs/                       INDEX (model + last five) -> MM-YYYY/: one file per change
-  releases/                   vX.Y.Z.md: release notes rolled up from the change files
+  releases/                   vX.Y.Z.md: release notes derived from archived tasks
   githooks/                   INDEX + pre-commit (scope) + commit-msg (message): optional guard
-  prompts/                    INDEX -> the long jobs a session runs, one file each
+  skills/                     INDEX -> the source skills; `agent-kit skills` publishes them
   templates/                  INDEX -> the seeds and copyable rule examples
 ```

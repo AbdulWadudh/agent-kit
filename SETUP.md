@@ -35,6 +35,11 @@ lists what you can choose from.
 It defaults to `local` and is asked in the README prompt; §1.1 below says which one to pick.
 Re-running `setup --ids` with a different value is refused while any task is open.
 
+`--wire opencode,claude,agents` opts into the invokable jobs: it creates that harness folder if
+absent and writes `/k79-commit`, `/k79-release`, `/k79-debug` and `/k79-spec` pointers into it.
+Omit it to wire only folders that already exist. The choice is saved in `.agent-kit/invoke.json`,
+which `pull` refreshes but never rewrites; `wire --jobs` narrows the set later.
+
 Fallback if Bun is absent: `node` instead of `bun`. Same file, same behaviour.
 
 What it does, in order:
@@ -93,7 +98,7 @@ Ask the owner one question before the scaffold command, because the mode is reco
 
 | Mode | Id comes from | Network |
 |---|---|---|
-| `local` (default) | `1 + max(TASK-N)` over `tasks/active/`, `tasks/archive/` and the change cards in `logs/`, floor `TASK-100` | never |
+| `local` (default) | `1 + max(TASK-N)` over `tasks/active/` and `tasks/archive/`, floor `TASK-100` | never |
 | `issue` | the GitHub issue number — `task new` mints the issue and takes its `number` | only at mint, publish and close |
 
 `local` is for solo work and for anyone who wants the kit entirely offline: the merge is the
@@ -102,9 +107,9 @@ only serialization point, so two branches that both take `TASK-131` collide visi
 lost. `doctor`'s `task ids unique` row is the check. There is no counter file to go stale.
 
 `issue` is for collaborators: the id is the issue number, one identifier everywhere — the file
-name, `task show`, the change card, the commit subject, the issue itself. The sync moments are
+name, `task show`, the archived task, the commit subject, the issue itself. The sync moments are
 fixed and few: `task publish` after the plan gate sends the approved plan, `task close --sync`
-closes the issue with the final record and comments the change card's path, and `task new
+closes the issue with the final record and comments the archived task's path, and `task new
 --from <n>` imports an issue a teammate opened instead of minting a second one. Nothing polls,
 reverse-syncs or runs on a schedule.
 
@@ -114,7 +119,7 @@ Switching it while a task is open is refused.
 A repo that ran on local ids before switching keeps them: the archived ids are history, and a
 release note or commit subject already cites them. Run `setup --ids issue` once, then
 `task migrate` — it opens one closed issue per archived task, titled `TASK-N — summary` from that
-task's change card, and reads the issue list to skip what already exists. Since the issue numbers
+task's summary, and reads the issue list to skip what already exists. Since the issue numbers
 start low while the old ids are high, a future mint can reach a number an archived task carries;
 `task new` refuses that mint and names both, rather than writing two files under one id.
 
@@ -145,13 +150,13 @@ This is the only work that needs judgement. Four items, in this order:
 | Item | What "filled" means |
 |---|---|
 | `AGENTS.md` | every `<!-- FILL:... -->` replaced; every `<UPPERCASE PLACEHOLDER>` replaced; rules 1-4 are constraints that are true **only** in this repo |
-| `.agent-kit/project.md` | the detected commands are correct; the detection notes are confirmed or deleted; the `ids` row says the mode the owner chose in §1.1 (do not edit it by hand — `setup --ids` writes it); domain notes say what the code cannot |
-| `.agent-kit/docs/ARCH_MAP.md`, `.agent-kit/docs/ENTRY_POINTS.md`, `.agent-kit/docs/API_SKELETON.md` | one real row or signature per entry; no invented layer. The full pass is `.agent-kit/prompts/docs-populate.md` |
+| `.agent-kit/project.md` | the detected commands are correct; the detection notes are confirmed or deleted; the `ids` row says the mode the owner chose in §1.1 (do not edit it by hand — `setup --ids` writes it); source and test roots name the paths the structure checks judge; domain notes say what the code cannot |
+| `.agent-kit/docs/ARCH_MAP.md`, `.agent-kit/docs/ENTRY_POINTS.md`, `.agent-kit/docs/API_SKELETON.md` | one real row or signature per entry; no invented layer. The full pass is `.agent-kit/skills/k79-docs-populate.md` |
 | `.agent-kit/rules/` | one file per domain this repo actually has, copied from `.agent-kit/templates/rule-examples/` when one matches. `code` (the TypeScript example) earns its file in any TypeScript repo; `config` and `api` only where the repo has tunables or HTTP routes. Simplicity needs no file — it is `_behavior.md` §8, and `_behavior.md` ships with the machinery. No file, no rule: do not install a rule about a language the repo does not use |
 
 `examples/minimal/` in the template shows all four after the fill, for a fictional repo.
 
-**Populating the docs in full.** `.agent-kit/prompts/docs-populate.md` is the pass that fills
+**Populating the docs in full.** `.agent-kit/skills/k79-docs-populate.md` is the pass that fills
 these pages from evidence: it inventories the tree with `path:line`, asks three to five
 questions only where the code cannot answer, writes an exception comment's reason into
 `.agent-kit/rules/learnings.md`, and parks every `TODO` in `.agent-kit/tasks/BACKLOG.md` with a
@@ -168,17 +173,21 @@ is an illustration and is ignored by the checker.
 ## 3. Skills and MCP
 
 Ask the owner; install only what comes back yes. The skills, the gaps they close, the opt-in
-`agent-browser`, and the harness list are in [setup/3-skills.md](setup/3-skills.md).
+`agent-browser`, and the harness list are in [setup/3-skills.md](setup/3-skills.md). The same
+file covers the invokable `k79-*` jobs and the `--wire` choice.
+
+Ask whether to install the repo's `k79-*` skills into project `.agents/skills` with
+`agent-kit skills install`.
 
 ## 4. Verify
 
 `doctor --strict` must exit 0 after the fill. The full check table, including the markdown
 ceiling, is in [setup/4-verify.md](setup/4-verify.md).
 
-## 5. First verification baseline
+## 5. First task and evidence
 
-`task new` records the baseline; command tiers, issue minting, the queue, commits and hooks are
-in [setup/5-baseline.md](setup/5-baseline.md).
+`task new` records the baseline commit; `verify` writes one evidence table. Command tiers, issue
+minting, the queue, commits and hooks are in [setup/5-first-task.md](setup/5-first-task.md).
 
 ## 6. Report
 

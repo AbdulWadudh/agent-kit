@@ -44,3 +44,47 @@ with none of them is not broken.
 
 Then say what MCP servers the harness already has, and use those before writing the
 equivalent by hand. `doctor` cannot see MCP; that is a report line, not a check.
+
+### Invokable procedures
+
+Ask the owner which jobs they want and which harnesses to wire. The default set is `k79-commit`,
+`k79-release`, `k79-debug` and `k79-spec`; a repo can drop one by editing `.agent-kit/invoke.json`.
+
+```bash
+agent-kit setup . --wire opencode          # create .opencode/commands and skills
+agent-kit setup . --wire claude,agents     # or Claude Code, or the portable .agents copy
+```
+
+`--wire` is the opt-in that creates a harness folder when the repo has none. Without it, setup
+wires only folders that already exist and records them in `.agent-kit/invoke.json`:
+
+```json
+{ "harnesses": ["opencode"], "jobs": ["k79-commit", "k79-release", "k79-debug", "k79-spec"] }
+```
+
+The file is `owned`: `pull` refreshes the pointers from it but never rewrites it. `agent-kit wire`
+re-runs the selection at any time; `agent-kit wire --jobs k79-commit,k79-release` narrows it for
+one run; `agent-kit wire --check` exits 1 when a configured pointer is missing or stale.
+
+The pointers are small and name `.agent-kit/skills/<job>.md`; `doctor` fails a copy.
+`agent-kit prompt <job>` prints the same procedure in any harness, including a client with no
+adapter (T3 Code, a new CLI, CI). That is the portable fallback: nothing to register, just run it.
+
+Ask the owner one more question: **"Should I install the repo's own `k79-*` skills into the
+project's `.agents/skills`?"** That is `agent-kit skills install`, the cross-harness path.
+
+Every file in `.agent-kit/skills/` is a skill, not only the four commands. Publish all of them
+in the repo:
+
+```bash
+agent-kit skills install            # project .agents/skills
+agent-kit skills install --check    # fail when an installed copy is stale
+```
+
+This is the cross-harness route: one project `.agents/skills` copy is recognized by every harness
+that reads that folder, with no `.claude` or `.opencode` wiring. The `skills` CLI works too:
+`bunx skills@latest add AbdulWadudh/agent-kit -y` as a project install, because `skills/` at the
+repo root is generated from `.agent-kit/skills/` by `agent-kit skills build`.
+
+Do not install these globally (`-g`). Each generated skill starts with "Run this only in a
+repository with `.agent-kit/`"; a home copy would immediately stop in every other repo.

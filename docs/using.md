@@ -18,10 +18,10 @@ You do not type commands. You describe the task:
 
 > "Login fails when the email has a plus sign. Fix it."
 
-The agent opens the task (`task new`, which records the full baseline run for you), edits
-inside the declared write set, and closes it (`task close`, which runs the full suite itself
-and refuses a red result). While working it runs `verify`, the quick suite — test, typecheck and lint.
-Build is `milestone`, so it runs at the baseline, on `verify --full`, and at the main close,
+The agent opens the task (`task new`, which writes the task file and records the baseline
+commit), edits inside the declared write set, and closes it (`task close`, which runs the full
+suite itself and refuses a red result). While working it runs `verify`, the quick suite — test,
+typecheck and lint. Build is `milestone`, so it runs on `verify --full` and at the main close,
 not on every pass.
 The kit exists so that path is checkable — not so that you drive it.
 
@@ -30,25 +30,26 @@ separate delivery is what earns a new task, and the owner decides that. Work too
 sitting splits the same way: `task new --parent TASK-N` opens `TASK-N.1`, `TASK-N.2`, and so on.
 Each subtask closes on the quick suite and stays in `active/`. The main task's close is the
 milestone — it refuses while a subtask is open, runs build, and any error it reports is fixed
-right there and the close re-run. Then the whole family archives under the main id with one
-change file.
+right there and the close re-run. Then the whole family archives under the main id.
 
 What to ask instead of typing:
 
 | You say | The agent runs |
 |---|---|
 | "where are we?" | `start` — branch, commands and tiers, the five newest closes, what is in flight, the last evidence, one next action |
+| "commit this" | `agent-kit prompt k79-commit`, or `/k79-commit` where wired — split by concern, run the plan, write the body |
+| "cut a release / debug this / this changes a contract" | `agent-kit prompt k79-release`, `k79-debug`, `k79-spec`, or the matching `/k79-*` where the harness exposes one |
 | "what's in flight?" | `task show` |
 | "we're stuck on a decision" | `task block "<the question>"`; the answer goes in chat, then `task resume` |
 | "this is too big for one sitting" | split it: `task new --parent TASK-N` per piece; each closes quick with lint, and the main close runs build |
 | "put this plan on the issue" | `task publish` (issue mode; `--id TASK-N` if more than one is open) — the approved plan, without the front matter |
 | "put the old tasks on GitHub too" | `task migrate [--dry-run]` (issue mode, after the switch) — one closed issue per archived task, titled `TASK-N — summary`; rerun it freely, the issue list is the record |
-| "close it out on GitHub too" | `task close --sync` — closes the issue and comments the change card |
+| "close it out on GitHub too" | `task close --sync` — closes the issue and comments the archived task's path |
 | "work the issue a teammate opened" | `task new --from 42 --lane planned` — imports it; the id is the issue number |
 | "two of us took the same number" | `task renumber TASK-131 --next` (local mode) — rewrites the id, the file name and every reference |
 | "what's parked?" | read `.agent-kit/tasks/BACKLOG.md`; picking a row means `task new` and then deleting it |
-| "populate the docs" | run `.agent-kit/prompts/docs-populate.md`; it opens a PLANNED task and fills the pages, learnings and backlog |
-| "`AGENTS.md` has grown too big" | run `.agent-kit/prompts/trim-agents-md.md`; each fact moves to its home and the report shows the character delta |
+| "populate the docs" | run `.agent-kit/skills/k79-docs-populate.md`; it opens a PLANNED task and fills the pages, learnings and backlog |
+| "`AGENTS.md` has grown too big" | run `.agent-kit/skills/k79-trim-agents-md.md`; each fact moves to its home and the report shows the character delta |
 | "which agents can drive this repo?" | `harnesses`, then wire each skill folder it names |
 | "is this repo actually healthy?" | `doctor --strict` and reports the failing row |
 | "what changed since the template?" | `check` (names the release tag and any newer one), then `pull --ref <tag>` |
@@ -59,6 +60,11 @@ If the agent asks you to open a terminal, that is a defect in its instructions, 
 the workflow. If its environment cannot execute commands at all, it must say so and stop: an
 agent that cannot run the gates cannot claim the work is verified, and telling you to paste a
 script moves the problem instead of solving it.
+
+In an installed repo, `/k79-commit`, `/k79-release`, `/k79-debug` and `/k79-spec` come from
+`.agent-kit/invoke.json`. `setup --wire opencode,claude` writes those pointers once; `pull`
+refreshes them; `wire --jobs k79-commit,k79-release` narrows the set. A harness with no adapter
+still runs the same procedure when the agent calls `agent-kit prompt <job>`, so you never type it.
 
 And when an agent commits outside its declared write set, the optional scope hook refuses it;
 the message hook only warns:
@@ -79,46 +85,45 @@ A task carries as many commits as it has features and fixes, each grouped by the
 issue it serves, and every one names the same task ID. There is no bulk commit of a sitting's
 work.
 
-## What the changelog is
+## What the record is
 
-It is a folder, not a ledger: `.agent-kit/logs/MM-YYYY/YYYY-MM-DD-TASK-N-slug.md`, one file per
-task, written by `task close`. The card is the completion record — what the task did, in the
-close-out paragraph, and where the plan lives:
+It is the task file, not a second ledger. `task close` moves it to
+`.agent-kit/tasks/archive/YYYY-MM/` with its plan, evidence and close-out in one place:
 
 ```
 ---
 id: TASK-118
 type: fixed
-date: 2026-10-26
+status: DONE
+created: 2026-10-26
 summary: "Rate-limited the invite endpoint"
 ---
 
 # TASK-118 — Rate-limited the invite endpoint
 
-**Task:** [TASK-118](../../tasks/archive/2026-10/2026-10-26-TASK-118-invite-rate-limit.md)
-**Scope:** src
+## Verification
+| Action | Command | Scope | Expected | Observed | Exit |
+...
 
-## What changed
+## Close-out
 
-The invite endpoint now allows five requests a minute per address, and the limit is a
-constant rather than a magic number in the route.
+**Summary** — The invite endpoint now allows five requests a minute per address, and the limit
+is a constant rather than a magic number in the route.
 ```
 
-The date lives in the front matter, and the files live in the task's `FILES` block, so the card
-repeats neither. The plan, its evidence and its follow-ups stay in the task file the link points
-at; the card never restates them, so there is only one record to keep true. `doctor` fails an
-archived task with no file.
+The date lives in the front matter, and the files live in the task's `FILES` block, so nothing
+is repeated. `doctor` fails an archived task with no summary.
 
-A version can be rolled up for people and git: `release v0.2.0` writes `.agent-kit/releases/v0.2.0.md`
-from every card no earlier release claims — `# Release v0.2.0`, the date, then `### Added`,
-`### Changed`, `### Fixed` and `### Removed`. Each task is a bold title with the commit that
-shipped it (`TASK-127 · 544f2dc`) and the card's `## What changed` paragraph beneath it, so the
-note reads like prose and points at the code. It prints the `gh release create --notes-file` line
-and never runs git itself.
+A version is derived from the tasks: `release v0.2.0` writes `.agent-kit/releases/v0.2.0.md`
+from every archived task no earlier release claims — `# Release v0.2.0`, the date, then
+`### Added`, `### Changed`, `### Fixed` and `### Removed`. Each task is a bold title with the
+commit that shipped it (`TASK-127 · 544f2dc`) and the task's `**Summary**` paragraph beneath it,
+so the note reads like prose and points at the code. It prints the `gh release create
+--notes-file` line and never runs git itself.
 
-`start` prints the five newest closes, derived from the cards, so nobody scans a month folder
-and no close has to rewrite an index to keep a list true. A close writes the archived task and
-its card; the index's `ACTIVE` block is the only list it maintains.
+`start` prints the five newest closes, derived from the archive, so nobody scans a month folder
+and no close rewrites an index to keep a list true. The index's `ACTIVE` block is the only list
+it maintains.
 
 ## Token economy
 
@@ -137,8 +142,8 @@ The command and its exit code are unchanged; only what reaches the context shrin
 `verify` / `task close` never go through the filter, so gates keep their exact exit codes.
 
 rtk's history is machine-wide, not per task. The skill reports savings under the active task
-ID, and the change file carries the same ID, so a number in the report points at a record in
-`.agent-kit/logs/`.
+ID, and the archived task carries the same ID, so a number in the report points at a record in
+`.agent-kit/tasks/archive/`.
 
 ## The two lanes
 

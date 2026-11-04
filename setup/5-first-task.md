@@ -1,30 +1,29 @@
-# 5. First verification baseline
+# 5. First task and evidence
 
-
-`task new` records the baseline itself. The "was it already broken?" run happens at the moment
-the task opens, so it cannot be forgotten:
+`task new` writes one task file and records the current `HEAD` as `baseline:`; it does not run the
+suite. The first `verify` records what is actually red, and that run is the evidence.
 
 ```bash
 bun .agent-kit/agent-kit.mjs task new bootstrap --lane quick
 ```
 
-Expected: the task id, then one line per declared command and `PASS (full) — n/n command(s) exited 0`.
-A failure here is the repo's problem, not the kit's: report it, do not work over it.
-`--no-baseline` skips the run; it also throws away the only way to tell an old red from a new one.
+Expected: the task id, the baseline hash, and the fill list. There is no baseline command run and
+no second table. `verify` writes one `## Verification` table into the task, and every later run
+replaces those rows. `--no-baseline` is accepted for old scripts and has no effect.
 
 In `ids: issue` this command also mints the GitHub issue and takes its number as the id; a
 refused mint (bad credential, no access, Issues disabled) exits 1 and writes no task file.
-`--summary "<one clause>"` is required there — it is the issue title and the card's — and
+`--summary "<one clause>"` is required there: it is the issue title and the task summary.
 `--intent "<paragraph>"` is the issue body. `task publish` after the plan gate sends the approved
 plan to that issue, and `task close --sync` closes it with the final record. `--from <n>` imports
 an issue someone else opened.
 
-The baseline is a **full** run. The `When` cell in `project.md` splits the rows:
+The `When` cell in `project.md` splits the commands:
 
 - `always` — `verify` and every close run it. Setup marks test, typecheck and lint here.
-- `milestone` — only the baseline, `verify --full` and a top-level task's close run it. Setup
-  marks build here: a full build is what makes an iteration slow, and it is worth paying for
-  once, at the end. A subtask's close is quick, so it does not run the milestone rows.
+- `milestone` — `verify --full` and a top-level task's close run it. Setup marks build here: a
+  full build is what makes an iteration slow, and it is worth paying for once, at the end. A
+  subtask's close is quick, so it does not run the milestone rows.
 
 So the inner loop is `verify` (quick), and the expensive row cannot be skipped at close:
 `task close` on a top-level task runs the full suite itself. Move a command between tiers in
@@ -35,7 +34,7 @@ A request that arrives while a task is open goes in its `## Queue` and becomes i
 delivery earns a new task, and the owner decides that. A subtask closes on the quick suite, so
 test, typecheck and lint run per subtask. The main task's close is where build runs: it refuses
 while a subtask is open, runs the full suite, and an error found there is fixed in that moment
-and the close re-run. The family then archives under the main id with one change file.
+and the close re-run. The family then archives under the main id.
 
 `task show` and `start` say when the quick run is the whole story and when the milestone rows
 still wait. `start` is the read-only brief to begin a session with: branch, commands and tiers,
@@ -57,8 +56,9 @@ If git has no identity here, stop and ask — do not invent one.
 The fill commit is the one commit that needs no task ID, because no task exists yet. From the
 first task on, every commit names its task: the subject is `type (TASK-ID|PATCH-ID): summary`,
 and the body is what that commit changed and why. A task carries as many commits as it has
-features and fixes, grouped by the feature or issue each serves; close writes one change file per
-task. The rule, the split and its type list are `.agent-kit/rules/commits.md`.
+features and fixes, grouped by the feature or issue each serves. `task close` archives the task;
+there is no second change file. The rule, the split and its type list are
+`.agent-kit/rules/commits.md`.
 
 `setup` does not touch git config. If an agent will commit unattended in this clone and you want
 the earlier warning, opt in once:

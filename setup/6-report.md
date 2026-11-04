@@ -19,7 +19,7 @@ Later, to take template improvements: `check` (never writes) names the release t
 tracks, whether a newer tag exists, and any file drift. `pull --dry-run` prints the diff per row,
 then `pull --ref <tag>` moves the install. `pull` will not overwrite a file you modified unless
 you pass `--force`, and reports `SEED-UPDATED` when an upstream seed changed after you authored
-from it. The full procedure is `.agent-kit/prompts/upgrade.md`.
+from it. The full procedure is `.agent-kit/skills/k79-upgrade.md`.
 
 ## What is deliberately checked in
 
