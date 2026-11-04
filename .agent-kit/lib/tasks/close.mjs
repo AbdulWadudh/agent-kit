@@ -1,7 +1,6 @@
-/** tasks/close.mjs — the close gate, inventory, archive and change card */
+/** tasks/close.mjs — the close gate, inventory and archive; the task is the record */
 import fs from "node:fs";
 import path from "node:path";
-import { retireRecent, writeChange } from "../changelog.mjs";
 import { CATEGORIES, ENTRY_LIMIT, LOG_DIR, TASKS } from "../consts.mjs";
 import {
 	abs,
@@ -69,9 +68,9 @@ export function cmdTaskClose({ root, id, amend, noVerify, pr, sync }) {
 	if (openQueue.length)
 		problems.push(`queue still open: row(s) ${openQueue.map(([n]) => n).join(", ")} — work them as subtasks, or mark them dropped and move them to BACKLOG.md`);
 	if (!fm.summary)
-		problems.push("front-matter summary is empty (it becomes the change file title)");
+		problems.push("front-matter summary is empty (it becomes the task and release title)");
 	if (fm.summary && fm.summary.length > ENTRY_LIMIT)
-		problems.push(`front-matter summary is ${fm.summary.length} characters (limit ${ENTRY_LIMIT}: the change file title is one clause)`);
+		problems.push(`front-matter summary is ${fm.summary.length} characters (limit ${ENTRY_LIMIT}: the task title is one clause)`);
 	const type = (fm.type || "changed").toLowerCase();
 	if (!CATEGORIES.some(([t]) => t === type))
 		problems.push(`front-matter type "${fm.type}" is not one of ${CATEGORIES.map(([t]) => t).join(", ")}`);
@@ -195,7 +194,7 @@ export function cmdTaskClose({ root, id, amend, noVerify, pr, sync }) {
 		const { commitType, notes } = closingNote(text, fm, type);
 		console.log(`\nClosed ${fm.id} (subtask)`);
 		console.log(
-			`  inventory ${files.length} file(s) — the parent's change file covers the family`,
+			`  inventory ${files.length} file(s) — the parent's task covers the family`,
 		);
 		console.log(
 			promoted
@@ -224,28 +223,14 @@ export function cmdTaskClose({ root, id, amend, noVerify, pr, sync }) {
 	write(abs(base, `${archive}/${file}`), text);
 	fs.rmSync(abs(base, rel));
 
-	// Done subtasks travel with the parent: one delivery, one archive, one change file.
+	// Done subtasks travel with the parent: one delivery, one archive.
 	for (const kid of kids)
 		if (kid.fm.status === "DONE") {
 			write(abs(base, `${archive}/${kid.file}`), kid.text);
 			fs.rmSync(abs(base, `${TASKS}/active/${kid.file}`));
 		}
 
-	const change = writeChange(base, {
-		id: fm.id,
-		type,
-		slug: String(file)
-			.replace(/\.md$/, "")
-			.replace(/^\d{4}-\d{2}-\d{2}-/, "")
-			.replace(/^[A-Z][A-Z0-9-]*-/, ""),
-		summary: fm.summary,
-		changed,
-		task: text,
-		taskRel: `${archive}/${file}`,
-	});
-
 	refreshActive(base);
-	retireRecent(base);
 
 	console.log(`\nClosed ${fm.id}`);
 	console.log(`  archived  ${archive}/${file}`);
@@ -254,7 +239,6 @@ export function cmdTaskClose({ root, id, amend, noVerify, pr, sync }) {
 			`  subtasks  ${kids.filter((k) => k.fm.status === "DONE").length} archived with it`,
 		);
 	console.log(`  inventory ${changed.length} file(s)`);
-	console.log(`  change    ${change} (${type})`);
 
 	const archived = read(abs(base, `${archive}/${file}`));
 	const { commitType, notes } = closingNote(archived, fm, type);
@@ -293,7 +277,6 @@ export function cmdTaskClose({ root, id, amend, noVerify, pr, sync }) {
 			fm,
 			body: archived,
 			rel: `${archive}/${file}`,
-			change,
 		});
 	return 0;
 }

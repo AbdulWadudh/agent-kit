@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { MANIFEST, STATE } from "./consts.mjs";
 import { cmdDoctor } from "./doctor/index.mjs";
+import { readInvokeConfig } from "./invoke/config.mjs";
+import { writeInvokablePointers } from "./invoke/pointers.mjs";
 import {
 	abs,
 	copy,
@@ -20,6 +22,7 @@ import {
 } from "./io.mjs";
 import {
 	isRemote,
+	isTemplateOnly,
 	manifestOf,
 	SEMVER,
 	semverCmp,
@@ -37,6 +40,7 @@ export function computeSync(targetRoot, sourceRoot) {
 
 	for (const entry of manifest.machinery) {
 		for (const rel of expand(sourceRoot, entry)) {
+			if (isTemplateOnly(manifest, rel)) continue;
 			const src = hashFile(abs(sourceRoot, rel));
 			const tgt = hashFile(abs(targetRoot, rel));
 			const base = state.machinery?.[rel];
@@ -260,6 +264,7 @@ export function cmdPull({
 	};
 	for (const entry of manifest.machinery) {
 		for (const rel of expand(sourceRoot, entry)) {
+			if (isTemplateOnly(manifest, rel)) continue;
 			const h = hashFile(abs(root, rel));
 			if (h) next.machinery[rel] = h;
 		}
@@ -286,6 +291,10 @@ export function cmdPull({
 		console.log("\nUpstream seed changed since install (your copy was kept):");
 		for (const r of seedDrift) console.log(`  ${r.rel}  <- ${r.seed}`);
 	}
-	console.log("");
+	try {
+		if (readInvokeConfig(root)) writeInvokablePointers(root);
+	} catch (error) {
+		console.error(`agent-kit: ${error.message}`);
+	}
 	return cmdDoctor({ root, strict: false });
 }

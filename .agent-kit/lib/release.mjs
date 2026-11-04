@@ -1,9 +1,14 @@
-/** release.mjs — `release`: the note built from unclaimed change files */
+/** release.mjs — `release`: the note built from unclaimed archived tasks */
 import path from "node:path";
 import { CATEGORIES, LOG_DIR } from "./consts.mjs";
 import { repoSlug } from "./github.mjs";
 import { abs, exists, expand, frontMatter, git, posix, read, run, write } from "./io.mjs";
-import { CHILD_ID, idsMode } from "./taskfile.mjs";
+import {
+	archivedTasks,
+	CHILD_ID,
+	closeOutField,
+	idsMode,
+} from "./taskfile.mjs";
 import { cmdVerify } from "./verify/index.mjs";
 
 
@@ -49,12 +54,22 @@ export function cardNote(text) {
 	return section ? section.split(/\r?\n/).slice(1).join("\n").trim() : "";
 }
 
-/** The commit that last touched this card: the one that shipped its task, once it is committed. */
+/** The commit that last touched this record: the one that shipped its task, once committed. */
 function shippedIn(base, rel) {
 	return git(base, ["log", "-1", "--format=%h", "--", rel]) || "";
 }
 
-/** The change files no earlier release claims, oldest first. */
+/** The paragraph a close wrote into the task: `**Summary**` first, then `## Outcome`. */
+export function taskNote(text) {
+	const summary = closeOutField(text, "Summary");
+	if (summary && !/<!--\s*FILL:/.test(summary)) return summary;
+	const outcome = closeOutField(text, "Outcome");
+	if (outcome && !/<!--\s*FILL:/.test(outcome)) return outcome;
+	const section = text.split(/^## /m).find((s) => s.startsWith("Outcome"));
+	return section ? section.split(/\r?\n/).slice(1).join("\n").trim() : "";
+}
+
+/** Archived tasks no earlier release claims, oldest first; legacy cards fill any gap. */
 export function unreleasedChanges(base) {
 	const claimed = new Set();
 	for (const rel of expand(base, ".agent-kit/releases").filter((r) => r.endsWith(".md")))
@@ -63,7 +78,19 @@ export function unreleasedChanges(base) {
 		))
 			for (const id of m[1].matchAll(/\b(?:TASK|PATCH)-\d+\b/g)) claimed.add(id[0]);
 
-	return expand(base, LOG_DIR)
+	const fromTasks = archivedTasks(base).map(({ rel, text, fm }) => ({
+		id: fm.id,
+		type: (fm.type || "changed").toLowerCase(),
+		summary: fm.summary || "",
+		date: fm.closed || fm.created || "",
+		note: taskNote(text),
+		commit: shippedIn(base, rel),
+		taskRel: rel,
+	}));
+	const taskIds = new Set(fromTasks.map((entry) => entry.id));
+
+	// A repo upgraded from the card model keeps its old history readable, without duplicates.
+	const fromCards = expand(base, LOG_DIR)
 		.filter((rel) => rel.endsWith(".md") && !rel.endsWith("INDEX.md"))
 		.map((rel) => {
 			const text = read(abs(base, rel));
@@ -78,7 +105,16 @@ export function unreleasedChanges(base) {
 				taskRel: taskRelOf(rel, text),
 			};
 		})
-		.filter((e) => e.id && !CHILD_ID.test(e.id) && !claimed.has(e.id))
+		.filter(
+			(entry) =>
+				entry.id &&
+				!taskIds.has(entry.id) &&
+				!CHILD_ID.test(entry.id) &&
+				!claimed.has(entry.id),
+		);
+
+	return [...fromTasks, ...fromCards]
+		.filter((entry) => !claimed.has(entry.id))
 		.sort((a, b) =>
 			`${a.date}\u0000${a.id}`.localeCompare(`${b.date}\u0000${b.id}`),
 		);
@@ -149,7 +185,7 @@ export function cmdRelease({ root, version, tag, noVerify }) {
 	const fresh = unreleasedChanges(base);
 	if (!fresh.length) {
 		console.error(
-			"\nCannot release: nothing new — every change file is claimed by a release.\n",
+			"\nCannot release: nothing new — every task is claimed by a release.\n",
 		);
 		return 1;
 	}
@@ -204,11 +240,11 @@ export function cmdRelease({ root, version, tag, noVerify }) {
 		"",
 	);
 	write(abs(base, rel), lines.join("\n"));
-	console.log(`\nWrote ${rel} — ${fresh.length} change(s)\n`);
+	console.log(`\nWrote ${rel} — ${fresh.length} task(s)\n`);
 	const unnamed = fresh.filter((e) => !e.commit);
 	if (unnamed.length)
 		console.log(
-			`Note    ${unnamed.length} card(s) are not committed yet — the note cannot name their commits: ${unnamed.map((e) => e.id).join(", ")}\n`,
+			`Note    ${unnamed.length} task(s) are not committed yet — the note cannot name their commits: ${unnamed.map((e) => e.id).join(", ")}\n`,
 		);
 	console.log(`Commit  git add ${rel} && git commit -m "docs: release v${raw}"`);
 	console.log(

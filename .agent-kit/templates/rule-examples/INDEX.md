@@ -13,7 +13,11 @@ example you are copying, not the folder.
 | `biome.md` | lint and format | the repo uses Biome |
 | `api.md` | public interfaces and contracts | the repo exposes an API |
 | `config.md` | configuration and environment | the repo has tunables |
-| `database.md` | schema and migrations | the repo owns a database |
+| `database.md` | schema, queries and migrations | the repo owns a database |
+| `security.md` | secrets, ownership, cache and idempotency | the repo has accounts, secrets or payments |
+| `performance.md` | API calls, cache, jobs and UI cost | the repo has network or list work |
+| `testing.md` | test shape and mocking | the repo has a test runner |
+| `logging.md` | structured logs and redaction | the repo has a service or shared logger |
 | `docs-lookup.md` | version and API lookups | documentation outranks memory |
 
 After copying one, edit it to this repo's facts. The steps that make it a loaded rule — the

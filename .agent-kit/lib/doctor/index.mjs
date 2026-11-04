@@ -7,6 +7,7 @@ import { docsChecks } from "./docs.mjs";
 import { gitChecks } from "./git.mjs";
 import { historyChecks } from "./history.mjs";
 import { installChecks } from "./install.mjs";
+import { qualityChecks } from "./quality.mjs";
 import { rulesChecks } from "./rules.mjs";
 import { structureChecks } from "./structure.mjs";
 import { taskChecks } from "./tasks.mjs";
@@ -41,6 +42,7 @@ export function cmdDoctor({ root, strict, fix, jsonOut }) {
 
 	const ctx = { base, add, state, isTemplate, strict, fix, fixed };
 	structureChecks(ctx);
+	qualityChecks(ctx);
 	gitChecks(ctx);
 	installChecks(ctx);
 	docsChecks(ctx);

@@ -10,6 +10,7 @@ holds the fix pass and the summary, not the checks.
 |---|---|---|
 | `index.mjs` | `cmdDoctor`: the `--fix` pass, the group order, the print | a check is added, removed or reordered |
 | `structure.mjs` | required files, directory indexes, skill pointers, budget | an install is missing a file or an index |
+| `quality.mjs` | declared roots, source cap, folder density, feature barrels, test mirror | code shape or test placement is in question |
 | `git.mjs` | hook wiring, hook mode, commit identity | history or hooks look wrong |
 | `install.mjs` | manifest integrity, module coverage, the 300-line ceiling | a module never reaches an install, or a file grew |
 | `docs.mjs` | encoding, placeholders, paths, links, declared commands | a doc points at nothing, or a command is undeclared |

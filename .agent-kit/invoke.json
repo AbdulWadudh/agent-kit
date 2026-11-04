@@ -1,0 +1,9 @@
+{
+  "harnesses": [],
+  "jobs": [
+    "k79-commit",
+    "k79-release",
+    "k79-debug",
+    "k79-spec"
+  ]
+}

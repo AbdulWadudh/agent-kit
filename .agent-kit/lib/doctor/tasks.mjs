@@ -1,7 +1,7 @@
 /** doctor/tasks.mjs — task hygiene, statuses, subtasks, backlog */
 import fs from "node:fs";
 import path from "node:path";
-import { LOG_DIR, TASK_INDEX, TASKS } from "../consts.mjs";
+import { TASK_INDEX, TASKS } from "../consts.mjs";
 import {
 	abs,
 	covers,
@@ -55,7 +55,7 @@ export function taskChecks({ base, add }) {
 				: `${mode} — expected local or issue`,
 	);
 
-	// One id, one task file, one change card. Two branches that minted the same number, or a
+	// One id, one task file. Two branches that minted the same number, or a
 	// hand copy, is the case this catches. Task files and cards are grouped apart because a
 	// close writes both under one id by design.
 	const idProblems = [];
@@ -82,16 +82,12 @@ export function taskChecks({ base, add }) {
 		...expand(base, `${TASKS}/active`),
 		...expand(base, `${TASKS}/archive`),
 	]);
-	// `logs/INDEX.md` heads the month folders; only a card under MM-YYYY/ carries an id.
-	const cardIds = group(
-		expand(base, LOG_DIR).filter((rel) => /\d{2}-\d{4}\//.test(rel)),
-	);
 	add(
 		idProblems.length ? "FAIL" : "PASS",
 		"task ids unique",
 		idProblems.length
 			? idProblems.slice(0, 4).join("; ")
-			: `${taskIds} task id(s), ${cardIds} change card(s)`,
+			: `${taskIds} task id(s)`,
 	);
 
 	const collisions = [];

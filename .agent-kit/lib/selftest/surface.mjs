@@ -113,7 +113,7 @@ export function machineScenarios(ctx) {
 		}
 	};
 	const valid = guardMsg(
-		"fix (TASK-101): close the scope gap\n\nTASK-101 — fixture change\n",
+		"fix (TASK-101): close the scope gap\n\nWhy:\n- scope\n\nWhat:\n- fixture\n\nVerification:\n- node test\n",
 	);
 	assert(
 		valid.code === 0 && !valid.out,

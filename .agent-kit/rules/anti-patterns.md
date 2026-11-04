@@ -15,3 +15,7 @@ if a guard belongs to `typescript.md` or `database.md`, it lives there.
    be verified, and `agent-kit doctor` cannot check it.
 6. **No silent scope.** If the fix needs a file outside `touches`, stop and amend the task
    before editing. `task close` will reject the breach and it is cheaper to learn it now.
+7. **No workaround deleted without its reason.** A recorded exception or quirk carries why it
+   exists; remove it only when the spec or the owner says the constraint is gone, and say so.
+8. **No unowned exception.** An exception comment carries a `@quirk:` id and its reason; when the
+   same constraint recurs, promote it to `.agent-kit/rules/learnings.md`.

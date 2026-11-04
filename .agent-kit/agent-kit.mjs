@@ -12,13 +12,19 @@
  *          [--ref <tag>]                  install that release tag; default is the newest tag
  *          [--no-rtk]                     skip the install only; rtk is still a prerequisite gate
  *          [--ids local|issue]            who allocates task ids: this repo, or the issue number
+ *          [--wire opencode,claude,agents] create those harness folders and their /job pointers
  *   check [--json] [--ref <tag>]           drift table vs the template; never writes
  *   pull [--dry-run|--force|--seeds]       apply the sync, then doctor
  *        [--ref <tag>]                     move the install to that release tag
  *   doctor [--strict] [--fix] [--json]     truth checks over the repo's own docs
  *   start                                  session brief: task, gate, evidence, next; never writes
- *   verify [--full|--baseline]             run the always-tier commands; --full adds milestone rows
+ *   verify [--full]                        run the always-tier commands; --full adds milestone rows
  *   harnesses                              list the coding agents on this machine (HOME, PATH, repo)
+ *   guard plan                             group staged files by concern and print the git add lines
+ *   prompt <job> [--list]                  print a procedure: k79-commit, k79-release, k79-debug, k79-spec
+ *   wire [--check]                         write /command and /skill pointers for detected harnesses
+ *   skills build|check|install [--out <dir>] [--check]
+ *                                          build or install project skills from .agent-kit/skills/
  *   task new <slug> [--lane micro|quick|planned] open a task and record the baseline run
  *            [--summary "<one clause>"]    its card title; the issue title in ids: issue (required)
  *            [--intent "<paragraph>"]      seeds the Intent block; the issue body at mint

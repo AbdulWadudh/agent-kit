@@ -1,74 +1,50 @@
 /** tasks/migrate.mjs — give every archived task the issue it never got */
 import path from "node:path";
-import { entriesIn } from "../changelog.mjs";
-import { LOG_DIR, TASKS } from "../consts.mjs";
 import { listIssues, mintIssue, patchIssue } from "../github.mjs";
-import { abs, expand, frontMatter, read } from "../io.mjs";
-import { cardNote } from "../release.mjs";
-import { CHILD_ID } from "../taskfile.mjs";
+import { abs, read } from "../io.mjs";
+import { taskNote } from "../release.mjs";
+import { archivedTasks } from "../taskfile.mjs";
 
-/** Archived tasks, oldest id first, so the issues land in the order the work did. */
-function archived(base) {
-	return expand(base, `${TASKS}/archive`)
-		.filter((rel) => rel.endsWith(".md"))
-		.map((rel) => {
-			const text = read(abs(base, rel));
-			return { rel, text, fm: frontMatter(text) };
-		})
-		.filter(({ fm }) => fm.id && !CHILD_ID.test(fm.id))
-		.sort((a, b) => Number(a.fm.id.slice(5)) - Number(b.fm.id.slice(5)));
-}
-
-/** The card's summary is the title; the heading is the fallback a pre-card archive still has. */
-function summaryOf({ rel, text, fm }, card) {
-	const fromCard = String(card?.summary || "").trim();
-	if (fromCard) return fromCard;
+/** The task's summary is the title; the heading is the fallback an old archive still has. */
+function summaryOf({ rel, text, fm }) {
 	const fromFm = String(fm.summary || "").trim();
 	if (fromFm) return fromFm;
 	const heading = (text.match(/^# (.+)$/m) || [])[1] || "";
 	return (
-		heading
-			.replace(new RegExp(`^${fm.id}\\s*[—:-]\\s*`), "")
-			.trim() || rel
+		heading.replace(new RegExp(`^${fm.id}\\s*[—:-]\\s*`), "").trim() || rel
 	);
 }
 
 /**
- * The issue is a record, not a second plan: the paragraph a close already wrote, and the two
- * paths that hold the detail. The id is in the title because the number cannot be the id —
+ * The issue is a record, not a second plan: the paragraph the task carries, and the path
+ * that holds the detail. The id is in the title because the number cannot be the id —
  * these tasks were closed before this repo took ids from issues.
  */
-function issueText({ id, rel }, card) {
-	const note = card?.note || "";
-	const lines = [note || `No change card was written for ${id}.`, "", "---", ""];
-	if (card) lines.push(`Change card: \`${card.rel}\``);
-	lines.push(`Archived plan: \`${rel}\``);
-	lines.push(
+function issueText({ id, rel, text }) {
+	const note = taskNote(text);
+	return [
+		note || `No summary was written for ${id}.`,
+		"",
+		"---",
+		"",
+		`Archived task: \`${rel}\``,
 		"",
 		`_${id} was closed before this repo took its task ids from issues, so its id is the title._`,
-	);
-	return lines.join("\n");
+	].join("\n");
 }
 
 export async function cmdTaskMigrate({ root, dry }) {
 	const base = path.resolve(root || process.cwd());
-	const cards = new Map(
-		entriesIn(base, LOG_DIR, "date").map((e) => [
-			e.id,
-			{ ...e, note: cardNote(read(abs(base, e.rel))) },
-		]),
-	);
-	const queue = archived(base).map((task) => {
-		const card = cards.get(task.fm.id);
-		const summary = summaryOf(task, card);
-		return {
+	const queue = archivedTasks(base)
+		.slice()
+		.sort((a, b) => Number(a.fm.id.slice(5)) - Number(b.fm.id.slice(5)))
+		.map((task) => ({
 			id: task.fm.id,
 			rel: task.rel,
-			card,
-			summary,
-			title: `${task.fm.id} — ${summary}`,
-		};
-	});
+			text: task.text,
+			summary: summaryOf(task),
+			title: `${task.fm.id} — ${summaryOf(task)}`,
+		}));
 	if (queue.length === 0) {
 		console.log("\nNothing archived to migrate.\n");
 		return 0;
@@ -94,7 +70,7 @@ export async function cmdTaskMigrate({ root, dry }) {
 	// the number differs from it by design.
 	const titled = new Set(
 		existing
-			.map((i) => (String(i.title || "").match(/^(TASK-\d+)\b/) || [])[1])
+			.map((issue) => (String(issue.title || "").match(/^(TASK-\d+)\b/) || [])[1])
 			.filter(Boolean),
 	);
 	const todo = queue.filter((q) => !titled.has(q.id));
@@ -111,7 +87,7 @@ export async function cmdTaskMigrate({ root, dry }) {
 		try {
 			const issue = await mintIssue(base, {
 				title: q.title,
-				body: issueText(q, q.card),
+				body: issueText(q),
 			});
 			await patchIssue(base, issue.number, {
 				state: "closed",

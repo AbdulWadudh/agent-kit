@@ -40,6 +40,18 @@ clones cannot mint the same id. `task renumber` moves a local id; it refuses in 
 - `.agent-kit/agent-kit.mjs` — dispatch only; its modules live in `.agent-kit/lib/` and are not
   entry points
 
+## Source roots
+
+- none — this repo ships `.agent-kit/`; its modules are covered by the source-ceiling row.
+
+## Test roots
+
+- none — `selftest` is the suite.
+
+## Structure exceptions
+
+- none
+
 ## Never edit (generated)
 
 - none

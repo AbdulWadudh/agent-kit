@@ -78,6 +78,12 @@ export function docsChecks({ base, add, isTemplate, strict, fix, fixed }) {
 	// 3. every path an index or doc names must exist
 	const dangling = [];
 	for (const rel of scanned) {
+		// Records keep the paths of their day; a rename does not rewrite history.
+		if (
+			rel.startsWith(".agent-kit/logs/") ||
+			rel.startsWith(".agent-kit/tasks/archive/")
+		)
+			continue;
 		const text = fenceFree(read(abs(base, rel)));
 		const re =
 			/((?:\.agent-kit|src|app|lib|tests?|packages|infra)\/[A-Za-z0-9_\-./[\]]+)/g;

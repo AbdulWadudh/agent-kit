@@ -36,6 +36,10 @@ import {
 	pointersScenario,
 	setupPointerScenario,
 } from "./surface.mjs";
+import { guardScenario } from "./guard.mjs";
+import { invokeScenario } from "./invoke.mjs";
+import { skillsScenario } from "./skills.mjs";
+import { structureQualityScenario } from "./structure.mjs";
 import { redRunScenario, scopeScenarios } from "./tasks.mjs";
 
 /**
@@ -217,6 +221,10 @@ export async function cmdSelftest(dispatch) {
 		hookScenario(ctx);
 		budgetScenario(ctx);
 		tagScenarios(ctx);
+		structureQualityScenario(ctx);
+		invokeScenario(ctx);
+		skillsScenario(ctx);
+		guardScenario(ctx);
 		await localIdScenarios(ctx);
 		await issueIdScenarios(ctx);
 		await microScenarios(ctx);

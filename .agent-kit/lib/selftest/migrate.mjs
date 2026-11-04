@@ -78,7 +78,7 @@ export async function migrateScenarios(ctx) {
 			(await ctx.quietAsync(() =>
 				cmdTaskClose({ root: dir, id: task.fm.id }),
 			)) === 0,
-			"the close archives it and writes the card",
+			"the close archives it; the task is the record",
 		);
 
 		const callsBefore = spy.calls.length;
@@ -102,7 +102,7 @@ export async function migrateScenarios(ctx) {
 		assert(
 			issues[0].title ===
 				`${task.fm.id} — The fixture closed one task, and this is its title`,
-			"the title is the id and the card's summary",
+			"the title is the id and the task summary",
 		);
 		assert(
 			issues[0].state === "closed" && issues[0].state_reason === "completed",
@@ -110,11 +110,11 @@ export async function migrateScenarios(ctx) {
 		);
 		assert(
 			issues[0].body.includes("this paragraph is what the issue carries"),
-			"the body quotes the card's paragraph",
+			"the body quotes the task's paragraph",
 		);
 		assert(
-			issues[0].body.includes("Archived plan:"),
-			"the body points at the archived plan",
+			issues[0].body.includes("Archived task:"),
+			"the body points at the archived task",
 		);
 
 		const again = await ctx.spokenAsync(() => cmdTaskMigrate({ root: dir }));

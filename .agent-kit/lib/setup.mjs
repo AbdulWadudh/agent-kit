@@ -11,6 +11,7 @@ import {
 	writeSkillPointers,
 } from "./env.mjs";
 import { repoInfo } from "./github.mjs";
+import { installInvocation } from "./invoke/install.mjs";
 import {
 	abs,
 	copy,
@@ -24,7 +25,7 @@ import {
 	table,
 	write,
 } from "./io.mjs";
-import { isRemote, manifestOf, SEMVER } from "./manifest.mjs";
+import { isRemote, isTemplateOnly, manifestOf, SEMVER } from "./manifest.mjs";
 import { detectStack, projectMd, tasksSection } from "./project.mjs";
 import { activeTasks, ID_MODES, idsMode } from "./taskfile.mjs";
 
@@ -37,6 +38,7 @@ export function cmdSetup({
 	ref,
 	noRtk,
 	ids,
+	wire,
 	home,
 	pathEnv,
 }) {
@@ -63,6 +65,7 @@ export function cmdSetup({
 		sourceSpec,
 		ref,
 		noRtk,
+		wire,
 		mode,
 		home,
 		pathEnv,
@@ -145,6 +148,7 @@ function install({
 	sourceSpec,
 	ref,
 	noRtk,
+	wire,
 	mode,
 	home,
 	pathEnv,
@@ -156,9 +160,9 @@ function install({
 	const rows = [];
 	let copied = 0;
 	let kept = 0;
-
 	for (const entry of manifest.machinery) {
 		for (const rel of expand(src, entry)) {
+			if (isTemplateOnly(manifest, rel)) continue;
 			const to = abs(root, rel);
 			if (exists(to)) {
 				kept++;
@@ -186,7 +190,6 @@ function install({
 
 	fs.mkdirSync(abs(root, `${TASKS}/active`), { recursive: true });
 	fs.mkdirSync(abs(root, `${TASKS}/archive`), { recursive: true });
-	fs.mkdirSync(abs(root, ".agent-kit/logs"), { recursive: true });
 
 	if (!exists(abs(root, PROJECT))) {
 		write(abs(root, PROJECT), projectMd(detectStack(root), today, mode));
@@ -218,6 +221,7 @@ function install({
 	};
 	for (const entry of manifest.machinery) {
 		for (const rel of expand(src, entry)) {
+			if (isTemplateOnly(manifest, rel)) continue;
 			const h = hashFile(abs(src, rel));
 			if (h) next.machinery[rel] = h;
 		}
@@ -253,8 +257,19 @@ function install({
 
 	console.log("");
 	const found = detectHarnesses(root, home, pathEnv);
-	const wired = writeSkillPointers(root, found);
-	for (const line of harnessLines(found, wired)) console.log(line);
+	const invocation = installInvocation({ root, wire, found, home, pathEnv });
+	if (invocation.error) {
+		console.error(`agent-kit: ${invocation.error}`);
+		return 1;
+	}
+	const wired = writeSkillPointers(root, invocation.found);
+	const { procedures } = invocation;
+	for (const line of harnessLines(invocation.found, wired)) console.log(line);
+	if (procedures.length)
+		console.log(
+			`  Procedures: ${procedures.length} pointer(s) for /k79-commit, /k79-release, /k79-debug, /k79-spec`,
+		);
+	console.log("  Anywhere else: agent-kit prompt <k79-commit|k79-release|k79-debug|k79-spec>");
 	console.log(
 		"\n  Optional commit guard (off by default, per clone, bypassable):",
 		"\n    git config core.hooksPath .agent-kit/githooks",
@@ -262,9 +277,7 @@ function install({
 		"\n  on a message that is not `type (TASK-ID|PATCH-ID): summary` with a summary in the body.",
 		"\n  `task close` performs the scope check either way; the message rule is the session's.",
 	);
-	console.log(
-		"\nNext (the only work that needs judgement — ask the owner, do not invent):",
-	);
+	console.log("\nNext (the only work that needs judgement — ask the owner, do not invent):");
 	console.log(
 		"  1. AGENTS.md        every <!-- FILL:... --> / <PLACEHOLDER>, and rules 1-4:",
 	);
@@ -278,10 +291,8 @@ function install({
 		"  3. .agent-kit/docs/            ARCH_MAP, ENTRY_POINTS, API_SKELETON from the real tree;",
 	);
 	console.log(
-		"                      the full pass is .agent-kit/prompts/docs-populate.md",
+		"                      the full pass is .agent-kit/skills/k79-docs-populate.md",
 	);
-	console.log(
-		"\nThen: agent-kit doctor --strict   (must exit 0 before you call setup done)\n",
-	);
+	console.log("\nThen: agent-kit doctor --strict   (must exit 0 before you call setup done)\n");
 	return 0;
 }

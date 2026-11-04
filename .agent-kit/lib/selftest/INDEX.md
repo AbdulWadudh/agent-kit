@@ -21,3 +21,7 @@ owns the area, not at a 1,700-line script. Scenarios share one throwaway repo, s
 | `ids.mjs` | 35: local ids derive, a stale `.counter` is ignored, a collision renumbers, the mode is refused | the offline allocator is wrong |
 | `issue.mjs` | 36–37: issue ids over a stubbed API, a missing prerequisite | issue mode or the prerequisites row is wrong |
 | `micro.mjs` | 41: the micro lane — PATCH card, no build, no GitHub, release claim, guard | a micro gate drifts |
+| `structure.mjs` | 42: source cap, folder density, feature barrels, test mirror | code shape or test placement drifts |
+| `invoke.mjs` | 43: `prompt` output, `wire` pointers, `--check`, copied command | a procedure or harness pointer drifts |
+| `skills.mjs` | 44: build, check, project install, every source skill | a prompt-to-skill artifact drifts |
+| `guard.mjs` | 45: file cap, bulk warning, plan, strict message | the commit-shape gate drifts |

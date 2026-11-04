@@ -1,6 +1,6 @@
 /** selftest/tasks.mjs — the scope guard bites, and an in-scope close records and archives */
 import fs from "node:fs";
-import { LOG_DIR, PROJECT, TASK_INDEX, TASKS } from "../consts.mjs";
+import { LOG_DIR, PROJECT, TASKS } from "../consts.mjs";
 import { cmdDoctor } from "../doctor/index.mjs";
 import { cmdTaskGuard } from "../guard.mjs";
 import { abs, exists, expand, git, read, walk, write } from "../io.mjs";
@@ -92,18 +92,6 @@ export function scopeScenarios(ctx) {
 			"The plan names <!-- VERIFY:START --> in prose.\n\n## Plan",
 		),
 	);
-	// A pre-TASK-127 install carries a RECENT block in both indexes. The first close must retire
-	// it rather than leave a second copy of the newest closes that drifts from the cards.
-	const legacyRecent =
-		"\n## Recent\n\n<!-- RECENT:START -->\n- TASK-100 — an older close\n<!-- RECENT:END -->\n";
-	write(abs(tmp, TASK_INDEX), read(abs(tmp, TASK_INDEX)) + legacyRecent);
-	write(abs(tmp, `${LOG_DIR}/INDEX.md`), read(abs(tmp, `${LOG_DIR}/INDEX.md`)) + legacyRecent);
-	captured(() => cmdStart({ root: tmp }));
-	assert(
-		read(abs(tmp, TASK_INDEX)).includes("RECENT:START") &&
-			read(abs(tmp, `${LOG_DIR}/INDEX.md`)).includes("RECENT:START"),
-		"nothing but a close rewrites an index",
-	);
 	const before = quiet(() => cmdTaskClose({ root: tmp }));
 	assert(before === 0, "task close exits 0 when the write set holds");
 	assert(
@@ -126,56 +114,20 @@ export function scopeScenarios(ctx) {
 			archivedText.includes("## Plan"),
 		"a marker named in the plan's prose is not mistaken for the real block",
 	);
-	const changeRel = expand(tmp, LOG_DIR).find((rel) =>
-		/^\.agent-kit\/logs\/\d{2}-\d{4}\/.+\.md$/.test(rel),
-	);
 	assert(
-		/^\.agent-kit\/logs\/\d{2}-\d{4}\/\d{4}-\d{2}-\d{2}-TASK-101-[\w-]+\.md$/.test(
-			changeRel || "",
-		),
-		"the change is filed as logs/MM-YYYY/YYYY-MM-DD-TASK-ID-slug.md",
-	);
-	const changeText = read(abs(tmp, changeRel));
-	assert(
-		changeText.includes("# TASK-101 — fixture change") &&
-			changeText.includes("## What changed") &&
-			changeText.includes(
-				"The fixture changed one file, and the change file says so.",
-			),
-		"the file says what the task did",
-	);
-	assert(
-		changeText.includes("**Task:** [TASK-101](../../tasks/archive/") &&
-			!changeText.includes("**Date:**") &&
-			!changeText.includes("- `src/index.ts`") &&
-			changeText.includes("**Scope:** src"),
-		"the card links the task, keeps the date in the front matter, and lists no files",
-	);
-	assert(
-		!changeText.includes("## Why") &&
-			!changeText.includes("## Evidence") &&
-			!changeText.includes("## Follow-ups"),
-		"the plan's sections stay in the task; the change file does not copy them",
-	);
-	const taskIndexText = read(abs(tmp, TASK_INDEX));
-	const logsIndexText = read(abs(tmp, `${LOG_DIR}/INDEX.md`));
-	assert(
-		!taskIndexText.includes("RECENT:START") &&
-			!taskIndexText.includes("## Recent") &&
-			!logsIndexText.includes("RECENT:START") &&
-			!logsIndexText.includes("## Recent"),
-		"the close retires a legacy RECENT block and its heading from both indexes",
+		!expand(tmp, LOG_DIR).some((rel) => !rel.endsWith("INDEX.md")),
+		"a close writes no change card",
 	);
 	const started = captured(() => cmdStart({ root: tmp }));
 	assert(
 		started.includes("Recent") &&
 			started.includes("TASK-101") &&
 			started.includes("fixture change"),
-		"start derives the newest close from the card, not from an index",
+		"start derives the newest close from the archive, not from an index",
 	);
 	assert(
 		quiet(() => cmdDoctor({ root: tmp })) === 0,
-		"doctor accepts a closed task and its change file",
+		"doctor accepts a closed task",
 	);
 	const handArchived = abs(
 		tmp,
@@ -184,7 +136,7 @@ export function scopeScenarios(ctx) {
 	write(handArchived, "---\nid: TASK-999\nstatus: DONE\n---\n# hand closed\n");
 	assert(
 		quiet(() => cmdDoctor({ root: tmp })) === 1,
-		"doctor fails on an archived task with no change file",
+		"doctor fails on an archived task with no summary",
 	);
 	fs.rmSync(handArchived);
 	const archived =
@@ -217,12 +169,12 @@ export function redRunScenario(ctx) {
 		),
 	);
 	assert(
-		quiet(() => cmdVerify({ root: tmp, baseline: true })) === 1,
-		"the baseline run records the red state",
+		quiet(() => cmdVerify({ root: tmp })) === 1,
+		"the first red run records the red state",
 	);
 	assert(
-		read(taskP).includes("<!-- BASELINE:START -->"),
-		"baseline block written into the task",
+		read(taskP).includes("<!-- VERIFY:START -->"),
+		"verification block written into the task",
 	);
 	assert(
 		quiet(() => cmdTaskClose({ root: tmp })) === 1,

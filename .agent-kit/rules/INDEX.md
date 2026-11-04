@@ -12,6 +12,9 @@ matches.
 | Behaviour | `_behavior.md` | every session |
 | Repo memory | `learnings.md` | before planning anything |
 | Hallucination guards | `anti-patterns.md` | adding an import, endpoint or dependency |
+| Code structure | `code-structure.md` | creating, moving, renaming or splitting a file |
+| Verification | `verification.md` | writing or changing a test, or reporting a task done |
+| Errors and logging | `errors.md` | handling an error, adding a log, or crossing a boundary |
 | Commits | `commits.md` | before the first commit of a task |
 | Releases | `releases.md` | cutting a release, or proposing its version |
 

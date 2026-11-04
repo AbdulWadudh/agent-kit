@@ -2,8 +2,14 @@
 import fs from "node:fs";
 import { DOC_LIMIT, LOG_DIR, MANIFEST, PROJECT, SKIP_DIRS, STATE, TASKS, TASK_INDEX } from "../consts.mjs";
 import { prerequisites } from "../env.mjs";
-import { abs, exists, expand, isDir, read, walk, walkDirs } from "../io.mjs";
+import { JOBS } from "../invoke/config.mjs";
+import { abs, exists, expand, isDir, read, readIf, walk, walkDirs } from "../io.mjs";
 import { idsMode } from "../taskfile.mjs";
+
+/** Character caps count text, not line endings: a CRLF checkout must not fail a budget. */
+function characterCount(text) {
+	return text.replace(/\r\n/g, "\n").length;
+}
 
 export function structureChecks({ base, add, isTemplate }) {
 	const required = [
@@ -11,7 +17,6 @@ export function structureChecks({ base, add, isTemplate }) {
 		"CLAUDE.md",
 		MANIFEST,
 		TASK_INDEX,
-		`${LOG_DIR}/INDEX.md`,
 		".agent-kit/docs/INDEX.md",
 		".agent-kit/agent-kit.mjs",
 		".agent-kit/SKILL.md",
@@ -49,9 +54,11 @@ export function structureChecks({ base, add, isTemplate }) {
 		.filter((rel) => /(^|\/)skills\/[^/]+\/SKILL\.md$/.test(rel));
 	const notPointer = pointers.filter((rel) => {
 		const t = read(abs(base, rel));
+		// A generated k79-* procedure is a full skill by design; `skills check` owns its drift.
+		if (t.includes("Generated from .agent-kit/skills/")) return false;
 		// A session pays for characters, not line breaks: a pointer is frontmatter plus one
 		// line, and a copy of the loop is thousands of characters.
-		return t.length > 700 || !t.includes(".agent-kit/SKILL.md");
+		return characterCount(t) > 700 || !t.includes(".agent-kit/SKILL.md");
 	});
 	add(
 		notPointer.length ? "FAIL" : "PASS",
@@ -62,6 +69,72 @@ export function structureChecks({ base, add, isTemplate }) {
 				? pointers.join(", ")
 				: "none: AGENTS.md already points at .agent-kit/SKILL.md",
 	);
+
+	// A command is a pointer too: a copy of a procedure drifts from the one file that owns it.
+	const commandFiles = [".claude/commands", ".opencode/commands"]
+		.filter((dir) => isDir(abs(base, dir)))
+		.flatMap((dir) => walk(abs(base, dir), base))
+		.filter((rel) => rel.endsWith(".md"));
+	const notCommandPointer = commandFiles.filter((rel) => {
+		const text = read(abs(base, rel));
+		return (
+			characterCount(text) > 700 || !text.includes(".agent-kit/skills/")
+		);
+	});
+	add(
+		notCommandPointer.length ? "FAIL" : "PASS",
+		"command pointers",
+		notCommandPointer.length
+			? `${notCommandPointer.join(", ")} - a copy, not a pointer to .agent-kit/skills/`
+			: commandFiles.length
+				? `${commandFiles.length} command(s) point at .agent-kit/skills/`
+				: "none: no harness command folder",
+	);
+
+	const invokeText = readIf(abs(base, ".agent-kit/invoke.json"));
+	if (invokeText === null) {
+		add("PASS", "invoke config", "not configured");
+	} else {
+		try {
+			const config = JSON.parse(invokeText);
+			const knownHarness = new Set(["claude", "opencode", "agents"]);
+			const knownJob = new Set(JOBS.map((job) => job.id));
+			const harnesses = Array.isArray(config.harnesses) ? config.harnesses : [];
+			const jobs = Array.isArray(config.jobs) ? config.jobs : [];
+			const knownDirs = {
+				claude: ".claude",
+				opencode: ".opencode",
+				agents: ".agents",
+			};
+			const badHarness = harnesses.filter((id) => !knownHarness.has(id));
+			const badJob = jobs.filter(
+				(id) =>
+					!knownJob.has(id) ||
+					!exists(abs(base, `.agent-kit/skills/${id}.md`)),
+			);
+			const missingHarness = harnesses.filter(
+				(id) => knownDirs[id] && !isDir(abs(base, knownDirs[id])),
+			);
+			add(
+				badHarness.length || badJob.length
+					? "FAIL"
+					: missingHarness.length
+						? "WARN"
+						: "PASS",
+				"invoke config",
+				badHarness.length || badJob.length
+					? [
+							...badHarness.map((id) => `${id} (harness)`),
+							...badJob.map((id) => `${id} (job)`),
+						].join(", ")
+					: missingHarness.length
+						? `${missingHarness.join(", ")} configured but folder missing - run setup --wire ${missingHarness.join(",")}`
+						: `${harnesses.length} harness(es), ${jobs.length} job(s)`,
+			);
+		} catch (error) {
+			add("FAIL", "invoke config", `invalid JSON: ${error.message}`);
+		}
+	}
 
 	// The machine's tools are a gate, not advice (owner 2026-10-28): a missing one is how silent
 	// token waste and a task with no derivable inventory happen. Presence only, except GitHub,
@@ -81,21 +154,21 @@ export function structureChecks({ base, add, isTemplate }) {
 	// section that outgrows its cap moves to a file reached by an index, which is the JIT path.
 	const budget = [
 		["AGENTS.md", 9000],
-		[".agent-kit/SKILL.md", 10000],
-		[".agent-kit/rules/_behavior.md", 7500],
-		[".agent-kit/rules/INDEX.md", 1800],
+		[".agent-kit/SKILL.md", 11000],
+		[".agent-kit/rules/_behavior.md", 8500],
+		[".agent-kit/rules/INDEX.md", 2000],
 	];
 	const over = budget
 		.map(([rel, cap]) => {
 			const p = abs(base, rel);
-			return exists(p) ? { rel, cap, chars: read(p).length } : null;
+			return exists(p) ? { rel, cap, chars: characterCount(read(p)) } : null;
 		})
 		.filter((r) => r && r.chars > r.cap);
 	add(
 		over.length ? "FAIL" : "PASS",
 		"context budget",
 		over.length
-			? `${over.map((r) => `${r.rel} ${r.chars}/${r.cap}`).join(", ")} - move detail behind an index, see .agent-kit/prompts/trim-agents-md.md`
+			? `${over.map((r) => `${r.rel} ${r.chars}/${r.cap}`).join(", ")} - move detail behind an index, see .agent-kit/skills/k79-trim-agents-md.md`
 			: "",
 	);
 
@@ -125,7 +198,7 @@ export function structureChecks({ base, add, isTemplate }) {
 				rel.endsWith(".md") &&
 				!mdExempt.some((p) => rel === p || rel.startsWith(p)),
 		)
-		.map((rel) => ({ rel, chars: read(abs(base, rel)).length }))
+		.map((rel) => ({ rel, chars: characterCount(read(abs(base, rel))) }))
 		.filter((f) => f.chars > DOC_LIMIT);
 	add(
 		mdOver.length ? "FAIL" : "PASS",

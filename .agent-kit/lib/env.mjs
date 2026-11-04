@@ -114,16 +114,18 @@ export function prerequisites(root, { issue = false } = {}) {
  * a target with no harness files can still be driven by several of them. This is a report,
  * not a gate — a machine without one is advice, not a broken repo.
  *
- * `home` and `repo` are markers, `bin` is a PATH name. `skill` is the in-repo pointer the
- * harness discovers on its own; add one only where the folder convention is known.
+ * `home` and `repo` are markers, `bin` is a PATH name. `skill` and `commands` are the in-repo
+ * folders the harness discovers on its own; add them only where the convention is known.
  */
 export const HARNESSES = [
 	{
 		name: "Claude Code",
+		id: "claude",
 		home: [".claude"],
 		bin: ["claude"],
 		repo: [".claude"],
 		skill: ".claude/skills/agent-kit/SKILL.md",
+		commands: ".claude/commands",
 	},
 	{ name: "Codex CLI", home: [".codex"], bin: ["codex"], repo: [".codex"] },
 	{ name: "Cursor", home: [".cursor"], bin: ["cursor"], repo: [".cursor"] },
@@ -147,10 +149,12 @@ export const HARNESSES = [
 	},
 	{
 		name: "OpenCode",
+		id: "opencode",
 		home: [".config/opencode", ".local/share/opencode"],
 		bin: ["opencode"],
 		repo: [".opencode", "opencode.json"],
 		skill: ".opencode/skills/agent-kit/SKILL.md",
+		commands: ".opencode/commands",
 	},
 	{ name: "Qoder", home: [".qoder"], repo: [".qoder"] },
 	{

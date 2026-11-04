@@ -71,8 +71,8 @@ export function loopScenarios(ctx) {
 	write(
 		loopTask,
 		read(loopTask).replace(
-			"\n## Baseline",
-			"\n**Next attempt** — isolate the fixture before rerunning.\n\n## Baseline",
+			"\n## Verification",
+			"\n**Next attempt** — isolate the fixture before rerunning.\n\n## Verification",
 		),
 	);
 	assert(
@@ -115,8 +115,13 @@ export function loopScenarios(ctx) {
 	);
 	const tierText = () => read(tierTask);
 	assert(
-		/^\| build \|.*\| full \|/m.test(tierText()),
-		"the baseline is a full run, so the milestone command is recorded",
+		!tierText().includes("## Baseline"),
+		"task open writes no baseline table",
+	);
+	assert(
+		quiet(() => cmdVerify({ root: tmp, full: true })) === 0 &&
+			/^\| build \|.*\| full \|/m.test(tierText()),
+		"verify --full records the milestone command",
 	);
 	assert(
 		doctorRow("declared commands").status === "PASS",

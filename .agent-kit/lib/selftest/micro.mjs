@@ -64,8 +64,8 @@ export async function microScenarios(ctx) {
 		const task = activeTasks(dir).find((t) => t.fm.lane === "MICRO");
 		assert(task?.fm.id === "PATCH-1", "the micro id is PATCH-1, allocated locally");
 		assert(
-			task.text.includes("| lint |") && !task.text.includes("| build |"),
-			"the baseline records the always-tier rows only",
+			!task.text.includes("## Baseline") && !task.text.includes("| lint |"),
+			"task open writes no baseline or evidence table",
 		);
 		const shown = captured(() => cmdTaskShow({ root: dir }));
 		assert(
@@ -98,18 +98,13 @@ export async function microScenarios(ctx) {
 				!/^\| build \|/m.test(archivedText),
 			"the archived micro task carries real evidence and no milestone row",
 		);
-		const card = expand(dir, LOG_DIR).find(
-			(rel) => /PATCH-1/.test(rel) && !rel.endsWith("INDEX.md"),
-		);
-		assert(!!card, "the micro close wrote a PATCH card");
-		const cardText = card ? read(abs(dir, card)) : "";
 		assert(
-			/^id: PATCH-1$/m.test(cardText) &&
-				cardText.includes("## What changed") &&
-				/^\*\*Task:\*\* \[PATCH-1\]\(\.\.\/\.\.\/tasks\/archive\//m.test(
-					cardText,
-				),
-			"the close writes the normal card under PATCH-1, linked to the archive",
+			!expand(dir, LOG_DIR).some((rel) => !rel.endsWith("INDEX.md")),
+			"the micro close writes no change card",
+		);
+		assert(
+			/^\*\*Summary\*\* —/m.test(archivedText),
+			"the archived micro task carries its outcome",
 		);
 		assert(spy.calls.length === 0, "micro open and close make no GitHub call");
 
@@ -123,7 +118,7 @@ export async function microScenarios(ctx) {
 		);
 		assert(
 			row(ctx, dir, "micro closes").status === "PASS",
-			"a closed micro task has a card and an evidence row",
+			"a closed micro task has an outcome and an evidence row",
 		);
 		const archivedPath = abs(dir, archived || `${TASKS}/archive/missing.md`);
 		write(
@@ -143,7 +138,9 @@ export async function microScenarios(ctx) {
 			write(abs(dir, "msg.txt"), text);
 			return spoken(() => cmdTaskGuard({ root: dir, message: abs(dir, "msg.txt") }));
 		};
-		const accepted = guard("fix (PATCH-1): one line\n\nPATCH-1 — fix one line\n");
+		const accepted = guard(
+			"fix (PATCH-1): one line\n\nWhy:\n- one line\n\nWhat:\n- patch\n\nVerification:\n- node test\n",
+		);
 		assert(accepted.code === 0 && !accepted.out, "the guard accepts a PATCH subject");
 		const noId = guard("update the guard\n\nsummary\n");
 		assert(
@@ -152,7 +149,9 @@ export async function microScenarios(ctx) {
 		);
 		const fakeRel = `${TASKS}/archive/2026-10/2099-01-01-PATCH-7-guard.md`;
 		write(abs(dir, fakeRel), "---\nid: PATCH-7\nlane: MICRO\nstatus: DONE\n---\n# PATCH-7\n");
-		const seventh = guard("fix (PATCH-7): one line\n\nPATCH-7 — one line\n");
+		const seventh = guard(
+			"fix (PATCH-7): one line\n\nWhy:\n- one line\n\nWhat:\n- patch\n\nVerification:\n- node test\n",
+		);
 		assert(seventh.code === 0 && !seventh.out, "the guard accepts fix (PATCH-7): ...");
 		for (const p of ["msg.txt", fakeRel]) fs.rmSync(abs(dir, p));
 
@@ -184,13 +183,13 @@ export async function microScenarios(ctx) {
 		const note = exists(notePath) ? read(notePath) : "";
 		assert(
 			note.includes("PATCH-1") && !note.includes("/issues/"),
-			"a PATCH card is claimed without an issue lookup",
+			"a PATCH task is claimed without an issue lookup",
 		);
 		assert(
 			quiet(() =>
 				cmdRelease({ root: dir, version: "v0.0.2", noVerify: true }),
 			) === 1,
-			"a second release does not repeat the PATCH card",
+			"a second release does not repeat the PATCH task",
 		);
 		git(dir, ["add", "-A"]);
 		git(dir, ["commit", "-qm", "release note"]);
@@ -271,8 +270,8 @@ export async function microScenarios(ctx) {
 			"micro close in ids: issue never reaches GitHub",
 		);
 		assert(
-			expand(dir, LOG_DIR).some((rel) => /PATCH-1/.test(rel)),
-			"the issue-id repo still gets its PATCH card",
+			expand(dir, `${TASKS}/archive`).some((rel) => /PATCH-1/.test(rel)),
+			"the issue-id repo still archives PATCH-1",
 		);
 		assert(
 			quiet(() =>
@@ -281,8 +280,8 @@ export async function microScenarios(ctx) {
 			"hotfix opens, verifies and closes one micro fix",
 		);
 		assert(
-			expand(dir, LOG_DIR).some((rel) => /PATCH-2/.test(rel)),
-			"hotfix writes the same PATCH card the three commands write",
+			expand(dir, `${TASKS}/archive`).some((rel) => /PATCH-2/.test(rel)),
+			"hotfix writes the same PATCH record the three commands write",
 		);
 	} finally {
 		issueSpy.restore();

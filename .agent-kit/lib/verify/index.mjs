@@ -21,14 +21,13 @@ import {
 	productHash,
 } from "./evidence.mjs";
 
-export function cmdVerify({ root, baseline, full }) {
+export function cmdVerify({ root, full }) {
 	const base = path.resolve(root || process.cwd());
 	const declared = sectionRows(readIf(abs(base, PROJECT)) || "");
 	const all = declared.filter(([a]) =>
 		["build", "typecheck", "lint", "test"].includes(a),
 	);
-	// A bare `--baseline` still means the full suite; only the caller can ask for a quick one.
-	const fullRun = full === undefined ? !!baseline : !!full;
+	const fullRun = !!full;
 	const runnable = fullRun
 		? all
 		: all.filter(([, , when]) => when === "always");
@@ -57,7 +56,6 @@ export function cmdVerify({ root, baseline, full }) {
 	// A loop is not another attempt: the same red set over the same diff needs a new plan.
 	if (
 		target &&
-		!baseline &&
 		priorLoop &&
 		priorLoop.n >= LOOP_LIMIT &&
 		priorLoop.plan === planHash &&
@@ -109,30 +107,23 @@ export function cmdVerify({ root, baseline, full }) {
 	}
 
 	if (target) {
-		const name = baseline ? "BASELINE" : "VERIFY";
-		let marker = "";
-		let attempts = 0;
-		if (!baseline) {
-			const failKey = now
-				.filter((r) => r.exit !== 0)
-				.map((r) => r.action)
-				.sort()
-				.join(",");
-			const same =
-				priorLoop &&
-				priorLoop.plan === planHash &&
-				priorLoop.diff === diffHash &&
-				priorLoop.fail === failKey;
-			attempts = failKey ? (same ? (priorLoop.n || 0) + 1 : 1) : 0;
-			marker = `\n<!-- LOOP ${JSON.stringify({ n: attempts, fail: failKey, diff: diffHash, plan: planHash })} -->`;
-		}
-		const rows = baseline
-			? evidence
-			: mergeEvidence(
-					all.map(([action]) => action),
-					before,
-					evidence,
-				);
+		const failKey = now
+			.filter((r) => r.exit !== 0)
+			.map((r) => r.action)
+			.sort()
+			.join(",");
+		const same =
+			priorLoop &&
+			priorLoop.plan === planHash &&
+			priorLoop.diff === diffHash &&
+			priorLoop.fail === failKey;
+		const attempts = failKey ? (same ? (priorLoop.n || 0) + 1 : 1) : 0;
+		const marker = `\n<!-- LOOP ${JSON.stringify({ n: attempts, fail: failKey, diff: diffHash, plan: planHash })} -->`;
+		const rows = mergeEvidence(
+			all.map(([action]) => action),
+			before,
+			evidence,
+		);
 		const body =
 			[
 				"| Action | Command | Scope | Expected | Observed | Exit |",
@@ -142,9 +133,9 @@ export function cmdVerify({ root, baseline, full }) {
 						`| ${row.action} | \`${row.command}\` | ${row.scope} | exit 0 | exit ${row.exit} | ${row.exit} |`,
 				),
 			].join("\n") + marker;
-		write(target, block(read(target), name, body));
+		write(target, block(read(target), "VERIFY", body));
 		console.log(
-			`\nRecorded in ${TASKS}/active/${path.basename(target)} (${baseline ? "baseline" : "verification"})`,
+			`\nRecorded in ${TASKS}/active/${path.basename(target)} (verification)`,
 		);
 		if (attempts >= LOOP_LIMIT) {
 			console.log(
@@ -159,7 +150,7 @@ export function cmdVerify({ root, baseline, full }) {
 
 	if (!fullRun && all.length > runnable.length) {
 		console.log(
-			`\nQuick suite: ${all.length - runnable.length} milestone command(s) held for the baseline, \`verify --full\` or close.`,
+			`\nQuick suite: ${all.length - runnable.length} milestone command(s) held for \`verify --full\` or close.`,
 		);
 	}
 

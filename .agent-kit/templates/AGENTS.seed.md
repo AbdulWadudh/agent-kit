@@ -13,18 +13,19 @@ You are working in <PROJECT NAME>. Read this file once per session, then follow 
 ## Start here, in order
 
 1. `.agent-kit/SKILL.md` — the work loop: classify, open, gate, verify, close, report. Follow its order.
-2. `.agent-kit/project.md` — stack, commands, entry points, generated directories. Cite it; never restate it.
-3. `.agent-kit/tasks/INDEX.md` — resume the active task, or open a new one.
-4. `.agent-kit/rules/INDEX.md` — load only the rule files matching what you will touch.
-5. `.agent-kit/docs/INDEX.md` — find where the logic lives before searching the tree.
-6. Any other directory you open has an `INDEX.md`: read that first, then the one file it names.
+2. A lone `k79-commit`/`k79-release`/`k79-debug`/`k79-spec` means run `agent-kit prompt <id>`.
+3. `.agent-kit/project.md` — stack, commands, entry points, generated directories. Cite it; never restate it.
+4. `.agent-kit/tasks/INDEX.md` — resume the active task, or open a new one.
+5. `.agent-kit/rules/INDEX.md` — load only the rule files matching what you will touch.
+6. `.agent-kit/docs/INDEX.md` — find where the logic lives before searching the tree.
+7. Any other directory you open has an `INDEX.md`: read that first, then the one file it names.
 
 ## Boundary protocol
 
 **Always**
 - Read before writing. Keep every edit inside the task's declared `touches`.
-- Run `agent-kit verify` before and after edits; it is the quick suite. The full one runs at the
-  baseline and at `task close`. Evidence goes in the task file; memory does not count.
+- Run `agent-kit verify` before and after edits; it is the quick suite. The full one runs at
+  `task close`. Evidence goes in the task file; memory does not count.
 - Take the smallest complete change: reuse what exists, delete before adding, no speculative abstraction.
 
 **Ask first**
@@ -37,7 +38,7 @@ You are working in <PROJECT NAME>. Read this file once per session, then follow 
 - Close a task with edits it does not record.
 - Commit as the session. Git's configured identity is the author — never `-c user.name`, never
   `-c user.email`, never a name from the conversation — and no `Co-Authored-By`, "Generated with",
-  or any other AI attribution in a commit, PR or changelog. It is `.agent-kit/rules/commits.md`.
+  or any other AI attribution in a commit, PR or release note. It is `.agent-kit/rules/commits.md`.
 - Hand the user a command to run. Execute it, then report the result in one or two lines. If this
   environment cannot execute it, say so and stop — never hand over a script, and never claim the
   step passed.
@@ -65,7 +66,7 @@ A request that arrives while a task is open goes in its `## Queue` and becomes i
 that. Work too big for one sitting splits the same way. A subtask closes on the quick suite:
 `task close` marks it DONE and keeps it in `active/`. The main task's close is the milestone —
 it refuses while a subtask is open, runs the full suite, and build failures are fixed right
-there before it closes; green, it archives the family under one change file.
+there before it closes; green, it archives the family under the main task.
 
 ---
 
@@ -79,14 +80,14 @@ there before it closes; green, it archives the family under one change file.
 | `doctor` | truth checks over docs, declarations and tasks; `--strict` also fails unfilled markers; `--fix` repairs encoding; `--json` for CI |
 | `harnesses` | list the coding agents installed here (HOME, PATH, repo); a report, not a gate |
 | `start` | read-only session brief: branch, commands and tiers, five newest closes, active tasks, gate, last evidence, stale state, next action |
-| `task new <slug> --lane micro\|quick\|planned [--summary "<one clause>"] [--intent "<paragraph>"] [--parent TASK-N] [--from <issue>]` | open a task **and record the baseline run** — full, or always-tier for `--lane micro` (`--no-baseline` skips it); `--summary` titles the card and, in `ids: issue`, the issue; `--intent` seeds Intent and the issue body; `--parent` opens `TASK-N.M` and queues the main task; in `ids: issue` it mints the issue, and `--from` imports one. `--lane micro` is a top-level `PATCH-N` task: no issue, no G1/G2 |
+| `task new <slug> --lane micro\|quick\|planned [--summary "<one clause>"] [--intent "<paragraph>"] [--parent TASK-N] [--from <issue>]` | open a task and record the baseline commit; `--summary` titles the task and, in `ids: issue`, the issue; `--intent` seeds Intent and the issue body; `--parent` opens `TASK-N.M` and queues the main task; in `ids: issue` it mints the issue, and `--from` imports one. `--lane micro` is a top-level `PATCH-N` task: no issue, no G1/G2 |
 | `task show` | print the active task's scope, plan and evidence — what G1/G2 asks a human to read |
 | `task publish [--id TASK-N]` | issue ids only: send the approved plan to its issue (front matter stays in the repo) |
 | `task migrate [--dry-run]` | backfill: one **closed** issue per archived task, titled `TASK-N — summary` with the card's paragraph, for a repo that ran on local ids first; a second run adds nothing |
 | `task renumber <old> <new> \| <old> --next [--file <name>]` | local ids only: move an id after a collision, rewriting the file name, a parent's children and every `depends_on`; `--file` picks one of two same-id files |
 | `task block "<question>"` | park the in-progress task on an owner decision; the question waits in the file and the slot frees |
 | `task resume [<id>]` | continue a blocked task; pass the id when more than one is waiting |
-| `task close` | a micro task runs the always-tier commands, scope-checks and writes a `PATCH-N` card; a subtask runs the **quick** suite and stays DONE in `active/`; the main task refuses while a subtask is open, runs the **full** suite, scope-checks against git (its write set plus every subtask's), archives the family, writes one card under `.agent-kit/logs/MM-YYYY/`, and prints the commit message; `--pr` adds a PR body; `--amend "<why>"` accepts a breach; `--no-verify` when the suite cannot run; `--sync` (issue ids) closes the issue after the local close |
+| `task close` | a micro task runs the always-tier commands and scope-checks; a subtask runs the **quick** suite and stays DONE in `active/`; the main task refuses while a subtask is open, runs the **full** suite, scope-checks against git (its write set plus every subtask's), archives the family, and prints the commit message; `--pr` adds a PR body; `--amend "<why>"` accepts a breach; `--no-verify` when the suite cannot run; `--sync` (issue ids) closes the issue after the local close |
 | `hotfix "<summary>" --files <a,b>` | one micro fix as open + verify + close, printing the commit message; no auto-commit and no new state |
 | `release <version>` | write `.agent-kit/releases/<version>.md` from the cards no earlier release claims; `verify --full` runs first and a red suite refuses the cut (`--no-verify` is the deliberate cut); `--tag <version>` makes the annotated tag whose message is the note |
 | `verify` | the inner loop: runs the `always` rows and writes the evidence table; `--full` adds the `milestone` rows; at three identical red runs it refuses until the Plan changes |

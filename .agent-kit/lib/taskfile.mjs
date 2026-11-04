@@ -1,6 +1,6 @@
 /** taskfile.mjs — task state: active tasks, ids, the index block */
 import fs from "node:fs";
-import { LOG_DIR, PROJECT, TASK_INDEX, TASKS } from "./consts.mjs";
+import { PROJECT, TASK_INDEX, TASKS } from "./consts.mjs";
 import {
 	abs,
 	block,
@@ -25,8 +25,8 @@ export function slugify(s) {
 }
 
 export const ID_MODES = new Set(["local", "issue"]);
-// A task file's lane decides the ceremony, not the record: every lane writes a task file and
-// one change card. MICRO is the hotfix lane.
+// A task file's lane decides the ceremony, not the record: every lane writes one task file.
+// MICRO is the hotfix lane.
 export const LANES = new Set(["QUICK", "PLANNED", "MICRO"]);
 // Ids start at 101 so the template, its examples and every install so far keep their numbers.
 export const ID_FLOOR = 100;
@@ -50,13 +50,12 @@ export function idsMode(root) {
 	return null;
 }
 
-/** Every id the repo already carries: task files, then the change cards a close wrote. */
+/** Every id the repo already carries: active and archived task files. */
 export function usedIds(root) {
 	const out = [];
 	for (const rel of [
 		...expand(root, `${TASKS}/active`),
 		...expand(root, `${TASKS}/archive`),
-		...expand(root, LOG_DIR),
 	]) {
 		if (!rel.endsWith(".md")) continue;
 		const id = frontMatter(read(abs(root, rel))).id;
@@ -107,6 +106,22 @@ export function activeTasks(root) {
 			const text = read(p);
 			return { file: f, path: p, text, fm: frontMatter(text) };
 		});
+}
+
+/** Every closed top-level task, newest first. The task is the release record. */
+export function archivedTasks(root) {
+	return expand(root, `${TASKS}/archive`)
+		.filter((rel) => rel.endsWith(".md"))
+		.map((rel) => {
+			const text = read(abs(root, rel));
+			return { rel, text, fm: frontMatter(text) };
+		})
+		.filter((task) => task.fm.id && !CHILD_ID.test(task.fm.id))
+		.sort((a, b) =>
+			`${b.fm.closed || b.fm.created || ""}\u0000${b.rel}`.localeCompare(
+				`${a.fm.closed || a.fm.created || ""}\u0000${a.rel}`,
+			),
+		);
 }
 
 export const CHILD_ID = /^TASK-\d+\.\d+$/;
@@ -229,7 +244,7 @@ export function closeOutField(text, name) {
 	return m ? m[1].trim() : "";
 }
 
-/** The commit subject and body a close prints: the change file's wording, or the summary. */
+/** The commit subject and body a close prints: the task's summary paragraph, or the title. */
 export function closingNote(text, fm, type) {
 	const note = closeOutField(text, "Summary") || closeOutField(text, "Outcome");
 	const notes = note && !/<!--/.test(note) ? note : fm.summary;

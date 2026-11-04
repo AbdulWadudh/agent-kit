@@ -8,7 +8,8 @@ Cross-cutting rules. They apply to every task, every file, every agent.
 
 ## 1. Evidence, not memory
 
-- `task new` records the baseline run. A red baseline is reported, never worked over.
+- `task new` records the baseline commit. The first `verify` records what is red; a failure
+  already present is reported, never worked over.
 - `task close` runs the suite itself and refuses a red result. What the session remembers is
   not a result; an exit code is.
 - `task close` derives the changed files from git. What the session remembers is not an
@@ -17,6 +18,7 @@ Cross-cutting rules. They apply to every task, every file, every agent.
 - A claim names its source or it is not one: code → `path:line`; behaviour → the command and
   its exit code; the owner's intent → their words. Without a source, write `Assumption:` in
   front of it and verify it before it drives a change.
+- Two conflicting interpretations of a requirement are one direct question, not a guess.
 - A proposal carries an example: the file, the command, or the case it changes. "It will be
   cleaner" is not a proposal.
 - A commit outside the declared write set is not refused by the repo — `.agent-kit/githooks/pre-commit`
@@ -40,11 +42,12 @@ decide when to split one file, not to bound what a session reads: past the cap, 
 folder and its functions split by area, never one file per function.
 
 A reference Markdown file has a 12,000-character ceiling (`DOC_LIMIT`): past it, the file becomes
-a folder with an `INDEX.md` and one file per section. Records — `tasks/`, `logs/`, `releases/`,
+a folder with an `INDEX.md` and one file per section. Records - `tasks/`, `releases/`,
 `learnings.md`, `BACKLOG.md` — are exempt; they are the state, not a page read for guidance.
 
 A session pays for `AGENTS.md`, `.agent-kit/SKILL.md`, `.agent-kit/rules/INDEX.md` and this file
-before it plans anything, so those four are the budget and `doctor` fails a file past its cap. A
+before it plans anything, so those four are the budget and `doctor` fails a file past its cap.
+A skill names the rules it obeys; read a named rule only when it is not already in the session. A
 new capability earns a file behind an index; it does not earn a paragraph in front of one.
 
 ## 3. Plans contain no code, task files contain no narrative
@@ -106,6 +109,17 @@ Rewriting the same file four times means the problem was not understood: stop an
 Never simplify away validation at a trust boundary, error handling, security, accessibility,
 or anything the owner asked for.
 
+**Rule of 2+.** Two places with identical setup, auth, pagination or mapping logic, where only the
+inputs vary, become one verb-named function. One use stays inline.
+
+**No speculative abstraction.** No class, factory or plugin wrapper for one implementation, and no
+file extracted "for later". Touch the minimum lines; never refactor unrelated working code in the
+same change.
+
+**Two-strike stop.** Two consecutive failed attempts on the same error end the guessing: stop
+editing, revert the experiments, and report the exact error, what the attempts proved, the
+root-cause hypothesis, and two options. No third blind attempt.
+
 ## 9. Talk to the owner in their language
 
 The user is the product owner; the agent is the dev. Report outcomes first, in plain
@@ -130,6 +144,8 @@ identity, attribution, split, staging, subject, body and hooks live there, not h
   at most three questions in one message, each with options and a recommendation. No plan
   before the answer.
 - Flag a gap in the spec when you see it, not when you hit it.
+- A contract change — interface, schema, migration, dependency, ownership — is PLANNED: the plan
+  carries its acceptance criteria before the first edit.
 - Raise only what changes the work. No speculative features, no options that cost the same
   later.
 - Once the owner decides, record it and do not re-open it.

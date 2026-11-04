@@ -4,11 +4,13 @@ import { SCRIPT_ROOT } from "./consts.mjs";
 import { cmdDoctor } from "./doctor/index.mjs";
 import { cmdHarnesses } from "./env.mjs";
 import { cmdTaskGuard } from "./guard.mjs";
+import { cmdPrompt } from "./invoke/prompt.mjs";
+import { cmdWire } from "./invoke/pointers.mjs";
 import { die, read } from "./io.mjs";
 import { cmdLearningsArchive } from "./learnings.mjs";
 import { sourceFor } from "./manifest.mjs";
 import { cmdRelease } from "./release.mjs";
-import { cmdSelftest } from "./selftest/index.mjs";
+import { cmdSkills } from "./skills.mjs";
 import { cmdSetup } from "./setup.mjs";
 import { cmdCheck, cmdPull } from "./sync.mjs";
 import {
@@ -54,6 +56,7 @@ export function main(argv) {
 				ref: src.ref,
 				noRtk: flag("no-rtk"),
 				ids: value("ids"),
+				wire: value("wire"),
 			});
 		}
 		case "check": {
@@ -91,11 +94,38 @@ export function main(argv) {
 		case "verify":
 			return cmdVerify({
 				root: process.cwd(),
-				baseline: flag("baseline"),
 				full: flag("full") ? true : undefined,
 			});
 		case "harnesses":
 			return cmdHarnesses({ root: process.cwd() });
+		case "guard": {
+			if (args[1] !== "plan") return die("usage: guard plan");
+			return cmdTaskGuard({ root: process.cwd(), plan: true });
+		}
+		case "prompt":
+			return cmdPrompt({
+				root: process.cwd(),
+				job: positional[0],
+				list: flag("list"),
+			});
+		case "wire":
+			return cmdWire({
+				root: process.cwd(),
+				check: flag("check"),
+				jobs: value("jobs"),
+			});
+		case "skills": {
+			const action = args[1] || "build";
+			if (!["build", "check", "install"].includes(action)) {
+				return die("usage: skills build|check|install [--out <dir>] [--check]");
+			}
+			return cmdSkills({
+				root: process.cwd(),
+				action,
+				out: value("out"),
+				verify: action === "install" && flag("check"),
+			});
+		}
 		case "task": {
 			const sub = args[1];
 			if (sub === "new")
@@ -173,7 +203,21 @@ export function main(argv) {
 				noVerify: flag("no-verify"),
 			});
 		case "selftest":
-			return cmdSelftest(main);
+			// Template-only: a target install does not ship this folder.
+			return import("./selftest/index.mjs")
+				.then(({ cmdSelftest }) => cmdSelftest(main))
+				.catch((error) => {
+					if (
+						error?.code === "ERR_MODULE_NOT_FOUND" ||
+						/Cannot find module/.test(String(error))
+					) {
+						console.error(
+							"agent-kit: selftest is a template-only command; this install does not ship it.",
+						);
+						return 1;
+					}
+					throw error;
+				});
 		case "help":
 		case undefined: {
 			const text = read(
@@ -184,7 +228,7 @@ export function main(argv) {
 		}
 		default:
 			return die(
-				`unknown command: ${cmd} (setup|check|pull|doctor|start|verify|harnesses|task|learnings|release|selftest)`,
+				`unknown command: ${cmd} (setup|check|pull|doctor|start|verify|harnesses|prompt|wire|task|learnings|release|selftest)`,
 			);
 	}
 }

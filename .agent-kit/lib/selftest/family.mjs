@@ -66,8 +66,8 @@ export function familyScenarios(ctx) {
 		"the subtask is DONE and still in active/",
 	);
 	assert(
-		!expand(tmp, LOG_DIR).some((rel) => rel.includes(`${childId}-`)),
-		"the subtask writes no change file",
+		!expand(tmp, LOG_DIR).some((rel) => !rel.endsWith("INDEX.md")),
+		"the subtask writes no change card",
 	);
 	assert(
 		frontMatter(read(mainTask)).status === "IN_PROGRESS",
@@ -98,12 +98,11 @@ export function familyScenarios(ctx) {
 		"the done subtask archives with the main task",
 	);
 	assert(
-		expand(tmp, LOG_DIR).filter((rel) => rel.includes(`-${mainId}-`)).length ===
-			1,
-		"one change file under the main id",
+		!expand(tmp, LOG_DIR).some((rel) => !rel.endsWith("INDEX.md")),
+		"the family writes no change card",
 	);
 	assert(
-		doctorRow("archived tasks changelogged").status === "PASS",
+		doctorRow("archived outcomes").status === "PASS",
 		"doctor accepts a subtask archived inside its main task",
 	);
 	assert(
@@ -111,7 +110,7 @@ export function familyScenarios(ctx) {
 		"the recent list names the main task, not its subtasks",
 	);
 	console.log(
-		"\n27. a family shares one write set, one archive and one change file",
+		"\n27. a family shares one write set and one archive",
 	);
 	git(tmp, ["add", "-A"]);
 	git(tmp, [
@@ -189,9 +188,8 @@ export function familyScenarios(ctx) {
 		"both subtasks archive with the main task",
 	);
 	assert(
-		expand(tmp, LOG_DIR).filter((rel) => rel.includes(`-${familyId}-`))
-			.length === 1,
-		"one change file for the whole delivery",
+		!expand(tmp, LOG_DIR).some((rel) => !rel.endsWith("INDEX.md")),
+		"the family writes no change card",
 	);
 	assert(
 		doctorRow("subtasks").status === "PASS",

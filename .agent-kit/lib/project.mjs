@@ -1,5 +1,5 @@
 /** project.mjs — stack detection and the project.md render */
-import { abs, exists, json, posix, read, readIf } from "./io.mjs";
+import { abs, exists, isDir, json, posix, read, readIf } from "./io.mjs";
 
 // ---------------------------------------------------------------- stack detection
 
@@ -11,6 +11,8 @@ export function detectStack(root) {
 		commands: {},
 		entry: [],
 		generated: [],
+		sources: [],
+		tests: [],
 		notes: [],
 	};
 	const pkg = json(abs(root, "package.json"));
@@ -131,6 +133,13 @@ export function detectStack(root) {
 		}
 	}
 
+	for (const d of ["src", "app", "lib", "packages", "apps", "cmd", "internal", "pkg"]) {
+		if (isDir(abs(root, d))) out.sources.push(d);
+	}
+	for (const d of ["tests", "test", "__tests__"]) {
+		if (isDir(abs(root, d))) out.tests.push(d);
+	}
+
 	for (const d of [
 		"node_modules",
 		"dist",
@@ -159,7 +168,7 @@ export function tasksSection(mode) {
 		"## Tasks",
 		"",
 		"Who allocates a task id. `local` derives the next number from this repo's own task",
-		"files and change cards; `issue` takes the GitHub issue number, so two sessions on two",
+		"files; `issue` takes the GitHub issue number, so two sessions on two",
 		"clones cannot mint the same id. `task renumber` moves a local id; it refuses in issue mode.",
 		"",
 		"| Fact | Value |",
@@ -214,7 +223,20 @@ export function projectMd(stack, today, mode = "local") {
 			? stack.entry.map((e) => `- ${e}`)
 			: ["<!-- FILL:entry-points -->"]),
 	);
-	lines.push("", "## Never edit (generated)", "");
+	lines.push("", "## Source roots", "");
+	lines.push(
+		...(stack.sources.length
+			? stack.sources.map((s) => `- \`${s}\``)
+			: ["- none detected"]),
+	);
+	lines.push("", "## Test roots", "");
+	lines.push(
+		...(stack.tests.length
+			? stack.tests.map((t) => `- \`${t}\``)
+			: ["- none detected"]),
+	);
+	lines.push("", "## Structure exceptions", "", "- none", "");
+	lines.push("## Never edit (generated)", "");
 	lines.push(
 		stack.generated.length
 			? stack.generated.map((g) => `- ${g}/`).join("\n")

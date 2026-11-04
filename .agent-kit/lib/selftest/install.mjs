@@ -104,14 +104,14 @@ export function installScenarios(ctx) {
 		"doctor fails an install path outside .agent-kit",
 	);
 	write(manifestP, manifestText);
-	const logsIndex = abs(tmp, ".agent-kit/logs/INDEX.md");
-	const logsIndexText = read(logsIndex);
-	fs.rmSync(logsIndex);
+	const skillsIndex = abs(tmp, ".agent-kit/skills/INDEX.md");
+	const skillsIndexText = read(skillsIndex);
+	fs.rmSync(skillsIndex);
 	assert(
 		quiet(() => cmdDoctor({ root: tmp })) === 1,
 		"doctor fails a directory without its INDEX.md",
 	);
-	write(logsIndex, logsIndexText);
+	write(skillsIndex, skillsIndexText);
 	const withoutLib = JSON.parse(manifestText);
 	withoutLib.machinery = withoutLib.machinery.filter(
 		(m) => m !== ".agent-kit/lib",

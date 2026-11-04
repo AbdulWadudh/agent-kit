@@ -29,8 +29,8 @@ the one task it names; not the folders.
 The id source is one row in `.agent-kit/project.md` (`| ids | local |`), written by
 `setup --ids`. Never invent an id: `task new` asks the allocator.
 
-- **`local`** — the next number after the highest one on disk (`tasks/active/`, `tasks/archive/`
-  and the change cards), floor `TASK-100`. Fully offline. Two branches that took the same
+- **`local`** — the next number after the highest one on disk (`tasks/active/` and
+  `tasks/archive/`), floor `TASK-100`. Fully offline. Two branches that took the same
   number collide at merge; `task renumber TASK-N --next` moves the one that lost and rewrites
   its file name, its children and every `depends_on`.
 - **`issue`** — the id is the GitHub issue number: `task new` mints the issue, `--summary` is its
@@ -39,13 +39,13 @@ The id source is one row in `.agent-kit/project.md` (`| ids | local |`), written
   other path touches the network. A mint that lands on a number an archived task already carries
   refuses and names both.
 - **Backfill** — `task migrate` opens one closed issue per archived task, titled `TASK-N — summary`
-  and carrying the card's paragraph, so a repo that ran on local ids first shows its history on
+  and carrying the task's summary, so a repo that ran on local ids first shows its history on
   GitHub. Titles starting with an id are the match: a second run adds nothing.
-- **`PATCH-N`** — the micro lane's id: allocated from `active/`, `archive/` and the change cards,
-  never from GitHub. A micro fix mints no issue and behaves the same in `local` and `issue` mode.
+- **`PATCH-N`** — the micro lane's id: allocated from `active/` and `archive/`, never from
+  GitHub. A micro fix mints no issue and behaves the same in `local` and `issue` mode.
 
 `doctor`'s `task ids`, `task ids unique` and `task lanes` rows check the mode, the vocabulary,
-and one id per file and card.
+and one id per file.
 
 ## Subtasks
 
@@ -58,7 +58,7 @@ back in progress.
 
 The main close is the milestone: it refuses while a subtask is open, runs the full suite —
 build included — and errors found there are fixed at that moment, not deferred. Green,
-the family archives together under the main id: one change file, and the write set is the main
+the family archives together under the main id: one task record, and the write set is the main
 task's files plus every subtask's.
 
 ### Queue
@@ -78,7 +78,7 @@ recommendation; the default is the subtask.
 |---|---|---|
 | **Eligible when** | one file, reversible with `git revert`, one domain, no public interface, schema, dependency, env, security or `.agent-kit/` change | reversible with `git revert`, one domain, no contract change | everything else |
 | **G1 — plan** | none: the task file records intent and scope, then proceed | record intent in the task and proceed | **halt** for approval before the first edit |
-| **G2 — result** | none: `task close` typechecks, lints, scope-checks and writes the `PATCH-N` card | `task close` runs the full suite and closes (a subtask closes on the quick suite, lint included; its main task runs build) | **halt** for approval after the suite, before close |
+| **G2 — result** | none: `task close` typechecks, lints, scope-checks and archives the task | `task close` runs the full suite and closes (a subtask closes on the quick suite, lint included; its main task runs build) | **halt** for approval after the suite, before close |
 | **Typical** | hotfix, one-line guard | doc fix, a small bug fix, a test | feature, refactor, schema, interface change |
 
 ## Gates
@@ -87,7 +87,7 @@ recommendation; the default is the subtask.
   and proceeds, MICRO has neither. A halt means: stop, present, wait. Not "proceed and note it".
 - **Always halt, in every lane:** a destructive or irreversible action, a new dependency, a
   schema or migration change, deleting files outside the declared write set, or a red
-  verification baseline.
+  verification.
 - A rejection returns to the plan. An unapproved plan never reaches an edit.
 - An out-of-scope commit, or a message with no task and summary, is reported by the
   `.agent-kit/githooks/` hooks in clones that opted into them (`git config core.hooksPath .agent-kit/githooks`).
@@ -107,8 +107,7 @@ _Nothing in flight._
 
 ## History
 
-Closed tasks move to `.agent-kit/tasks/archive/YYYY-MM/`, and each leaves one change file in
-`.agent-kit/logs/MM-YYYY/` — a micro task's card carries its `PATCH-N` id. A DONE subtask waits
-in `active/` until its main task closes, then archives with it under the main task's single
-change file. `agent-kit start` prints the five newest closes; open anything older only when the
-user asks about it.
+Closed tasks move to `.agent-kit/tasks/archive/YYYY-MM/`; the archived task is the record and the
+release note is derived from it. A DONE subtask waits in `active/` until its main task closes,
+then archives with it under the main task. `agent-kit start` prints the five newest closes; open
+anything older only when the user asks about it.

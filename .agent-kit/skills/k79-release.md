@@ -1,0 +1,12 @@
+# Release
+
+Use `.agent-kit/rules/releases.md`. Read it only if it is not already in this session; do not re-read a loaded rule.
+
+1. Confirm the version. Major when an installed repo must edit a path or command it wired; minor for a new command, check or rule; patch for fixes and docs.
+2. Run `agent-kit verify --full`. A red suite stops the release; `--no-verify` is only for a deliberate cut the owner asked for.
+3. Run `agent-kit release vX.Y.Z`. It writes a note in `.agent-kit/releases/` from every change card no earlier release claims, and refuses an empty or duplicate version.
+4. Commit the note, then tag it: `agent-kit release --tag vX.Y.Z`. The tag message is the note, so `git show` and the GitHub page carry the same text.
+5. Push the tag. Create the GitHub release only when the owner asks: `gh release create vX.Y.Z --notes-file .agent-kit/releases/<version>.md`.
+6. Never move a tag. A fix is a new patch tag, because an install pinned to the old tag must keep building what it installed.
+
+If the release note has no tag, `doctor` warns; finish the tag before reporting the release as done.

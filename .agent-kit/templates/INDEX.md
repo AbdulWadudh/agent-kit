@@ -2,7 +2,7 @@
 
 **Why** — a target repo authors its own docs. This folder holds the blank shapes `setup` copies
 and one worked example per rule type, so no file has to be duplicated by hand. The long jobs an
-agent runs, such as filling those docs, live in `.agent-kit/prompts/`.
+agent runs, such as filling those docs, live in `.agent-kit/skills/`.
 
 **Load it when** — you are changing what an installed repo starts with, populating `.agent-kit/docs/`, or
 adding, changing or removing a rule.
@@ -46,7 +46,7 @@ in the conversation does not exist.
 4. **Enforce it where a command can.** A rule the kit ships is a template change and needs a
    check: a `doctor` row or a hook, plus a `selftest` case. A repo rule that a command can
    check gets that check in the repo's own suite, declared in `.agent-kit/project.md`. A repo
-   rule no command can check is still written; the change file says how it is reviewed.
+   rule no command can check is still written; the task says how it is reviewed.
 5. **Keep one home.** Moving or deleting a rule updates the row in the same change and leaves a
    pointer where the old text was. Two copies are one contradiction with a delay.
 

@@ -17,6 +17,13 @@ export function manifestOf(root) {
 	return m;
 }
 
+/** Files the template keeps for its own gates; a target install never receives them. */
+export function isTemplateOnly(manifest, rel) {
+	return (manifest.templateOnly || []).some(
+		(entry) => rel === entry || rel.startsWith(`${entry}/`),
+	);
+}
+
 export function sourceFor(root, override, refOverride) {
 	const state = json(abs(root, STATE));
 	const spec = override || state?.source;

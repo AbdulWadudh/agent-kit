@@ -5,7 +5,7 @@ Read when cutting a release — the owner names a version, or accepts one you pr
 ## Cut it
 
 `agent-kit release <version>` writes the note to `.agent-kit/releases/`, one file per version,
-from every change file under `.agent-kit/logs/` that no earlier release claims. It prints the
+from every archived task that no earlier release claims. It prints the
 `gh release create --notes-file` line. It refuses a version that already exists, and a version with
 nothing new. Before it writes, it runs `verify --full` and refuses a red suite; `--no-verify` is
 only for a deliberate cut. Build proof happens once per version, so a micro fix never pays for
@@ -13,12 +13,12 @@ it.
 
 The file it writes: `# Release vX.Y.Z`, the date, then `### Added`, `### Changed`, `### Fixed` and
 `### Removed`. Each task is its summary in bold with the commit that shipped it
-(`TASK-127 · 544f2dc`), then the card's `## What changed` paragraph, so the note reads as prose and
-points at the code. The commit comes from `git log` on the card, so the card must be committed
-before the note is cut; the command names any that are not. A `RELEASED` block names the tasks it
-claims — it is what the next release reads, so deleting an id from it ships that task a second time.
-`PATCH-N` cards batch with `TASK-N` cards under the same version and are claimed exactly once,
-so a second release never repeats one.
+(`TASK-127 · 544f2dc`), then the task's `**Summary**` paragraph, so the note reads as prose and
+points at the code. The commit comes from `git log` on the archived task, so the task must be
+committed before the note is cut; the command names any that are not. A `RELEASED` block names the
+tasks it claims — it is what the next release reads, so deleting an id from it ships that task a
+second time. `PATCH-N` tasks batch with `TASK-N` tasks under the same version and are claimed
+exactly once, so a second release never repeats one.
 
 ## Pick the number
 

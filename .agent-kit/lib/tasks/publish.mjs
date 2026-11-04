@@ -45,7 +45,7 @@ export async function cmdTaskPublish({ root, id }) {
  * Runs after the local close is written, so a failed sync reports and returns 1 — it never
  * takes back a close that is already on disk.
  */
-export async function syncAfterClose({ base, fm, body, rel, change }) {
+export async function syncAfterClose({ base, fm, body, rel }) {
 	if (CHILD_ID.test(fm.id || "")) return 0;
 	const n = issueNumber(fm);
 	try {
@@ -57,7 +57,7 @@ export async function syncAfterClose({ base, fm, body, rel, change }) {
 		await commentIssue(
 			base,
 			n,
-			`## Summary\n\n${fm.summary}\n\nChange card: \`${change}\``,
+			`## Summary\n\n${fm.summary}\n\nTask: \`${rel}\``,
 		);
 		console.log(`  issue     #${n} closed with the final record`);
 	} catch (e) {

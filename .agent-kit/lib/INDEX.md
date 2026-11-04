@@ -23,6 +23,7 @@ directory.
 | `changelog.mjs` | change cards; retiring a pre-127 recent block | a close writes a card |
 | `release.mjs` | `release`: the note from each card's paragraph and commit | cutting a note |
 | `guard.mjs` | `task guard` | the commit hooks |
+| `invoke/` | `prompt`, `wire`, job ids, harness pointers | an invokable procedure is missing |
 | `learnings.mjs` | `learnings archive` | the cap is hit |
 | `selftest/` | `selftest`: one fixture, the gate scenarios grouped by area | a gate needs its failing fixture |
 | `main.mjs` | argv parsing, dispatch | a new subcommand or flag |

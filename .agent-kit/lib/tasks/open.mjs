@@ -15,7 +15,6 @@ import {
 	slugify,
 } from "../taskfile.mjs";
 import { blockedState } from "../verify/evidence.mjs";
-import { cmdVerify } from "../verify/index.mjs";
 import { importTask, mintTask } from "./issue.mjs";
 
 export function cmdTaskNew({
@@ -165,27 +164,18 @@ function openTask(base, { id, slug, lane, parent, micro, noBaseline, intent, sum
 	refreshActive(base);
 
 	console.log(`\nOpened ${id} -> ${TASKS}/active/${file}`);
+	console.log(
+		`Baseline ${baseline === "none" ? "none: no commit yet" : baseline}`,
+	);
 	if (parent)
 		console.log(
 			`Subtask of ${parent}; it closes on the quick suite (lint included). The main close adds build.`,
 		);
 	console.log(
 		micro
-			? "Fill: touches and scope. Micro has no G1/G2; its close runs the always-tier commands and writes a PATCH-N card."
+			? "Fill: touches and scope. Micro has no G1/G2; its close runs the always-tier commands."
 			: "Fill: touches, scope, plan. PLANNED halts for approval before the first edit.",
 	);
-	if (noBaseline) {
-		console.log(
-			"Baseline skipped (--no-baseline): the 'was it already broken' answer is now missing.\n",
-		);
-		return 0;
-	}
-	console.log(
-		micro
-			? "Baseline run (always-tier commands only; build is proven once at release):\n"
-			: "Baseline run, so a red command is reported rather than blamed on this task:\n",
-	);
-	cmdVerify({ root: base, baseline: true, full: !parent && !micro });
 	return 0;
 }
 

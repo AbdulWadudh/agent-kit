@@ -41,17 +41,9 @@ with its `TASK-N.M` id when work starts, and ends `done` or `dropped`.
 **Test plan** — command → expected; a new check also shows its failing run.
 - <!-- FILL:test -->
 
-## Baseline (before the change)
-
-<!-- BASELINE:START -->
-<!-- BASELINE:END -->
-
 ## Verification
 
 <!-- VERIFY:START -->
-| Action | Command | Scope | Expected | Observed | Exit |
-|---|---|---|---|---|---|
-| — | not run | — | — | — | — |
 <!-- VERIFY:END -->
 
 ## Close-out

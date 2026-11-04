@@ -13,6 +13,7 @@ export const PROJECT = ".agent-kit/project.md";
 export const TASKS = ".agent-kit/tasks";
 export const TASK_INDEX = `${TASKS}/INDEX.md`;
 export const TASK_TEMPLATE = ".agent-kit/templates/task.md";
+// Legacy only: the card model is retired; a release can still read old cards during upgrade.
 export const LOG_DIR = ".agent-kit/logs";
 
 // A change is one file, filed under the month it landed in:
@@ -33,9 +34,6 @@ export const LOOP_LIMIT = 3;
 // A missing cell means `always`, so a table written before tiers existed keeps its meaning.
 export const TIERS = new Set(["always", "milestone"]);
 
-// `start` derives the newest entries from the files, so only a pre-TASK-127 install still
-// carries a RECENT block; these are the two indexes whose first close retires it.
-export const RECENT_INDEXES = [TASK_INDEX, `${LOG_DIR}/INDEX.md`];
 export const RECENT_LIMIT = 5;
 
 export const TEXT_EXT = new Set([

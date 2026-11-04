@@ -30,6 +30,15 @@ one-off. Installing a skill or wiring an MCP server is the owner's yes, not a mi
 markers; a repo may show none. Say the list when you set up or report, and wire
 `.agent-kit/SKILL.md` for each harness with a skill folder. A report, not a gate.
 
+## Invokable procedures
+
+`agent-kit prompt <job>` prints one procedure: `k79-commit`, `k79-release`, `k79-debug`,
+`k79-spec`. A message that is only a job id is that command: run the prompt and follow it.
+`agent-kit wire` writes a `/<job>` command and a `@<job>` skill pointer for every configured
+harness; a harness with no adapter still uses the prompt command. Both point at one file.
+When the owner asks to install or refresh the repo skills, run `agent-kit skills install`; it
+writes `.agents/skills` in this repo only, never globally.
+
 ## Browser access — use `agent-browser`
 
 Reach for `agent-browser` only when the task needs the UI: clicks, forms, a session, a rendered
@@ -65,8 +74,8 @@ PLANNED: everything else. When unsure, take PLANNED: a short plan, not a rewrite
 
 ## 3. Open
 
-`task new <slug> --lane micro|quick|planned`. It records the baseline run itself — a full one, so the
-milestone rows are on record before you touch anything. The id comes from the `ids` row in
+`task new <slug> --lane micro|quick|planned`. It writes the task file and records the baseline
+commit. The id comes from the `ids` row in
 `project.md` — never type one; `ids: issue` also mints the issue, where `--summary` is its title
 and `--intent` its body; `--from <n>` imports one.
 MICRO records the same task file (intent, scope, touches) but runs only the always-tier
@@ -116,27 +125,27 @@ Report what changed and the evidence, in the user's words. Wait for a yes, then 
 ## 8. Close
 
 `task close` runs the full suite, refuses a red result, checks the diff against `touches`,
-inventories the files, archives the plan and writes the change file (`.agent-kit/logs/MM-YYYY/`).
+inventories the files, and archives the task. The task file is the record and the release source;
+there is no second file.
 The card is the completion record: a `**Task:**` link to the archived plan, `**Scope:**`, then
 `## What changed` with the close-out paragraph. No date, no file list (front matter and `FILES`
 carry them); the plan, evidence and follow-ups stay in the task it links.
 It prints the closing commit's message in the hook's shape; `--pr` adds a PR body from the
-change file and evidence. `--amend "<why>"` accepts a declared breach and writes the reason
+task and evidence. `--amend "<why>"` accepts a declared breach and writes the reason
 into the plan — only with the user's reason, never as a way past a red suite.
 
 A subtask closes differently: `task close` runs the quick suite (lint included), marks it DONE
-and leaves it in `active/`, and prints its own commit message. It writes no change file and
+and leaves it in `active/`, and prints its own commit message. It writes no second record and
 archives nothing. The last subtask close puts the main task back in progress.
 
-MICRO closes on the always-tier commands (typecheck, lint), the scope check and one `PATCH-N`
-change card; it never runs a milestone row, and it archives like a top-level task. Build proof
-happens once, at release.
+MICRO closes on the always-tier commands (typecheck, lint) and the scope check; it never runs a
+milestone row, and it archives like a top-level task. Build proof happens once, at release.
 
 The main task's close is the milestone. It refuses while a subtask is open, then runs the full
 suite, build included. A red build stops the close with its rows recorded: fix those errors
 now, in this task, and close again; the suite re-runs. Green, the main task and its DONE
-subtasks archive together, the change file is one, the write set is the main task's files plus
-every subtask's, and every commit names the main id.
+subtasks archive together, the record is the main task, the write set is the main task's files
+plus every subtask's, and every commit names the main id.
 
 Before committing, read `.agent-kit/rules/commits.md` — the split, subject, body and staging.
 
@@ -168,7 +177,7 @@ follow-up suggestions unless asked.
   then delete the row.
 - **The change outgrows QUICK.** Stop, reopen it as PLANNED, take the gate.
 - **The process is the friction.** A rule or gate that cost two sessions is a kit task: cite the
-  two changes, then follow `.agent-kit/prompts/kit-review.md`. It is not a product task.
+  two changes, then follow `.agent-kit/skills/k79-kit-review.md`. It is not a product task.
 
 ## Not yours
 

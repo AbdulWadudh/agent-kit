@@ -220,19 +220,19 @@ export async function issueIdScenarios(ctx) {
 				closedIssue.body.body.includes("**Summary**"),
 			"the final record and its title travel with the close",
 		);
-		const cardPath = spy.calls
+		const taskPath = spy.calls
 			.filter(
 				(c) => c.method === "POST" && c.url.endsWith("/issues/131/comments"),
 			)
 			.at(-1)
-			?.body?.body?.match(/Change card: `([^`]+)`/)?.[1];
+			?.body?.body?.match(/Task: `([^`]+)`/)?.[1];
 		assert(
-			!!cardPath && exists(abs(dir, cardPath)),
-			"the issue gets the change card the close wrote",
+			!!taskPath && exists(abs(dir, taskPath)),
+			"the issue gets the archived task the close wrote",
 		);
 		assert(
 			row(ctx, dir, "task ids unique").status === "PASS",
-			"a task file and its change card are not a duplicate",
+			"a task file and its issue are not a duplicate",
 		);
 
 		const renumber = cli(dir, "task renumber TASK-101 TASK-900");

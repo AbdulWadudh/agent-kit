@@ -1,6 +1,6 @@
 /** selftest/release.mjs — the change log is a folder of dated files */
 import fs from "node:fs";
-import { LOG_DIR, MANIFEST, STATE } from "../consts.mjs";
+import { LOG_DIR, MANIFEST, STATE, TASKS } from "../consts.mjs";
 import { cmdDoctor } from "../doctor/index.mjs";
 import { abs, exists, expand, frontMatter, git, read, run, write } from "../io.mjs";
 import { sourceFor } from "../manifest.mjs";
@@ -13,35 +13,28 @@ export function changeLogScenario(ctx) {
 	console.log(
 		"\n13. the change log is a folder of dated files, not a release ledger",
 	);
-	const changes = expand(tmp, LOG_DIR).filter(
-		(r) => r.endsWith(".md") && !r.endsWith("INDEX.md"),
+	const archived = expand(tmp, `${TASKS}/archive`).filter(
+		(rel) => rel.includes("TASK-101") && rel.endsWith(".md"),
 	);
+	assert(archived.length === 1, "the task is the record");
 	assert(
-		changes.some((rel) =>
-			/^\.agent-kit\/logs\/\d{2}-\d{4}\/\d{4}-\d{2}-\d{2}-TASK-101-[\w-]+\.md$/.test(
-				rel,
-			),
-		),
-		"a change sits in its month folder, named by date, task and slug",
-	);
-	assert(
-		!exists(abs(tmp, `${LOG_DIR}/changelog.md`)),
-		"there is no accumulating changelog to keep in sync",
+		!expand(tmp, LOG_DIR).some((rel) => !rel.endsWith("INDEX.md")),
+		"there is no change log to keep in sync",
 	);
 	assert(
 		quiet(() => cmdDoctor({ root: tmp })) === 0,
-		"doctor accepts the change log as it is",
+		"doctor accepts the archived task as the record",
 	);
 }
 
 export function releaseScenarios(ctx) {
 	const { tmp, assert, quiet, doctorRow } = ctx;
-	console.log("\n28. a release collects the change files no release claims");
-	const card = expand(tmp, LOG_DIR).find(
+	console.log("\n28. a release collects the archived tasks no release claims");
+	const archivedRel = expand(tmp, `${TASKS}/archive`).find(
 		(rel) => rel.includes("TASK-101") && rel.endsWith(".md"),
 	);
-	write(abs(tmp, card), `${read(abs(tmp, card))}\n`);
-	git(tmp, ["add", "-A", LOG_DIR]);
+	write(abs(tmp, archivedRel), `${read(abs(tmp, archivedRel))}\n`);
+	git(tmp, ["add", "-A", `${TASKS}/archive`]);
 	git(tmp, [
 		"-c",
 		"user.email=t@t",
@@ -52,7 +45,10 @@ export function releaseScenarios(ctx) {
 		"close TASK-101",
 	]);
 	const sha = (git(tmp, ["rev-parse", "--short", "HEAD"]) || "").trim();
-	assert(!!card && sha.length >= 7, "the card is committed before the note is cut");
+	assert(
+		!!archivedRel && sha.length >= 7,
+		"the task is committed before the note is cut",
+	);
 	const priorRepo = process.env.GITHUB_REPOSITORY;
 	process.env.GITHUB_REPOSITORY = "example/fixture";
 	const releaseCode = quiet(() =>
@@ -81,7 +77,7 @@ export function releaseScenarios(ctx) {
 			) &&
 			!releaseText.includes("- fixture change (TASK-101)") &&
 			!releaseText.includes("Touched Modules"),
-		"the note quotes the card's paragraph under a bold title that links its task and names its commit",
+		"the note quotes the task's paragraph under a bold title that links its task and names its commit",
 	);
 	assert(
 		new RegExp(

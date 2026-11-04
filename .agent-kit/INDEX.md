@@ -16,10 +16,9 @@ do not read the directory.
 | `rules/INDEX.md` | the rules router | every session, then only the matching rules |
 | `tasks/INDEX.md` | lanes, gates, active task | before opening, resuming or closing a task |
 | `tasks/BACKLOG.md` | parked candidates with a status; not tasks | looking for what is next, or recording a finding |
-| `logs/INDEX.md` | the change-log model and the five newest changes | recording or looking up a change |
-| `releases/` | one `vX.Y.Z.md` per release, rolled up from the change files | cutting or reading a release |
+| `releases/` | one `vX.Y.Z.md` per release, derived from archived tasks | cutting or reading a release |
 | `githooks/INDEX.md` | the optional commit guard | wiring or debugging the hooks |
-| `prompts/INDEX.md` | the long jobs an agent runs: docs fill, entry-file trim, kit review, template upgrade | the owner asks for one, or a trim/review/upgrade trigger applies |
+| `skills/INDEX.md` | the source skills: commit, release, debug, spec, docs fill, entry-file trim, kit review, upgrade | the owner asks for one, or a trim/review/upgrade trigger applies |
 | `templates/INDEX.md` | seeds, copyable rule examples, and the steps for adding or changing a rule | editing a seed or a rule |
 | `sync-manifest.json` | what travels to a target repo, and what never does | installing, pulling, auditing the kit |
 

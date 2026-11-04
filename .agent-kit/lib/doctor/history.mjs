@@ -1,70 +1,59 @@
-/** doctor/history.mjs — completeness and release notes */
+/** doctor/history.mjs — archived-task records and release notes */
 import fs from "node:fs";
 import path from "node:path";
-import { LOG_DIR, TASKS } from "../consts.mjs";
 import {
 	abs,
 	exists,
-	expand,
-	frontMatter,
 	git,
 	isDir,
 	read,
 } from "../io.mjs";
-import { CHILD_ID } from "../taskfile.mjs";
+import { archivedTasks, closeOutField } from "../taskfile.mjs";
 import { evidenceDetail } from "../verify/evidence.mjs";
 
 export function historyChecks({ base, add }) {
-	// 7. completeness: an archived task with no change file is a change nobody can find.
-	const logged = new Set(
-		expand(base, LOG_DIR)
-			.filter((rel) => rel.endsWith(".md"))
-			.map((rel) => frontMatter(read(abs(base, rel))).id)
-			.filter(Boolean),
-	);
-	const undocumented = expand(base, `${TASKS}/archive`)
-		.filter((rel) => rel.endsWith(".md"))
-		.filter((rel) => {
-			const id = frontMatter(read(abs(base, rel))).id;
-			// A subtask archives inside its parent's delivery and is named in that change file.
-			return id && !CHILD_ID.test(id) && !logged.has(id);
-		});
+	const archived = archivedTasks(base);
+
+	// The task is the record: a close without a summary leaves a release with nothing to say.
+	const missingOutcome = archived
+		.filter((task) => {
+			const outcome = closeOutField(task.text, "Summary");
+			return (
+				(!outcome || /<!--\s*FILL:/.test(outcome)) && !task.fm.summary
+			);
+		})
+		.map((task) => task.rel);
 	add(
-		undocumented.length ? "FAIL" : "PASS",
-		"archived tasks changelogged",
-		undocumented.slice(0, 3).join(", "),
+		missingOutcome.length ? "FAIL" : "PASS",
+		"archived outcomes",
+		missingOutcome.slice(0, 3).join(", "),
 	);
 
-	// A micro close keeps the record: the card it wrote and a real exit code in its evidence.
-	const microProblems = [];
-	for (const rel of expand(base, `${TASKS}/archive`).filter((r) =>
-		r.endsWith(".md"),
-	)) {
-		const text = read(abs(base, rel));
-		const fm = frontMatter(text);
-		if (String(fm.lane || "").toUpperCase() !== "MICRO" || CHILD_ID.test(fm.id || ""))
-			continue;
-		if (!logged.has(fm.id)) microProblems.push(`${fm.id}: no change card`);
-		if (!evidenceDetail(text).some((r) => Number.isFinite(r.exit)))
-			microProblems.push(`${fm.id}: no evidence row`);
-	}
+	// A micro close keeps the record: a real exit code in its evidence.
+	const microProblems = archived
+		.filter(
+			(task) =>
+				String(task.fm.lane || "").toUpperCase() === "MICRO" &&
+				!evidenceDetail(task.text).some((row) => Number.isFinite(row.exit)),
+		)
+		.map((task) => `${task.fm.id}: no evidence row`);
 	add(
 		microProblems.length ? "FAIL" : "PASS",
 		"micro closes",
 		microProblems.slice(0, 3).join(", ") || "none",
 	);
 
-	// 7b. a release note is named for its version and says so on the first line, so a note
+	// A release note is named for its version and says so on the first line, so a note
 	// cannot be filed under the wrong tag. A repo that never cuts a release has no folder.
 	const releaseDir = abs(base, ".agent-kit/releases");
 	const releaseFiles = isDir(releaseDir)
-		? fs.readdirSync(releaseDir).filter((f) => f.endsWith(".md"))
+		? fs.readdirSync(releaseDir).filter((file) => file.endsWith(".md"))
 		: [];
-	const misnamed = releaseFiles.filter((f) => {
+	const misnamed = releaseFiles.filter((file) => {
 		const first = (
-			read(path.join(releaseDir, f)).split(/\r?\n/)[0] || ""
+			read(path.join(releaseDir, file)).split(/\r?\n/)[0] || ""
 		).trim();
-		return first !== `# Release ${f.replace(/\.md$/, "")}`;
+		return first !== `# Release ${file.replace(/\.md$/, "")}`;
 	});
 	add(
 		misnamed.length ? "FAIL" : "PASS",
@@ -80,8 +69,8 @@ export function historyChecks({ base, add }) {
 	// because a release is briefly untagged between cutting the note and tagging it.
 	if (releaseFiles.length && exists(abs(base, ".git"))) {
 		const untagged = releaseFiles
-			.map((f) => f.replace(/\.md$/, ""))
-			.filter((v) => !git(base, ["tag", "-l", v]));
+			.map((file) => file.replace(/\.md$/, ""))
+			.filter((version) => !git(base, ["tag", "-l", version]));
 		add(
 			untagged.length ? "WARN" : "PASS",
 			"release tags",
