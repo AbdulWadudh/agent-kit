@@ -70,7 +70,7 @@ export function releaseScenarios(ctx) {
 	assert(
 		releaseText.includes("### Changed") &&
 			new RegExp(
-				`\\*\\*fixture change\\*\\* \\(\\[TASK-101\\]\\(https://github\\.com/example/fixture/blob/v0\\.1\\.0/\\.agent-kit/tasks/archive/[^)]+\\) · ${sha}\\)`,
+				`\\*\\*fixture change\\*\\* \\(\\[TASK-101\\]\\(https://github\\.com/example/fixture/blob/v0\\.1\\.0/\\.agent-kit/tasks/archive/[^)]+\\) · \\[${sha}\\]\\(https://github\\.com/example/fixture/commit/${sha}\\)\\)`,
 			).test(releaseText) &&
 			releaseText.includes(
 				"The fixture changed one file, and the change file says so.",

@@ -211,6 +211,10 @@ export function cmdRelease({ root, version, tag, noVerify }) {
 		slug && e.taskRel
 			? `[${e.id}](https://github.com/${slug}/blob/${tagName}/${e.taskRel})`
 			: e.id;
+	const commitLink = (e) =>
+		slug && e.commit
+			? `[${e.commit}](https://github.com/${slug}/commit/${e.commit})`
+			: e.commit;
 	const issueLink = (e) => {
 		if (/^PATCH-/.test(e.id)) return "";
 		const n = slug ? issueById.get(e.id) : null;
@@ -225,7 +229,7 @@ export function cmdRelease({ root, version, tag, noVerify }) {
 		lines.push(`### ${label}`, "");
 		for (const e of group) {
 			lines.push(
-				`**${e.summary}** (${taskLink(e)}${e.commit ? ` · ${e.commit}` : ""})`,
+				`**${e.summary}** (${taskLink(e)}${e.commit ? ` · ${commitLink(e)}` : ""})`,
 				"",
 			);
 			if (e.note && e.note !== e.summary) lines.push(e.note, "");

@@ -12,13 +12,25 @@ only for a deliberate cut. Build proof happens once per version, so a micro fix 
 it.
 
 The file it writes: `# Release vX.Y.Z`, the date, then `### Added`, `### Changed`, `### Fixed` and
-`### Removed`. Each task is its summary in bold with the commit that shipped it
-(`TASK-127 · 544f2dc`), then the task's `**Summary**` paragraph, so the note reads as prose and
-points at the code. The commit comes from `git log` on the archived task, so the task must be
-committed before the note is cut; the command names any that are not. A `RELEASED` block names the
-tasks it claims — it is what the next release reads, so deleting an id from it ships that task a
-second time. `PATCH-N` tasks batch with `TASK-N` tasks under the same version and are claimed
-exactly once, so a second release never repeats one.
+`### Removed`. Each entry is one task and one commit:
+
+```md
+### Added
+
+**Rate-limit the invite endpoint** ([TASK-127](…/tasks/archive/…md) · [544f2dc](…/commit/544f2dc))
+The invite endpoint now allows five requests a minute per address, and the limit is a constant.
+```
+
+The bold title is the task summary. The commit comes from `git log` on the archived task, so the
+task must be committed before the note is cut; the command names any that are not. One commit is
+one entry: if a single commit carries several changes, write one entry for that commit and put the
+changes in its paragraph. Never repeat the same commit link under several titles.
+
+A `RELEASED` block names the tasks it claims — it is what the next release reads, so deleting an id
+from it ships that task a second time. `PATCH-N` tasks batch with `TASK-N` tasks under the same
+version and are claimed exactly once, so a second release never repeats one.
+
+A correction is a new patch release; never rewrite a released note and never move a tag.
 
 ## Pick the number
 
