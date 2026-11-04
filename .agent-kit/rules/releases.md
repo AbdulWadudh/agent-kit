@@ -29,6 +29,12 @@ over three lines. One commit is one entry: if a single commit carries additions,
 removals, keep one entry and label the bullets `- Added:`, `- Changed:`, `- Removed:`; never create
 a second entry for the same commit just to reach another heading. Never repeat a commit link.
 
+The note is authored, not generated. `agent-kit release --entries` lists the unclaimed tasks with
+their commits and prints a template; the agent fills the bullets and writes
+`.agent-kit/releases/<version>.md`. Code does not format prose, split paragraphs, or choose
+headings. `release <version>` remains a draft generator for a script; do not ship its output as the
+final note.
+
 A `RELEASED` block names the tasks it claims — it is what the next release reads, so deleting an id
 from it ships that task a second time. `PATCH-N` tasks batch with `TASK-N` tasks under the same
 version and are claimed exactly once, so a second release never repeats one.
@@ -56,10 +62,10 @@ in sync.
 
 ```bash
 agent-kit release vX.Y.Z                # writes the note and prints the next lines
-git add .agent-kit/releases/vX.Y.Z.md && git commit -m "docs: release vX.Y.Z"
+git add .agent-kit/releases/<version>.md && git commit -m "docs: release vX.Y.Z"
 agent-kit release --tag vX.Y.Z          # annotated tag, message = the note
 git push origin vX.Y.Z
-gh release create vX.Y.Z --notes-file .agent-kit/releases/vX.Y.Z.md
+gh release create vX.Y.Z --notes-file .agent-kit/releases/<version>.md
 ```
 
 `release --tag` refuses a note that is not committed (the tag would carry a file its own tree lacks),

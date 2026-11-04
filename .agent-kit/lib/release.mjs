@@ -125,8 +125,46 @@ export function unreleasedChanges(base) {
  * once per version and read by git and people, not by an agent index. Cutting the note never commits
  * or tags; `--tag` is the second half, and it refuses to tag a note that is not committed yet.
  */
-export function cmdRelease({ root, version, tag, noVerify }) {
+export function cmdRelease({ root, version, tag, noVerify, entries, json }) {
 	const base = path.resolve(root || process.cwd());
+	if (entries) {
+		const fresh = unreleasedChanges(base);
+		if (json) {
+			console.log(JSON.stringify(fresh, null, 2));
+			return 0;
+		}
+		if (!fresh.length) {
+			console.log("nothing new — every task is claimed by a release");
+			return 0;
+		}
+		const byCommit = new Map();
+		for (const entry of fresh) {
+			const key = entry.commit || entry.id;
+			if (!byCommit.has(key)) byCommit.set(key, []);
+			byCommit.get(key).push(entry);
+		}
+		console.log("Unclaimed tasks (one entry per commit):");
+		for (const group of byCommit.values()) {
+			console.log(
+				`  ${group.map((entry) => entry.id).join(", ")}  ${group[0].commit || "(uncommitted)"}  ${group.map((entry) => entry.summary).join(" / ")}`,
+			);
+		}
+		console.log("\nTemplate — author .agent-kit/releases/<version>.md from this. Fill the bullets; no pasted paragraph.");
+		console.log("\n# Release <version>\n\n**Date:** <date>");
+		for (const group of byCommit.values()) {
+			const first = group[0];
+			const label = first.type.charAt(0).toUpperCase() + first.type.slice(1);
+			console.log(`\n### ${label}`);
+			console.log(`**${group.map((entry) => entry.summary).join(" / ")}** (${group.map((entry) => `\`${entry.id}\``).join(", ")} · ${first.commit || "<commit>"})`);
+			console.log("- <!-- what changed, one idea per bullet -->");
+			const notes = group
+				.map((entry) => entry.note)
+				.filter(Boolean)
+				.join(" ");
+			if (notes) console.log(`<!-- source: ${notes.replace(/\s+/g, " ")} -->`);
+		}
+		return 0;
+	}
 	const raw = String(version || "").trim().replace(/^v/i, "");
 	if (!/^\d+\.\d+\.\d+$/.test(raw)) {
 		console.error(

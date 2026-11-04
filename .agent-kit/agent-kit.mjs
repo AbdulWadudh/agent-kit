@@ -41,6 +41,7 @@
  *   task guard [--message <file>]          hook gate: scope (pre-commit), message (commit-msg)
  *   hotfix "<summary>" --files <a,b>       open micro + verify + close; prints the commit message
  *   learnings archive                      move entries past the 30 cap into .agent-kit/learnings/
+ *   release --entries [--json]             list unclaimed tasks and commits for the agent to author the note
  *   release <version>                      write .agent-kit/releases/vX.Y.Z.md from the unclaimed change files
  *                                          (runs `verify --full` first; --no-verify is the deliberate cut)
  *   selftest                               prove every gate can fail, in a temp repo

@@ -28,7 +28,7 @@ export function changeLogScenario(ctx) {
 }
 
 export function releaseScenarios(ctx) {
-	const { tmp, assert, quiet, doctorRow } = ctx;
+	const { tmp, assert, captured, quiet, doctorRow } = ctx;
 	console.log("\n28. a release collects the archived tasks no release claims");
 	const archivedRel = expand(tmp, `${TASKS}/archive`).find(
 		(rel) => rel.includes("TASK-101") && rel.endsWith(".md"),
@@ -48,6 +48,13 @@ export function releaseScenarios(ctx) {
 	assert(
 		!!archivedRel && sha.length >= 7,
 		"the task is committed before the note is cut",
+	);
+	const entries = captured(() => cmdRelease({ root: tmp, entries: true }));
+	assert(
+		entries.includes("TASK-101") &&
+			entries.includes("fixture change") &&
+			entries.includes(sha),
+		"release --entries lists the task, summary and commit for the agent",
 	);
 	const priorRepo = process.env.GITHUB_REPOSITORY;
 	process.env.GITHUB_REPOSITORY = "example/fixture";

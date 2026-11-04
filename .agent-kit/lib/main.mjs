@@ -201,6 +201,8 @@ export function main(argv) {
 				version: positional[0] || value("tag"),
 				tag: flag("tag"),
 				noVerify: flag("no-verify"),
+				entries: flag("entries"),
+				json: flag("json"),
 			});
 		case "selftest":
 			// Template-only: a target install does not ship this folder.
