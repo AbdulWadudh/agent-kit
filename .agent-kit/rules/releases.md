@@ -22,9 +22,12 @@ The invite endpoint now allows five requests a minute per address, and the limit
 ```
 
 The bold title is the task summary. The commit comes from `git log` on the archived task, so the
-task must be committed before the note is cut; the command names any that are not. One commit is
-one entry: if a single commit carries several changes, write one entry for that commit and put the
-changes in its paragraph. Never repeat the same commit link under several titles.
+task must be committed before the note is cut; the command names any that are not.
+
+An entry is the title, the commit link and 2–5 short bullets. One idea per bullet, no paragraph
+over three lines. One commit is one entry: if a single commit carries additions, changes and
+removals, keep one entry and label the bullets `- Added:`, `- Changed:`, `- Removed:`; never create
+a second entry for the same commit just to reach another heading. Never repeat a commit link.
 
 A `RELEASED` block names the tasks it claims — it is what the next release reads, so deleting an id
 from it ships that task a second time. `PATCH-N` tasks batch with `TASK-N` tasks under the same
