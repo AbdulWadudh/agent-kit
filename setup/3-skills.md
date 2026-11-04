@@ -4,9 +4,9 @@
 `setup` installs none of these. **Ask the owner; install only what comes back yes.** One
 message, in these words or close to them:
 
-> Shall I install the recommended skills — ponytail, prompt-master, caveman and the anthropic
-> skills? I have said what each one fixes below. And separately: agent-browser drives a real
-> browser, including live sites and accounts, so it is opt-in — install that too, or leave it?
+> Shall I install the recommended skills - ponytail and the anthropic skills? I have said what
+> each one fixes below. And separately: agent-browser drives a real browser, including live sites
+> and accounts, so it is opt-in - install that too, or leave it?
 
 Then read the answer as a list: each yes is installed and reported, each no is dropped for this
 repo and not asked again unprompted. Sources are in the table.
@@ -14,8 +14,6 @@ repo and not asked again unprompted. Sources are in the table.
 | Skill | Gap the kit's own loop does not close | Source |
 |---|---|---|
 | ponytail | over-building: the smallest change that works, and the check that proves it | https://github.com/DietrichGebert/ponytail |
-| prompt-master | a prompt written for one tool instead of prose the owner can read | https://github.com/nidhinjs/prompt-master |
-| caveman | token cost of long sessions | https://github.com/juliusbrussee/caveman |
 | anthropic skills | documents, spreadsheets, slides, PDFs, frontend polish | https://github.com/anthropics/skills |
 
 `agent-browser` is **opt-in and asked separately**. It drives a real browser: live sites,

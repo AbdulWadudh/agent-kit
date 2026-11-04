@@ -1,4 +1,4 @@
-# Task Brief
+# Prompt Craft
 
 Turn a vague request or an in-progress task into one precise prompt another agent can execute
 without follow-up questions.

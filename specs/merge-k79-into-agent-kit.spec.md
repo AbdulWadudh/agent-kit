@@ -22,7 +22,7 @@
 | 2 | Commit message gate | Advisory by default (warn, exit 0); blocks with `K79_GUARD=strict` or when the caller asks. File cap and task scope always block. |
 | 3 | Durable specs | No `specs/` in the product. A contract change is a PLANNED task whose plan carries the acceptance criteria. |
 | 4 | Changelog/release | agent-kit wins: `.agent-kit/logs/` cards, `releases/`, tags, `release` command. k79's `changelog/` and `release-notes.mjs` are deleted. |
-| 5 | Distribution | agent-kit's copy + pointer model wins. The `skills` CLI remains only for optional third-party skills (prompt-master, caveman, ponytail, anthropic, agent-browser). |
+| 5 | Distribution | agent-kit's copy + pointer model wins. The `skills` CLI remains only for optional third-party skills (ponytail, anthropic, agent-browser); prompt building is `k79-prompt-craft` and token economy is `rtk`. |
 | 6 | Rule budget | k79 text is compressed or moved behind an index. The four always-on caps get one bounded raise (+7.8% total, Phase 0) to make room for the new rule rows; nothing is pasted whole. |
 | 7 | Repo identity | Product stays `agent-kit`. A rename to `k79-agent-kit` is a separate decision, not part of this merge. |
 | 8 | Quality bar | Code structure/splitting and verification are mandatory rule files with executable checks. They are loaded before creating/splitting files and before writing tests, not only when a task asks. |
@@ -35,7 +35,7 @@ Every k79 rule gets an ID and a destination in [`k79-rule-map.md`](k79-rule-map.
 
 | k79 skill | Disposition | Destination |
 | :--- | :--- | :--- |
-| `k79-conductor` | Merge; two rules retire | C-1..C-8 map to `SKILL.md`, `_behavior.md`, `rules/INDEX.md` and `skills/k79-task-brief.md`; C-2 and C-9 retire to `check`/`pull`/tags. |
+| `k79-conductor` | Merge; two rules retire | C-1..C-8 map to `SKILL.md`, `_behavior.md`, `rules/INDEX.md` and `skills/k79-prompt-craft.md`; C-2 and C-9 retire to `check`/`pull`/tags. |
 | `k79-spec-driven` | Merge; two rules retire | S-1..S-8 map to G1, `templates/task.md`, the evidence table, `learnings.md` and `anti-patterns.md`; S-3 and S-4 retire because agent-kit's task file replaces the artifact. |
 | `k79-code-structure` | **First-class rule + checks** | `rules/code-structure.md`, loaded before creating, moving or splitting any file: target 250 / hard 300 lines, split by responsibility (helpers/queries/actions), folder density 8, no feature barrels, verb-first naming, one-way imports. `doctor`: source ceiling, density, barrels. |
 | `k79-evidence-and-simplicity` | Merge, keep the 2-strike | ES-1..ES-7 fold into `_behavior.md` §1/§8/§11/§12 and `anti-patterns.md`; ES-8..ES-10 are kept as the 2-strike and report rules. |
@@ -43,7 +43,7 @@ Every k79 rule gets an ID and a destination in [`k79-rule-map.md`](k79-rule-map.
 | `k79-performance-and-db` | Rule examples | Expand `templates/rule-examples/database.md`; add `performance.md` (N+1, pagination, transactions, timeouts). |
 | `k79-verification-testing` | **First-class rule + checks** | `rules/verification.md`, loaded before writing or changing tests: mirrored `tests/`, 1:2 happy-to-breaking, adversarial boundaries, no mocks in `helpers/`, criterion-to-test traceability. Add `templates/rule-examples/testing.md`; `doctor` checks test mirroring where a test root is declared. |
 | `k79-logging-errors-git` | Split three ways | Errors/logging → `rules/errors.md`; commits → `rules/commits.md` + the guard; changelog/release → deleted, agent-kit's wins. |
-| `k79-prompt-craft` | Keep | PC-1..PC-3 become `skills/k79-task-brief.md`; prompt-master stays an optional installed skill, not a replacement for the kit's own procedure. |
+| `k79-prompt-craft` | Keep | PC-1..PC-3 become `skills/k79-prompt-craft.md`, the dedicated prompt skill. |
 
 k79 machinery: `release-notes.mjs`, `sync-agents.mjs`, `list-skills.mjs`, `validate-skills.mjs`, `release.mjs`, `VERSION`, `changelog/`, `release-notes/` → **superseded**; their rules survive as LEG-9..12. `commit-guard/plan/install-hooks` → **merge** into `lib/guard.mjs` and `githooks/`. `k79-reminder.mjs` / `opencode-reminder.js` → **retire** (agent-kit forbids per-turn plugins).
 
@@ -124,7 +124,7 @@ k79 machinery: `release-notes.mjs`, `sync-agents.mjs`, `list-skills.mjs`, `valid
 - `AGENTS.md`, `.agent-kit/SKILL.md`, `rules/commits.md`, `docs/using.md`, `SETUP.md`, `setup/5-baseline.md`, `README.md` — describe the merged gate and install command.
 
 **Phase 3 — prompts and docs**
-- `.agent-kit/skills/INDEX.md` and `k79-task-brief.md` (only if prompt-craft survives).
+- `.agent-kit/skills/INDEX.md` and `k79-prompt-craft.md` (only if prompt-craft survives).
 - `docs/using.md`, `docs/inside.md`, `setup/3-skills.md` — remove k79 as a separate install; state what is bundled vs optional.
 
 **Phase 4 — release**
@@ -182,7 +182,7 @@ k79 machinery: `release-notes.mjs`, `sync-agents.mjs`, `list-skills.mjs`, `valid
 - Renaming the product/repo to `k79-agent-kit`.
 - Rewriting k79's git history or migrating its published releases.
 - Deleting or trimming k79 source files during the merge; that happens only after the rule map passes review.
-- Changing the optional third-party skills (prompt-master, caveman, ponytail, anthropic, agent-browser).
+- Changing the optional third-party skills (ponytail, anthropic, agent-browser).
 - Auto-wiring hooks into the template repo or any clone.
 - Adding a plugin, daemon or per-turn hook.
 - Releasing before Phases 0–3 are green.

@@ -17,9 +17,9 @@ harness with its own skill folder gets a four-line pointer, not a copy; `setup` 
 the repo already keeps that folder, and `agent-kit harnesses` finds them even when the repo
 shows no harness config.
 
-Companion skills are recommended, not bundled: ponytail, prompt-master, caveman and the
-anthropic skills — and `agent-browser` only if you say yes, because it drives a real browser
-and can reach live sites and accounts. The sources and the exact question to ask are in
+Companion skills are recommended, not bundled: ponytail and the anthropic skills - and
+`agent-browser` only if you say yes, because it drives a real browser and can reach live sites
+and accounts. Prompt building is the bundled `k79-prompt-craft` skill; token economy is `rtk`. The sources and the exact question to ask are in
 `SETUP.md` §3.
 
 No plugin: a plugin is code that runs on every turn, and this needs instructions at the

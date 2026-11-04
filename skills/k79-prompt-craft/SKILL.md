@@ -1,16 +1,16 @@
 ---
-name: k79-task-brief
+name: k79-prompt-craft
 description: interviews until the goal is agreed, then emits one precise prompt
 license: MIT
 metadata:
   source: "AbdulWadudh/agent-kit"
 ---
 
-<!-- Generated from .agent-kit/skills/k79-task-brief.md. Do not edit; edit the source skill and run `agent-kit skills build`. -->
+<!-- Generated from .agent-kit/skills/k79-prompt-craft.md. Do not edit; edit the source skill and run `agent-kit skills build`. -->
 
 Run this only in a repository with `.agent-kit/`. If it is absent, say the repository is not set up with agent-kit and stop.
 
-# Task Brief
+# Prompt Craft
 
 Turn a vague request or an in-progress task into one precise prompt another agent can execute
 without follow-up questions.

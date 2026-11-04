@@ -101,8 +101,8 @@ Then ask me these eight questions, and wait for the answers before changing anyt
 6. What is off-limits: directories, generated or vendored paths, secrets, anything you must
    ask before changing?
 7. What is the first task you want to hand over?
-8. Skills: shall I install the recommended ones — ponytail, prompt-master, caveman and the
-   anthropic skills? Ask me, install only what I say yes to, and say what each is for.
+8. Skills: shall I install the recommended ones - ponytail and the anthropic skills? Ask me,
+   install only what I say yes to, and say what each is for.
    Separately, on its own: agent-browser drives a real browser, including live sites and
    accounts, so it is opt-in — ask me that one apart from the rest.
 

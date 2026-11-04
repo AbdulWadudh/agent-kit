@@ -10,7 +10,7 @@ Every rule from the nine k79 skills gets one row. A row without a destination is
 | :--- | :--- | :--- | :--- |
 | C-1 | Lifecycle order: spec, structure/evidence, verify, commit | `.agent-kit/SKILL.md` (classify → task → G1 → work → verify → G2 → close) | MERGE |
 | C-2 | Suite self-update protocol and install approval | `check` / `pull` / release tags | RETIRE — agent-kit owns upgrades |
-| C-3 | A prompt request is an interview, not code | `.agent-kit/skills/k79-task-brief.md` | KEEP |
+| C-3 | A prompt request is an interview, not code | `.agent-kit/skills/k79-prompt-craft.md` | KEEP |
 | C-4 | Stop for spec approval before source edits | `SKILL.md` G1 + `rules/_behavior.md` §11 | MERGE |
 | C-5 | Load only the skills matched to the files touched | `rules/INDEX.md` "read when" column | MERGE |
 | C-6 | Adversarial verification; proof for every done claim | `SKILL.md` §6 + `rules/verification.md` + evidence table | MERGE |
@@ -137,9 +137,9 @@ Every rule from the nine k79 skills gets one row. A row without a destination is
 
 | ID | Rule | agent-kit home | Status |
 | :--- | :--- | :--- | :--- |
-| PC-1 | Turn a vague request into one focused outcome prompt | `.agent-kit/skills/k79-task-brief.md` | KEEP |
-| PC-2 | Interview until the goal is agreed; challenge scope | `.agent-kit/skills/k79-task-brief.md` | KEEP |
-| PC-3 | Emit one copy-pasteable prompt, not a plan | `.agent-kit/skills/k79-task-brief.md` | KEEP |
+| PC-1 | Turn a vague request into one focused outcome prompt | `.agent-kit/skills/k79-prompt-craft.md` | KEEP |
+| PC-2 | Interview until the goal is agreed; challenge scope | `.agent-kit/skills/k79-prompt-craft.md` | KEEP |
+| PC-3 | Emit one copy-pasteable prompt, not a plan | `.agent-kit/skills/k79-prompt-craft.md` | KEEP |
 
 ## Machinery (not rules)
 

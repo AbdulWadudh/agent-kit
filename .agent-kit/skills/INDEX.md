@@ -17,7 +17,7 @@ one skill and follow it; do not read the folder.
 | `k79-kit-review.md` | finds the rule or gate that keeps costing a session, then fixes or proposes it | the process is the friction, with evidence |
 | `k79-trim-agents-md.md` | rewrites `AGENTS.md` against the seed, moving each fact to its home | the entry file costs more than it earns |
 | `k79-upgrade.md` | checks the recorded template source, shows the diff, then pulls it as one task | the owner says upgrade agent-kit, or asks what changed in the template |
-| `k79-task-brief.md` | interviews until the goal is agreed, then emits one precise prompt | the owner asks for a prompt, brief or handoff |
+| `k79-prompt-craft.md` | interviews until the goal is agreed, then emits one precise prompt | the owner asks for a prompt, brief or handoff |
 
 A skill is not a rule. It says how to run one job; the constraints it obeys are in
 `.agent-kit/rules/`, and a skill that contradicts them is the bug.
